@@ -19,9 +19,9 @@ object Semantics_SubstNondeterm extends AbstractSemantics {
     case Par(ps) => {
       nondeterministic(
         crossProduct(ps map (interp(_))),
-        (x: Bag[Send]) => interpSends(x))
+        (x: Val) => interpSends(x))
     }
-    case s@Send(rcv, args) => interpSends(Bag(s))
+    case s@Send(_, _) => interpSends(Bag(s))
   }
 
   def interpSends(sends: Bag[Send]): Res[Val] = {
@@ -31,7 +31,8 @@ object Semantics_SubstNondeterm extends AbstractSemantics {
     else
       nondeterministic(
         canSend,
-        (p: (Server, Rule, Map[Symbol, Service], Bag[Send])) => fireRule(p._1, p._2, p._3, p._4, sends))
+        (p: (Server, Rule, Map[Symbol, Service], Bag[Send]))
+          => fireRule(p._1, p._2, p._3, p._4, sends))
   }
 
   def selectSends(sends: Bag[Send]): Res[(Server, Rule, Map[Symbol, Service], Bag[Send])] =
@@ -64,7 +65,7 @@ object Semantics_SubstNondeterm extends AbstractSemantics {
     for ((x, s) <- subst)
       p = map(substService(x, s), p)
     val rest = allSends diff usedSends
-    interp(Par(Bag(p) ++ (rest)))
+    interp(Par(Bag(p) ++ rest))
   }
 
   def collectRules(s: Send): Bag[(Server, Rule)] = s match {

@@ -116,7 +116,7 @@ object Semantics_RoutingNondeterm extends AbstractSemantics {
           if v.env.isDefinedAt(x) && server == v.env(x)
           => params.size == args.size
         case Send(ServiceRef(server2@ServerImpl(_), `name`), args)
-          if server == server2
+          if Router.lookupAddr(server) == server2
           => params.size == args.size
         case _ => false
       })
@@ -143,8 +143,8 @@ object Semantics_RoutingNondeterm extends AbstractSemantics {
     }
     case Send(ServiceRef(ServerVar(x), _), _) if envServer.isDefinedAt(x) => {
       val addr = envServer(x)
-      val s = Router.lookupAddr(addr)
-      s.rules map ((addr, _))
+      val rules = Router.lookupAddr(addr).rules
+      rules map ((addr, _))
     }
     case Send(_, _) => Bag()
   }
