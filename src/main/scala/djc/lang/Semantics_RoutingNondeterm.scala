@@ -10,11 +10,11 @@ object Semantics_RoutingNondeterm extends AbstractSemantics {
   import Substitution._
 
   type Addr = String
-  class ServerAddr(x: Symbol) extends ServerVar(x)
+  type ServerAddr = ServerVar
   object ServerAddr {
     val prefix = "ADDR:"
     def apply(addr: Addr) = new ServerAddr(Symbol(prefix + addr))
-    def unapply(s: ServerAddr) = getAddr(s.x.name)
+    def unapply(s: ServerVar) = getAddr(s.x.name)
 
     def getAddr(name: String) =
       if (name.startsWith(prefix))
@@ -112,12 +112,8 @@ object Semantics_RoutingNondeterm extends AbstractSemantics {
       val name = pats.head.name
       val params = pats.head.params
       val matchingSends = v.sends.filter({
-        case Send(ServiceRef(ServerVar(x), `name`), args)
-          if v.env.isDefinedAt(x) && server == v.env(x)
-          => params.size == args.size
-        case Send(ServiceRef(server2@ServerImpl(_), `name`), args)
-          if Router.lookupAddr(server) == server2
-          => params.size == args.size
+        case Send(ServiceRef(s, `name`), args)
+          if params.size == args.size && serverEqual(server, s, v.env) => true
         case _ => false
       })
       nondeterministic(
@@ -127,6 +123,16 @@ object Semantics_RoutingNondeterm extends AbstractSemantics {
         )
       )
     }
+
+  def serverEqual(s1: Server, s2: Server, env: EnvServer): Boolean = (s1, s2) match {
+    case (ServerAddr(addr1), ServerAddr(addr2)) if addr1 == addr2 => true
+    case (ServerVar(x1), ServerVar(x2)) if x1 == x2 => true
+    case (ServerVar(x1), s2) if env.isDefinedAt(x1) => serverEqual(env(x1), s2, env)
+    case (s1, ServerVar(x2)) if env.isDefinedAt(x2) => serverEqual(s1, env(x2), env)
+    case (s1@ServerImpl(_), s2@ServerAddr(_)) => serverEqual(s1, Router.lookupAddr(s2), env)
+    case (s1@ServerAddr(_), s2@ServerImpl(_)) => serverEqual(Router.lookupAddr(s1), s2, env)
+    case (s1@ServerImpl(_), s2@ServerImpl(_)) => s1 == s2
+  }
 
   def fireRule(server: ServerAddr, rule: Rule, subst: Map[Symbol, Service], used: Val, orig: Val): Res[Val] = {
     var p = map(substServer('this, server), rule.p)
@@ -139,6 +145,11 @@ object Semantics_RoutingNondeterm extends AbstractSemantics {
   def collectRules(s: Send, envServer: EnvServer): Bag[(ServerAddr, Rule)] = s match {
     case Send(ServiceRef(s@ServerImpl(rules), _), _) => {
       val addr = Router.registerServer(s)
+      rules map ((addr, _))
+    }
+    case Send(ServiceRef(ServerAddr(_), _), _) => {
+      val addr = s.rcv.asInstanceOf[ServiceRef].srv.asInstanceOf[ServerAddr]
+      val rules = Router.lookupAddr(addr).rules
       rules map ((addr, _))
     }
     case Send(ServiceRef(ServerVar(x), _), _) if envServer.isDefinedAt(x) => {
