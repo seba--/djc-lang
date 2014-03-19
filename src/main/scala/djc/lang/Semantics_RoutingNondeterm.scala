@@ -14,9 +14,9 @@ object Semantics_RoutingNondeterm extends AbstractSemantics {
   object ServerAddr {
     val prefix = "ADDR:"
     def apply(addr: Addr) = new ServerAddr(Symbol(prefix + addr))
-    def unapply(s: ServerVar) = getAddr(s.x.name)
+    def unapply(s: ServerVar): Option[Addr] = getAddr(s.x.name)
 
-    def getAddr(name: String) =
+    def getAddr(name: String): Option[Addr] =
       if (name.startsWith(prefix))
         Some(name.substring(prefix.length))
       else
