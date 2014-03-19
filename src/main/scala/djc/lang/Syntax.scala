@@ -18,6 +18,7 @@ case class ServerImpl(rules: Bag[Rule]) extends Server
 case class Rule(ps: Bag[Pattern], p: Prog)
 case class Pattern(name: Symbol, params: List[Symbol])
 
+
 object Folder {
   type FProg[T] = ((Symbol, T, T) => T, Bag[T] => T, (T, List[T]) => T)
   type FService[T] = (Symbol => T, (T, Symbol) => T)

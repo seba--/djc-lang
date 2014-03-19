@@ -24,6 +24,12 @@ class Bag[T](m: ListMap[T, Int]) extends scala.collection.immutable.Set[T]
       new Bag(m - t)
   }
 
+  // TODO: need those?
+//  override def equals(that: Any) =
+//    that.isInstanceOf[Bag[T]] && m == that.asInstanceOf[this.type].m
+//
+//  override def hashCode = m.hashCode
+
   override def contains(t: T) = m.contains(t)
 
   /* Need to override string, so that it's not the Function1's string that gets mixed in.

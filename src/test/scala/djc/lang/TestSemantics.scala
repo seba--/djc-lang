@@ -4,12 +4,17 @@ import org.scalatest.FunSuite
 import util.Bag
 
 
-class TestSemantics_InterpSubst extends FunSuite {
+class TestSemantics_SubstNondeterm extends TestSemantics(Semantics_SubstNondeterm)
+class TestSemantics_EnvironmentNondeterm extends TestSemantics(Semantics_EnvironmentNondeterm)
 
-  def testInterp(s: String, p: Prog, expected: Semantics_SubstNondeterm.Res[Semantics_SubstNondeterm.Val]): Unit =
+
+
+abstract class TestSemantics(sem: AbstractSemantics) extends FunSuite {
+  def testInterp(s: String, p: Prog, expected: sem.Res[Bag[Send]]): Unit =
     test(s) {
-      val res = Semantics_SubstNondeterm.interp(p)
-      assert (res == expected, s"Was $res, expected $expected")
+      val res = sem.interp(p)
+      val norm = res map (sem.normalizeVal(_))
+      assert (norm == expected, s"Was $norm, expected $expected")
     }
 
 
