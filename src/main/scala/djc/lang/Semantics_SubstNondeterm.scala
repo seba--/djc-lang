@@ -45,7 +45,7 @@ object Semantics_SubstNondeterm {
       val name = pats.head.name
       val params = pats.head.params
       val matchingSends = sends.filter({
-        case Send(ServiceRef(server2, `name`), args) => server == server2 && params.size == args.size
+        case Send(ServiceRef(`server`, `name`), args) => params.size == args.size
         case _ => false
       })
       nondeterministic(
