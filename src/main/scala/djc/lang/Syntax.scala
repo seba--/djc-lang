@@ -13,16 +13,16 @@ case class ServiceRef(srv: Server, x: Symbol) extends Service
 
 abstract class Server
 case class ServerVar(x: Symbol) extends Server
-case class ServerImpl(rules: List[Rule]) extends Server
+case class ServerImpl(rules: Bag[Rule]) extends Server
 
-case class Rule(ps: List[Pattern], p: Prog)
+case class Rule(ps: Bag[Pattern], p: Prog)
 case class Pattern(name: Symbol, params: List[Symbol])
 
 object Folder {
   type FProg[T] = ((Symbol, T, T) => T, Bag[T] => T, (T, List[T]) => T)
   type FService[T] = (Symbol => T, (T, Symbol) => T)
-  type FServer[T] = (Symbol => T, List[T] => T)
-  type FRule[T] = (List[T], T) => T
+  type FServer[T] = (Symbol => T, Bag[T] => T)
+  type FRule[T] = (Bag[T], T) => T
   type FPattern[T] = (Symbol, List[Symbol]) => T
 
   type Folder[T] = (FProg[T], FService[T], FServer[T], FRule[T], FPattern[T])
@@ -54,8 +54,8 @@ object Folder {
 object Mapper {
   type FProg = (Option[(Symbol, Server, Prog) => Prog], Option[Bag[Prog] => Prog], Option[(Service, List[Service]) => Prog])
   type FService = (Option[Symbol => Service], Option[(Server, Symbol) => Service])
-  type FServer = (Option[Symbol => Server], Option[List[Rule] => Server])
-  type FRule = Option[(List[Pattern], Prog) => Rule]
+  type FServer = (Option[Symbol => Server], Option[Bag[Rule] => Server])
+  type FRule = Option[(Bag[Pattern], Prog) => Rule]
   type FPattern = Option[(Symbol, List[Symbol]) => Pattern]
 
   type Mapper = (FProg, FService, FServer, FRule, FPattern)

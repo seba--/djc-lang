@@ -15,8 +15,8 @@ class TestSemantics_InterpSubst extends FunSuite {
 
   // single message send
   val s1 = ServerImpl(
-    List(Rule(
-      List(Pattern('m1, List('x))),
+    Bag(Rule(
+      Bag(Pattern('m1, List('x))),
       Send(ServiceRef(ServerVar('Print), 'foo), List(ServiceVar('x))))))
 
   val p1 = Def('s1, s1, Send(ServiceRef(ServerVar('s1), 'm1), List(ServiceVar('bar))))
@@ -27,12 +27,12 @@ class TestSemantics_InterpSubst extends FunSuite {
 
 
   // send message to 'this
-  val s2 = ServerImpl(List(
+  val s2 = ServerImpl(Bag(
     Rule(
-      List(Pattern('m1, List('x))),
+      Bag(Pattern('m1, List('x))),
       Send(ServiceRef(ServerVar('Print), 'foo), List(ServiceVar('x)))),
     Rule(
-      List(Pattern('m2, List('x))),
+      Bag(Pattern('m2, List('x))),
       Send(ServiceRef(ServerVar('this), 'm1), List(ServiceVar('x))))
     ))
 
@@ -44,9 +44,9 @@ class TestSemantics_InterpSubst extends FunSuite {
 
 
   // send message to other server
-  val s3 = ServerImpl(List(
+  val s3 = ServerImpl(Bag(
     Rule(
-      List(Pattern('m2, List('x))),
+      Bag(Pattern('m2, List('x))),
       Send(ServiceRef(ServerVar('s1), 'm1), List(ServiceVar('x))))
     ))
 
@@ -59,8 +59,8 @@ class TestSemantics_InterpSubst extends FunSuite {
 
   // join pattern
   val s4 = ServerImpl(
-    List(Rule(
-      List(Pattern('m1, List('x)), Pattern('m2, List('y))),
+    Bag(Rule(
+      Bag(Pattern('m1, List('x)), Pattern('m2, List('y))),
       Send(ServiceRef(ServerVar('Print), 'foo), List(ServiceVar('x), ServiceVar('y))))))
 
   val p4 = Def('s4, s4, Par(Bag(
@@ -75,8 +75,8 @@ class TestSemantics_InterpSubst extends FunSuite {
 
   // nondeterminism
   val s5 = ServerImpl(
-    List(Rule(
-      List(Pattern('m1, List('x)), Pattern('token, List())),
+    Bag(Rule(
+      Bag(Pattern('m1, List('x)), Pattern('token, List())),
       Send(ServiceRef(ServerVar('Print), 'foo), List(ServiceVar('x))))))
 
   val p5 = Def('s5, s5, Par(Bag(

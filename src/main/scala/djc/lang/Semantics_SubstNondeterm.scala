@@ -38,21 +38,23 @@ object Semantics_SubstNondeterm {
         matchRule(r._1, r._2.ps, sends) map (x => (r._1, r._2, x._1, x._2))
     )
 
-  def matchRule(server: Server, pats: List[Pattern], sends: Bag[Send]): Res[(Map[Symbol, Service], Bag[Send])] = pats match {
-    case Nil => Set((Map(), Bag()))
-    case Pattern(name, params)::restPats => {
+  def matchRule(server: Server, pats: Bag[Pattern], sends: Bag[Send]): Res[(Map[Symbol, Service], Bag[Send])] =
+    if (pats.isEmpty)
+      Set((Map(), Bag()))
+    else {
+      val name = pats.head.name
+      val params = pats.head.params
       val matchingSends = sends.filter({
         case Send(ServiceRef(server2, `name`), args) => server == server2 && params.size == args.size
         case _ => false
       })
       nondeterministic(
-        matchingSends.toSet,
-        (s: Send) => matchRule(server, restPats, sends - s) map (
+        matchingSends,
+        (s: Send) => matchRule(server, pats.tail, sends - s) map (
           p => (p._1 ++ (params zip s.args), p._2 + s)
         )
       )
     }
-  }
 
   def fireRule(server: Server, rule: Rule, subst: Map[Symbol, Service], usedSends: Bag[Send], allSends: Bag[Send]): Res[Val] = {
     var p = map(substServer('this, server), rule.p)
@@ -62,9 +64,9 @@ object Semantics_SubstNondeterm {
     interp(Par(Bag(p) ++ (rest)))
   }
 
-  def collectRules(s: Send): List[(Server, Rule)] = s match {
+  def collectRules(s: Send): Bag[(Server, Rule)] = s match {
     case Send(ServiceRef(s@ServerImpl(rules), _), _) => rules map ((s, _))
-    case Send(_, _) => List()
+    case Send(_, _) => Bag()
   }
 
   def crossProduct[T](tss: Bag[Res[Bag[T]]]): Res[Bag[T]] =
@@ -89,10 +91,10 @@ object Semantics_SubstNondeterm {
       None) // ServiceRef
     ,(None, // ServerVar
       None) // ServerImpl
-    ,Some((ps: List[Pattern], p: Prog) => substServiceRule(x, s, ps, p)) // Rule
+    ,Some((ps: Bag[Pattern], p: Prog) => substServiceRule(x, s, ps, p)) // Rule
     ,None) // Pattern
   }
-  def substServiceRule(x: Symbol, s: Service, ps: List[Pattern], p: Prog): Rule = {
+  def substServiceRule(x: Symbol, s: Service, ps: Bag[Pattern], p: Prog): Rule = {
     val patVars = (ps map (fold(freeServiceVars, _))).flatten
     if (patVars contains x)
       Rule(ps, p)
@@ -131,26 +133,26 @@ object Semantics_SubstNondeterm {
   val freeServerVars: Folder[Set[Symbol]] = {
     type R = Set[Symbol]
     (((x: Symbol, ds: R, ps: R) => (ds-'this) ++ (ps-x), // Def
-      (xs: Bag[R]) => xs.toSet.flatten, // Par
+      (xs: Bag[R]) => xs.flatten, // Par
       (srv: R, args: List[R]) => srv ++ args.flatten) // Send
      ,(x => Set(), // ServiceVar
       (srv: R, x: Symbol) => srv) // ServiceRef
      ,(x => Set(x), // ServerVar
-      (xs: List[R]) => xs.toSet.flatten) // ServerImpl
-     ,(ps: List[R], p: R) => p // Rule
+      (xs: Bag[R]) => xs.flatten) // ServerImpl
+     ,(ps: Bag[R], p: R) => p // Rule
      ,(name: Symbol, params: List[Symbol]) => Set()) // Pattern
   }
 
   val freeServiceVars: Folder[Set[Symbol]] = {
     type R = Set[Symbol]
     (((x: Symbol, ds: R, ps: R) => ds ++ ps, // Def
-      (xs: Bag[R]) => xs.toSet.flatten, // Par
+      (xs: Bag[R]) => xs.flatten, // Par
       (srv: R, args: List[R]) => srv ++ args.flatten) // Send
      ,(x => Set(x), // ServiceVar
       (srv: R, x: Symbol) => srv) // ServiceRef
      ,(x => Set(), // ServerVar
-      (xs: List[R]) => xs.toSet.flatten) // ServerImpl
-     ,(ps: List[R], p: R) => p -- (ps.flatten) // Rule
+      (xs: Bag[R]) => xs.flatten) // ServerImpl
+     ,(ps: Bag[R], p: R) => p -- (ps.flatten) // Rule
      ,(name: Symbol, params: List[Symbol]) => params.toSet) // Pattern
   }
 
