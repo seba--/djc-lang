@@ -1,8 +1,10 @@
 package djc.lang
 
+import util.Bag
+
 abstract class Prog
 case class Def(x: Symbol, s: Server, p: Prog) extends Prog
-case class Par(ps: List[Prog]) extends Prog
+case class Par(ps: Bag[Prog]) extends Prog
 case class Send(rcv: Service, args: List[Service]) extends Prog
 
 abstract class Service
@@ -17,7 +19,7 @@ case class Rule(ps: List[Pattern], p: Prog)
 case class Pattern(name: Symbol, params: List[Symbol])
 
 object Folder {
-  type FProg[T] = ((Symbol, T, T) => T, List[T] => T, (T, List[T]) => T)
+  type FProg[T] = ((Symbol, T, T) => T, Bag[T] => T, (T, List[T]) => T)
   type FService[T] = (Symbol => T, (T, Symbol) => T)
   type FServer[T] = (Symbol => T, List[T] => T)
   type FRule[T] = (List[T], T) => T
@@ -50,7 +52,7 @@ object Folder {
 }
 
 object Mapper {
-  type FProg = (Option[(Symbol, Server, Prog) => Prog], Option[List[Prog] => Prog], Option[(Service, List[Service]) => Prog])
+  type FProg = (Option[(Symbol, Server, Prog) => Prog], Option[Bag[Prog] => Prog], Option[(Service, List[Service]) => Prog])
   type FService = (Option[Symbol => Service], Option[(Server, Symbol) => Service])
   type FServer = (Option[Symbol => Server], Option[List[Rule] => Server])
   type FRule = Option[(List[Pattern], Prog) => Rule]

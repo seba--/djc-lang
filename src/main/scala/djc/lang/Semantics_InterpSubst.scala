@@ -3,57 +3,63 @@ package djc.lang
 import scala.Symbol
 import djc.lang.Folder._
 import djc.lang.Mapper._
-
+import scala.language.postfixOps
+import util.Bag
 
 object Semantics_InterpSubst {
-  type Val = List[Send]
+  type Val = Bag[Send]
+  type Res[T] = Set[T]
 
-  def interp(p: Prog): List[Val] = p match {
+  def interp(p: Prog): Res[Val] = p match {
     case Def(x, s, p)
       => interp(map(substServer(x, s), p))
-    case Par(ps) =>
+    case Par(ps) => {
       nondeterministic(
-        (ps map (interp(_))).reduce(_++_),
-        (x: List[Send]) => interpSends(x))
+        crossProduct[Send](ps map (interp(_))),
+        (x: Bag[Send]) => interpSends(x))
+    }
+    case s@Send(rcv, args) => interpSends(Bag(s))
   }
 
-  def interpSends(sends: List[Send]): List[Val] =
-    nondeterministic(
-      selectSends(sends),
-      (p: (Rule, Map[Symbol, Service], List[Send])) => fireRule(p._1, p._2, p._3, sends))
+  def interpSends(sends: Bag[Send]): Res[Val] = {
+    val canSend = selectSends(sends)
+    if (canSend.isEmpty)
+      Set(sends)
+    else
+      nondeterministic(
+        canSend,
+        (p: (Server, Rule, Map[Symbol, Service], Bag[Send])) => fireRule(p._1, p._2, p._3, p._4, sends))
+  }
 
-  def selectSends(sends: List[Send]): List[(Rule, Map[Symbol, Service], List[Send])] =
+  def selectSends(sends: Bag[Send]): Res[(Server, Rule, Map[Symbol, Service], Bag[Send])] =
     nondeterministic(
-      (sends map (collectRules(_))) reduce(_++_) distinct,
+      (sends map (collectRules(_))).flatten,
       (r: (Server, Rule)) =>
-        matchRule(r._1, r._2.ps, sends) map (x => (r._2, x._1, x._2))
+        matchRule(r._1, r._2.ps, sends) map (x => (r._1, r._2, x._1, x._2))
     )
 
-  def matchRule(server: Server, pats: List[Pattern], sends: List[Send]): List[(Map[Symbol, Service], List[Send])] = pats match {
-    case Nil => List()
+  def matchRule(server: Server, pats: List[Pattern], sends: Bag[Send]): Res[(Map[Symbol, Service], Bag[Send])] = pats match {
+    case Nil => Set((Map(), Bag()))
     case Pattern(name, params)::restPats => {
       val matchingSends = sends.filter({
         case Send(ServiceRef(server2, `name`), args) => server == server2 && params.size == args.size
         case _ => false
       })
       nondeterministic(
-        matchingSends distinct,
-        (s: Send) => matchRule(server, restPats, remove(s, sends)) map (
-          p => (p._1 ++ (params zip s.args), s::p._2)
+        matchingSends.toSet,
+        (s: Send) => matchRule(server, restPats, sends - s) map (
+          p => (p._1 ++ (params zip s.args), p._2 + s)
         )
       )
     }
   }
 
-  def fireRule(rule: Rule, subst: Map[Symbol, Service], usedSends: List[Send], allSends: List[Send]): List[Val] = {
-    var p = rule.p
+  def fireRule(server: Server, rule: Rule, subst: Map[Symbol, Service], usedSends: Bag[Send], allSends: Bag[Send]): Res[Val] = {
+    var p = map(substServer('this, server), rule.p)
     for ((x, s) <- subst)
       p = map(substService(x, s), p)
-
-    nondeterministic(
-      interp(p),
-      (newSends: List[Send]) => interpSends((allSends diff usedSends) ++ newSends)
-    )
+    val rest = allSends diff usedSends
+    interp(Par(Bag(p) ++ (rest)))
   }
 
   def collectRules(s: Send): List[(Server, Rule)] = s match {
@@ -61,14 +67,18 @@ object Semantics_InterpSubst {
     case Send(_, _) => List()
   }
 
-  def nondeterministic[T,U](ts: List[T], f: T => List[U]): List[U] = ts map f reduce(_++_) distinct
+  def crossProduct[T](tss: Bag[Res[Bag[T]]]): Res[Bag[T]] =
+    if (tss.isEmpty)
+      Set(Bag())
+    else {
+      val rest = crossProduct(tss.tail)
+      for (ts <- tss.head;
+           t <- ts;
+           prod <- rest)
+        yield prod + t
+    }
 
-  def remove[T](t: T, ts: List[T]): List[T] = ts match {
-    case Nil => Nil
-    case `t`::rest => rest
-    case t2::rest => t2::(remove(t, rest))
-  }
-
+  def nondeterministic[T,U](ts: Res[T], f: T => Res[U]): Res[U] = (ts map f).flatten
 
 
   def substService(x: Symbol, s: Service): Mapper = {
@@ -83,7 +93,7 @@ object Semantics_InterpSubst {
     ,None) // Pattern
   }
   def substServiceRule(x: Symbol, s: Service, ps: List[Pattern], p: Prog): Rule = {
-    val patVars = (ps map (fold(freeServiceVars, _))) reduce(_++_)
+    val patVars = (ps map (fold(freeServiceVars, _))).flatten
     if (patVars contains x)
       Rule(ps, p)
     else
@@ -121,12 +131,12 @@ object Semantics_InterpSubst {
   val freeServerVars: Folder[Set[Symbol]] = {
     type R = Set[Symbol]
     (((x: Symbol, ds: R, ps: R) => (ds-'this) ++ (ps-x), // Def
-      (xs: List[R]) => xs.reduce(_++_), // Par
-      (srv: R, args: List[R]) => srv ++ args.reduce(_++_)) // Send
+      (xs: Bag[R]) => xs.toSet.flatten, // Par
+      (srv: R, args: List[R]) => srv ++ args.flatten) // Send
      ,(x => Set(), // ServiceVar
       (srv: R, x: Symbol) => srv) // ServiceRef
      ,(x => Set(x), // ServerVar
-      (xs: List[R]) => xs.reduce(_++_)) // ServerImpl
+      (xs: List[R]) => xs.toSet.flatten) // ServerImpl
      ,(ps: List[R], p: R) => p // Rule
      ,(name: Symbol, params: List[Symbol]) => Set()) // Pattern
   }
@@ -134,13 +144,13 @@ object Semantics_InterpSubst {
   val freeServiceVars: Folder[Set[Symbol]] = {
     type R = Set[Symbol]
     (((x: Symbol, ds: R, ps: R) => ds ++ ps, // Def
-      (xs: List[R]) => xs.reduce(_++_), // Par
-      (srv: R, args: List[R]) => srv ++ args.reduce(_++_)) // Send
+      (xs: Bag[R]) => xs.toSet.flatten, // Par
+      (srv: R, args: List[R]) => srv ++ args.flatten) // Send
      ,(x => Set(x), // ServiceVar
       (srv: R, x: Symbol) => srv) // ServiceRef
      ,(x => Set(), // ServerVar
-      (xs: List[R]) => xs.reduce(_++_)) // ServerImpl
-     ,(ps: List[R], p: R) => p -- (ps.reduce(_++_)) // Rule
+      (xs: List[R]) => xs.toSet.flatten) // ServerImpl
+     ,(ps: List[R], p: R) => p -- (ps.flatten) // Rule
      ,(name: Symbol, params: List[Symbol]) => params.toSet) // Pattern
   }
 
