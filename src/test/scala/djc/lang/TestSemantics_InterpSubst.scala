@@ -6,9 +6,9 @@ import util.Bag
 
 class TestSemantics_InterpSubst extends FunSuite {
 
-  def testInterp(s: String, p: Prog, expected: Semantics_InterpSubst.Res[Semantics_InterpSubst.Val]): Unit =
+  def testInterp(s: String, p: Prog, expected: Semantics_SubstNondeterm.Res[Semantics_SubstNondeterm.Val]): Unit =
     test(s) {
-      val res = Semantics_InterpSubst.interp(p)
+      val res = Semantics_SubstNondeterm.interp(p)
       assert (res == expected, s"Was $res, expected $expected")
     }
 

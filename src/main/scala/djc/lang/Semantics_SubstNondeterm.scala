@@ -6,7 +6,7 @@ import djc.lang.Mapper._
 import scala.language.postfixOps
 import util.Bag
 
-object Semantics_InterpSubst {
+object Semantics_SubstNondeterm {
   type Val = Bag[Send]
   type Res[T] = Set[T] // nondeterminstic result as set of values
 
