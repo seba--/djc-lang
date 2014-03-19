@@ -8,7 +8,7 @@ import util.Bag
 
 object Semantics_InterpSubst {
   type Val = Bag[Send]
-  type Res[T] = Set[T]
+  type Res[T] = Set[T] // nondeterminstic result as set of values
 
   def interp(p: Prog): Res[Val] = p match {
     case Def(x, s, p)
