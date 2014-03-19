@@ -96,6 +96,7 @@ abstract class TestSemantics(sem: AbstractSemantics) extends FunSuite {
       Bag(Send(ServiceRef(ServerVar('Print), 'foo), List(ServiceVar('bar))), Send(ServiceRef(s5, 'm1), List(ServiceVar('baz)))),
       Bag(Send(ServiceRef(ServerVar('Print), 'foo), List(ServiceVar('baz))), Send(ServiceRef(s5, 'm1), List(ServiceVar('bar))))))
 
+
   // server-variable shadowing
   val s6 = ServerImpl(
     Bag(Rule(
@@ -107,4 +108,19 @@ abstract class TestSemantics(sem: AbstractSemantics) extends FunSuite {
   testInterp("p6",
     p6,
     Set(Bag(Send(ServiceRef(ServerVar('Print), 'foo6), List(ServiceVar('bar))))))
+
+
+  // higher-order service: s7.m2(s1.m1, "bar") -> s1.m1("bar") -> Print.foo("bar")
+  val s7 = ServerImpl(Bag(
+    Rule(
+      Bag(Pattern('m2, List('f, 'x))),
+      Send(ServiceVar('f), List(ServiceVar('x))))
+  ))
+
+  val p7 = Def('s1, s1, Def('s7, s7, Send(ServiceRef(ServerVar('s7), 'm2), List(ServiceRef(ServerVar('s1), 'm1), ServiceVar('bar)))))
+
+  testInterp("p7",
+    p7,
+    Set(Bag(Send(ServiceRef(ServerVar('Print), 'foo), List(ServiceVar('bar))))))
+
 }
