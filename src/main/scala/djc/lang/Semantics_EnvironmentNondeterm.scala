@@ -48,10 +48,10 @@ object Semantics_EnvironmentNondeterm extends AbstractSemantics {
     else
       nondeterministic(
         canSend,
-        (p: (Server, Rule, Map[Symbol, Service], Val)) => fireRule(p._1, p._2, p._3, p._4, v))
+        (p: (ServerImpl, Rule, Map[Symbol, Service], Val)) => fireRule(p._1, p._2, p._3, p._4, v))
   }
 
-  def selectSends(v: Val): Res[(Server, Rule, Map[Symbol, Service], Val)] =
+  def selectSends(v: Val): Res[(ServerImpl, Rule, Map[Symbol, Service], Val)] =
     nondeterministic(
       (v.sends map (collectRules(_, v.env))).flatten,
       (r: (ServerImpl, Rule)) =>
@@ -81,7 +81,7 @@ object Semantics_EnvironmentNondeterm extends AbstractSemantics {
       )
     }
 
-  def fireRule(server: Server, rule: Rule, subst: Map[Symbol, Service], used: Val, orig: Val): Res[Val] = {
+  def fireRule(server: ServerImpl, rule: Rule, subst: Map[Symbol, Service], used: Val, orig: Val): Res[Val] = {
     var p = map(substServer('this, server), rule.p)
     for ((x, s) <- subst)
       p = map(substService(x, s), p)
