@@ -1,11 +1,15 @@
 package djc.lang
 
+import scala.language.higherKinds
+
 import util.Bag
 
-trait AbstractSemantics {
+trait AbstractSemantics[D] {
   type Val // abstract value type
   def emptyVal: Val
   def normalizeVal(v: Val): Bag[Send]
+  def valData(v: Val): Bag[D]
+  def addSend(v: Val, s: D): Val
 
   type Res[T] = Set[T] // nondeterminstic result as set of values
 
@@ -14,15 +18,16 @@ trait AbstractSemantics {
   def nondeterministic[T,U](ts: Res[T], f: T => Res[U]): Res[U] =
     (ts map f).flatten
 
-  def crossProduct[T](tss: Bag[Res[Bag[T]]]): Res[Bag[T]] =
+  def crossProduct(tss: Bag[Res[Val]]): Res[Val] =
     if (tss.isEmpty)
-      Set(Bag())
+      throw new IllegalArgumentException("Cross product requires non-empty input list")
+    else if (tss.tail.isEmpty)
+      tss.head
     else {
       val rest = crossProduct(tss.tail)
-      for (ts <- tss.head;
-           t <- ts;
-           prod <- rest)
-      yield prod + t
+      for (prod <- rest;
+           ts <- tss.head;
+           t <- valData(ts))
+      yield addSend(prod, t)
     }
-
 }

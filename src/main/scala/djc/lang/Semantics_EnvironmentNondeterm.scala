@@ -6,7 +6,8 @@ import djc.lang.Mapper._
 import scala.language.postfixOps
 import util.Bag
 
-object Semantics_EnvironmentNondeterm extends AbstractSemantics {
+object Semantics_EnvironmentNondeterm extends AbstractSemantics[(Send, Map[Symbol, ServerImpl])] {
+
   import Substitution._
 
   type EnvServer = Map[Symbol, ServerImpl]
@@ -20,6 +21,12 @@ object Semantics_EnvironmentNondeterm extends AbstractSemantics {
       sends = sends map (map(substServer(k, v), _).asInstanceOf[Send])
     sends
   }
+  def valData(v: Val): Bag[(Send, EnvServer)] = v.sends map ((_, v.env))
+  def addSend(v: Val, d: (Send, EnvServer)): Val =
+    if (v.env != d._2)
+      throw new IllegalArgumentException("Require equal environments")
+    else
+      Closure(v.sends + d._1, v.env)
 
 
   override def interp(p: Prog) = interp(p, Map())
@@ -33,9 +40,8 @@ object Semantics_EnvironmentNondeterm extends AbstractSemantics {
     case Def(x, s@ServerImpl(_), p)
       => interp(p, envServer + (x -> s))
     case Par(ps) => {
-      val psvals: Bag[Res[Bag[Send]]] = ps map (interp(_, envServer) map (_.sends))
       nondeterministic(
-        crossProduct(psvals) map (Closure(_, envServer)),
+        crossProduct(ps map (interp(_, envServer))),
         (x: Val) => interpSends(x))
     }
     case s@Send(rcv, args) => interpSends(Closure(Bag(s), envServer))
