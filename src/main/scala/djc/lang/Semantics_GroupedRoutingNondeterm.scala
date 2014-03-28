@@ -64,6 +64,7 @@ object Semantics_GroupedRoutingNondeterm_Data {
 
 object Semantics_GroupedRoutingNondeterm extends AbstractSemantics[Semantics_GroupedRoutingNondeterm_Data.Servers] {
   import Substitution._
+  import Crossproduct._
   import Semantics_GroupedRoutingNondeterm_Data._
   import djc.lang.{Semantics_GroupedRoutingNondeterm_Router => Router}
 
@@ -87,14 +88,10 @@ object Semantics_GroupedRoutingNondeterm extends AbstractSemantics[Semantics_Gro
       val addr = Router.registerServer(s)
       interp(p, envServer + (x -> ServerAddr(addr)), servers + (addr -> Bag()))
     }
-    case Par(ps) if ps.isEmpty => interpSends(servers)
     case Par(ps) => {
-      val p = ps.head
-      val pservers = interp(p, envServer, servers)
       nondeterministic(
-        pservers,
-        (ss: Servers) => interp(Par(ps.tail), envServer, ss)
-      )
+        crossProductMap(ps map (interp(_, envServer, servers))),
+        (x: Val) => interpSends(x))
     }
     case s@Send(ServiceRef(ServerAddr(addr), _), args) => {
       interpSends(sendToServer(servers, addr, Closure(s, envServer)))
