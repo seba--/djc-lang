@@ -22,7 +22,7 @@ object Semantics_EnvironmentNondeterm extends AbstractSemantics[(Send, Map[Symbo
     sends
   }
   def valData(v: Val): Bag[(Send, EnvServer)] = v.sends map ((_, v.env))
-  def addSend(v: Val, d: (Send, EnvServer)): Val =
+  def addValData(v: Val, d: (Send, EnvServer)): Val =
     if (v.env != d._2)
       throw new IllegalArgumentException("Require equal environments")
     else

@@ -13,7 +13,7 @@ object Semantics_SubstNondeterm extends AbstractSemantics[Send] {
   def emptyVal = Bag()
   def normalizeVal(v: Val) = v
   def valData(v: Val): Bag[Send] = v
-  def addSend(v: Val, s: Send): Val = v + s
+  def addValData(v: Val, s: Send): Val = v + s
 
 
   override def interp(p: Prog): Res[Val] = p match {

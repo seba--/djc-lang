@@ -6,7 +6,7 @@ import djc.lang.Mapper._
 import scala.language.postfixOps
 import util.Bag
 
-object Semantics_RoutingNondeterm extends AbstractSemantics[(Send, Map[Symbol, ServerVar])] {
+object Semantics_GroupedRoutingNondeterm extends AbstractSemantics[(Send, Map[Symbol, ServerVar])] {
   import Substitution._
 
   type Addr = String
@@ -21,6 +21,12 @@ object Semantics_RoutingNondeterm extends AbstractSemantics[(Send, Map[Symbol, S
         Some(name.substring(prefix.length))
       else
         None
+
+    def fromServer(s: Server, env: EnvServer): ServerAddr = s match {
+      case sa@ServerAddr(addr) => sa
+      case ServerVar(x) if env.isDefinedAt(x) => env(x)
+      case s@ServerImpl(_) => Router.registerServer(s)
+    }
   }
 
   type EnvServer = Map[Symbol, ServerAddr]
@@ -43,7 +49,7 @@ object Semantics_RoutingNondeterm extends AbstractSemantics[(Send, Map[Symbol, S
 
 
   object Router {
-    var routeTable: collection.mutable.Map[Addr, ServerImpl] = null
+    val routeTable = collection.mutable.Map[Addr, ServerImpl]()
 
     var addrNum = 0
     val addrPrefix = "Server@"
@@ -68,8 +74,16 @@ object Semantics_RoutingNondeterm extends AbstractSemantics[(Send, Map[Symbol, S
     }
   }
 
+  val servers = collection.mutable.Map[Addr,Val]()
+
+  def sendToServer(sa: ServerAddr, s: Send, env: EnvServer) =  {
+    val addr = ServerAddr.unapply(sa).get
+    val closure = servers.getOrElse(addr, emptyVal)
+    servers += (addr -> addValData(closure, (s, env)))
+  }
+
   override def interp(p: Prog) = {
-    Router.routeTable = collection.mutable.Map()
+    Router.routeTable.clear
     interp(p, Map())
   }
 
@@ -91,7 +105,10 @@ object Semantics_RoutingNondeterm extends AbstractSemantics[(Send, Map[Symbol, S
         crossProduct(ps map (interp(_, envServer))),
         (x: Val) => interpSends(x))
     }
-    case s@Send(rcv, args) => interpSends(Closure(Bag(s), envServer))
+    case s@Send(ServiceRef(srv, _), args) => {
+      sendToServer(ServerAddr.fromServer(srv, envServer), s, envServer)
+      interpSends(Closure(Bag(s), envServer))
+    }
   }
 
   def interpSends(v: Val): Res[Val] = {

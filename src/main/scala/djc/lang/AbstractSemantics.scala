@@ -9,7 +9,7 @@ trait AbstractSemantics[D] {
   def emptyVal: Val
   def normalizeVal(v: Val): Bag[Send]
   def valData(v: Val): Bag[D]
-  def addSend(v: Val, s: D): Val
+  def addValData(v: Val, s: D): Val
 
   type Res[T] = Set[T] // nondeterminstic result as set of values
 
@@ -28,6 +28,6 @@ trait AbstractSemantics[D] {
       for (prod <- rest;
            ts <- tss.head;
            t <- valData(ts))
-      yield addSend(prod, t)
+      yield addValData(prod, t)
     }
 }
