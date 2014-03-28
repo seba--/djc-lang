@@ -8,7 +8,7 @@ class TestSemantics_SubstNondeterm extends TestSemantics(Semantics_SubstNondeter
 class TestSemantics_EnvironmentNondeterm extends TestSemantics(Semantics_EnvironmentNondeterm)
 class TestSemantics_RoutingNondeterm extends TestSemantics(Semantics_RoutingNondeterm)
 class TestSemantics_GroupedRoutingNondetermextends extends TestSemantics(Semantics_GroupedRoutingNondeterm)
-
+class TestSemantics_ParallelRoutingNondetermextends extends TestSemantics(Semantics_ParallelRoutingNondeterm)
 
 abstract class TestSemantics[V](sem: AbstractSemantics[V]) extends FunSuite {
   val PRINT_SERVER = ServerImpl(Bag(Rule(Bag(Pattern('THIS_IS_PRINT, List())), Par(Bag()))))

@@ -17,6 +17,18 @@ object Crossproduct {
       yield prod + t
     }
 
+  def crossProductAlt[T](tss: Bag[Set[T]]): Set[Bag[T]] =
+    if (tss.isEmpty)
+      throw new IllegalArgumentException("Cross product requires non-empty input list")
+    else if (tss.tail.isEmpty)
+      tss.head map (Bag(_))
+    else {
+      val rest = crossProductAlt(tss.tail)
+      for (prod <- rest;
+           t <- tss.head)
+      yield prod + t
+    }
+
   def crossProductMap[K,V](tss: Bag[Set[Map[K,Bag[V]]]]): Set[Map[K,Bag[V]]] =
     if (tss.isEmpty)
       throw new IllegalArgumentException("Cross product requires non-empty input list")
