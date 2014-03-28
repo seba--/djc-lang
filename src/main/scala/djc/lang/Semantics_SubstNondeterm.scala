@@ -9,12 +9,7 @@ import util.Bag
 object Semantics_SubstNondeterm extends AbstractSemantics[Send] {
   import Substitution._
 
-  type Val = Bag[Send]
-  def emptyVal = Bag()
   def normalizeVal(v: Val) = v
-  def valData(v: Val): Bag[Send] = v
-  def addValData(v: Val, s: Send): Val = v + s
-
 
   override def interp(p: Prog): Res[Val] = p match {
     case Def(x, s, p)

@@ -1,33 +1,26 @@
 package djc.lang
 
 import scala.Symbol
-import djc.lang.Folder._
-import djc.lang.Mapper._
 import scala.language.postfixOps
 import util.Bag
+import scala.Some
+import Mapper.map
 
-object Semantics_EnvironmentNondeterm extends AbstractSemantics[(Send, Map[Symbol, ServerImpl])] {
-
+object Semantics_EnvironmentNondeterm_Data {
   import Substitution._
 
   type EnvServer = Map[Symbol, ServerImpl]
-
-  type Val = Closure
-  case class Closure(sends: Bag[Send], env: EnvServer)
-  def emptyVal = Closure(Bag(), Map())
-  def normalizeVal(v: Val) = {
-    var sends = v.sends
-    for ((k,v) <- v.env)
-      sends = sends map (map(substServer(k, v), _).asInstanceOf[Send])
-    sends
+  case class Closure(send: Send, env: EnvServer) extends Prog {
+    def normalize =  env.foldLeft(send)((s: Send, p: (Symbol, ServerImpl)) => map(substServer(p._1,p._2), s).asInstanceOf[Send])
   }
-  def valData(v: Val): Bag[(Send, EnvServer)] = v.sends map ((_, v.env))
-  def addValData(v: Val, d: (Send, EnvServer)): Val =
-    if (v.env != d._2)
-      throw new IllegalArgumentException("Require equal environments")
-    else
-      Closure(v.sends + d._1, v.env)
+}
 
+object Semantics_EnvironmentNondeterm extends AbstractSemantics[Semantics_EnvironmentNondeterm_Data.Closure] {
+
+  import Substitution._
+  import Semantics_EnvironmentNondeterm_Data._
+
+  def normalizeVal(v: Val) = v map (_.normalize)
 
   override def interp(p: Prog) = interp(p, Map())
 
@@ -44,7 +37,8 @@ object Semantics_EnvironmentNondeterm extends AbstractSemantics[(Send, Map[Symbo
         crossProduct(ps map (interp(_, envServer))),
         (x: Val) => interpSends(x))
     }
-    case s@Send(rcv, args) => interpSends(Closure(Bag(s), envServer))
+    case s@Send(rcv, args) => interpSends(Bag(Closure(s, envServer)))
+    case cl@Closure(s, env) => Set(Bag(cl))
   }
 
   def interpSends(v: Val): Res[Val] = {
@@ -54,14 +48,14 @@ object Semantics_EnvironmentNondeterm extends AbstractSemantics[(Send, Map[Symbo
     else
       nondeterministic(
         canSend,
-        (p: (ServerImpl, Rule, Map[Symbol, Service], Val)) => fireRule(p._1, p._2, p._3, p._4, v))
+        (p: (ServerImpl, Rule, EnvServer, Map[Symbol, Service], Val)) => fireRule(p._1, p._2, p._3, p._4, p._5, v))
   }
 
-  def selectSends(v: Val): Res[(ServerImpl, Rule, Map[Symbol, Service], Val)] =
+  def selectSends(v: Val): Res[(ServerImpl, Rule, EnvServer, Map[Symbol, Service], Val)] =
     nondeterministic(
-      (v.sends map (collectRules(_, v.env))).flatten,
-      (r: (ServerImpl, Rule)) =>
-        matchRule(r._1, r._2.ps, v) map (x => (r._1, r._2, x._1, x._2))
+      (v map (collectRules(_))).flatten,
+      (r: (ServerImpl, Rule, EnvServer)) =>
+        matchRule(r._1, r._2.ps, v) map (x => (r._1, r._2, r._3, x._1, x._2))
     )
 
   def matchRule(server: ServerImpl, pats: Bag[Pattern], v: Val): Res[(Map[Symbol, Service], Val)] =
@@ -70,37 +64,37 @@ object Semantics_EnvironmentNondeterm extends AbstractSemantics[(Send, Map[Symbo
     else {
       val name = pats.head.name
       val params = pats.head.params
-      val matchingSends = v.sends.filter({
-        case Send(ServiceRef(ServerVar(x), `name`), args)
-          if v.env.isDefinedAt(x) && server == v.env(x)
+      val matchingSends = v.filter({
+        case Closure(Send(ServiceRef(ServerVar(x), `name`), args), env)
+          if env.isDefinedAt(x) && server == env(x)
           => params.size == args.size
-        case Send(ServiceRef(server2@ServerImpl(_), `name`), args)
+        case Closure(Send(ServiceRef(server2@ServerImpl(_), `name`), args), env)
           if server == server2
           => params.size == args.size
         case _ => false
       })
       nondeterministic(
         matchingSends,
-        (s: Send) => matchRule(server, pats.tail, Closure(v.sends - s, v.env)) map (
-          p => (p._1 ++ (params zip s.args), Closure(p._2.sends + s, p._2.env))
+        (cl: Closure) => matchRule(server, pats.tail, v - cl) map (
+          p => (p._1 ++ (params zip cl.send.args), p._2 + cl)
         )
       )
     }
 
-  def fireRule(server: ServerImpl, rule: Rule, subst: Map[Symbol, Service], used: Val, orig: Val): Res[Val] = {
+  def fireRule(server: ServerImpl, rule: Rule, env: EnvServer, subst: Map[Symbol, Service], used: Val, orig: Val): Res[Val] = {
     var p = map(substServer('this, server), rule.p)
     for ((x, s) <- subst)
       p = map(substService(x, s), p)
-    val rest = orig.sends diff used.sends
-    interp(Par(Bag(p) ++ rest), orig.env)
+    val restClosures = orig diff used
+    interp(Par(Bag(p) ++ restClosures), env) // env has no effect on `restClosures`, but is needed for `p`
   }
 
-  def collectRules(s: Send, envServer: EnvServer): Bag[(ServerImpl, Rule)] = s match {
-    case Send(ServiceRef(s@ServerImpl(rules), _), _) => rules map ((s, _))
-    case Send(ServiceRef(ServerVar(x), _), _) if envServer.isDefinedAt(x) => {
-      val s = envServer(x)
-      s.rules map ((s, _))
+  def collectRules(v: Closure): Bag[(ServerImpl, Rule, EnvServer)] = v match {
+    case Closure(Send(ServiceRef(s@ServerImpl(rules), _), _), env) => rules map ((s, _, env))
+    case Closure(Send(ServiceRef(ServerVar(x), _), _), env) if env.isDefinedAt(x) => {
+      val s = env(x)
+      s.rules map ((s, _, env))
     }
-    case Send(_, _) => Bag()
+    case Closure(Send(_, _), _) => Bag()
   }
 }

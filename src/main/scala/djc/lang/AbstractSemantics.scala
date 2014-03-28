@@ -5,11 +5,9 @@ import scala.language.higherKinds
 import util.Bag
 
 trait AbstractSemantics[D] {
-  type Val // abstract value type
-  def emptyVal: Val
+  type Val = Bag[D] // abstract value type
+  def emptyVal: Val = Bag()
   def normalizeVal(v: Val): Bag[Send]
-  def valData(v: Val): Bag[D]
-  def addValData(v: Val, s: D): Val
 
   type Res[T] = Set[T] // nondeterminstic result as set of values
 
@@ -27,7 +25,7 @@ trait AbstractSemantics[D] {
       val rest = crossProduct(tss.tail)
       for (prod <- rest;
            ts <- tss.head;
-           t <- valData(ts))
-      yield addValData(prod, t)
+           t <- ts)
+      yield prod + t
     }
 }

@@ -6,8 +6,8 @@ import util.Bag
 
 class TestSemantics_SubstNondeterm extends TestSemantics(Semantics_SubstNondeterm)
 class TestSemantics_EnvironmentNondeterm extends TestSemantics(Semantics_EnvironmentNondeterm)
-class TestSemantics_RoutingNondeterm extends TestSemantics(Semantics_RoutingNondeterm)
-class TestSemantics_GroupedRoutingNondetermextends extends TestSemantics(Semantics_GroupedRoutingNondeterm)
+//class TestSemantics_RoutingNondeterm extends TestSemantics(Semantics_RoutingNondeterm)
+//class TestSemantics_GroupedRoutingNondetermextends extends TestSemantics(Semantics_GroupedRoutingNondeterm)
 
 
 abstract class TestSemantics(sem: AbstractSemantics[_]) extends FunSuite {

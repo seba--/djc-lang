@@ -6,10 +6,35 @@ import djc.lang.Mapper._
 import scala.language.postfixOps
 import util.Bag
 
-object Semantics_RoutingNondeterm extends AbstractSemantics[(Send, Map[Symbol, ServerVar])] {
-  import Substitution._
-
+object Router {
   type Addr = String
+
+  var routeTable: collection.mutable.Map[Addr, ServerImpl] = null
+
+  var addrNum = 0
+  val addrPrefix = "Server@"
+  def nextAddr: Addr = {
+    addrNum += 1
+    val addr = addrPrefix + addrNum
+    if (!routeTable.isDefinedAt(addr))
+      addr
+    else
+      nextAddr
+  }
+
+  def registerServer(s: ServerImpl): Addr = {
+    val addr = nextAddr
+    routeTable += (addr -> s)
+    addr
+  }
+
+  def lookupAddr(addr: Addr): ServerImpl = routeTable(addr)
+}
+
+object Semantics_RoutingNondeterm_Data {
+  import Substitution._
+  import Router._
+
   type ServerAddr = ServerVar
   object ServerAddr {
     val prefix = "ADDR:"
@@ -24,49 +49,16 @@ object Semantics_RoutingNondeterm extends AbstractSemantics[(Send, Map[Symbol, S
   }
 
   type EnvServer = Map[Symbol, ServerAddr]
-
-  type Val = Closure
-  case class Closure(sends: Bag[Send], env: EnvServer)
-  def emptyVal = Closure(Bag(), Map())
-  def normalizeVal(v: Val) = {
-    var sends = v.sends
-    for ((k,v) <- v.env)
-      sends = sends map (map(substServer(k, Router.lookupAddr(v)), _).asInstanceOf[Send])
-    sends
+  case class Closure(send: Send, env: EnvServer) extends Prog {
+    def normalize =  env.foldLeft(send)((s: Send, p: (Symbol, ServerAddr)) => map(substServer(p._1,p._2), s).asInstanceOf[Send])
   }
-  def valData(v: Val): Bag[(Send, EnvServer)] = v.sends map ((_, v.env))
-  def addValData(v: Val, d: (Send, EnvServer)): Val =
-    if (v.env != d._2)
-      throw new IllegalArgumentException("Require equal environments")
-    else
-      Closure(v.sends + d._1, v.env)
+}
 
 
-  object Router {
-    var routeTable: collection.mutable.Map[Addr, ServerImpl] = null
+object Semantics_RoutingNondeterm extends AbstractSemantics[Semantics_RoutingNondeterm_Data.Closure] {
+  import Substitution._
 
-    var addrNum = 0
-    val addrPrefix = "Server@"
-    def nextAddr: Addr = {
-      addrNum += 1
-      val addr = addrPrefix + addrNum
-      if (!routeTable.isDefinedAt(addr))
-        addr
-      else
-        nextAddr
-    }
-
-    def registerServer(s: ServerImpl): ServerAddr = {
-      val addr = nextAddr
-      routeTable += (addr -> s)
-      ServerAddr(addr)
-    }
-
-    def lookupAddr(a: ServerAddr): ServerImpl = a match {
-      case ServerAddr(addr) => routeTable(addr)
-      case _ => throw new IllegalArgumentException(s"Not a server address: $a")
-    }
-  }
+  def normalizeVal(v: Val) = v map (_.normalize)
 
   override def interp(p: Prog) = {
     Router.routeTable = collection.mutable.Map()
