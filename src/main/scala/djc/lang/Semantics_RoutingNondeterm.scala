@@ -47,6 +47,10 @@ object Semantics_RoutingNondeterm_Data {
       else
         None
   }
+  def lookupAddr(a: ServerAddr): ServerImpl = a match {
+    case ServerAddr(addr) => Router.lookupAddr(addr)
+    case _ => 
+  }
 
   type EnvServer = Map[Symbol, ServerAddr]
   case class Closure(send: Send, env: EnvServer) extends Prog {
