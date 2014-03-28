@@ -11,13 +11,14 @@ object Semantics_EnvironmentNondeterm_Data {
 
   type EnvServer = Map[Symbol, ServerImpl]
   case class Closure(send: Send, env: EnvServer) extends Prog {
-    def normalize =  env.foldLeft(send)((s: Send, p: (Symbol, ServerImpl)) => map(substServer(p._1,p._2), s).asInstanceOf[Send])
+    def normalize =  env.toList.reverse.foldLeft(send)((s: Send, p: (Symbol, ServerImpl)) => map(substServer(p._1,p._2), s).asInstanceOf[Send])
   }
 }
 
-object Semantics_EnvironmentNondeterm extends AbstractSemantics[Semantics_EnvironmentNondeterm_Data.Closure] {
+object Semantics_EnvironmentNondeterm extends AbstractSemantics[Bag[Semantics_EnvironmentNondeterm_Data.Closure]] {
 
   import Substitution._
+  import Crossproduct._
   import Semantics_EnvironmentNondeterm_Data._
 
   def normalizeVal(v: Val) = v map (_.normalize)
@@ -60,7 +61,7 @@ object Semantics_EnvironmentNondeterm extends AbstractSemantics[Semantics_Enviro
 
   def matchRule(server: ServerImpl, pats: Bag[Pattern], v: Val): Res[(Map[Symbol, Service], Val)] =
     if (pats.isEmpty)
-      Set((Map(), emptyVal))
+      Set((Map(), Bag()))
     else {
       val name = pats.head.name
       val params = pats.head.params

@@ -6,8 +6,9 @@ import djc.lang.Mapper._
 import scala.language.postfixOps
 import util.Bag
 
-object Semantics_SubstNondeterm extends AbstractSemantics[Send] {
+object Semantics_SubstNondeterm extends AbstractSemantics[Bag[Send]] {
   import Substitution._
+  import Crossproduct._
 
   def normalizeVal(v: Val) = v
 

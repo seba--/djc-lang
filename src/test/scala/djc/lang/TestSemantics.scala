@@ -6,18 +6,22 @@ import util.Bag
 
 class TestSemantics_SubstNondeterm extends TestSemantics(Semantics_SubstNondeterm)
 class TestSemantics_EnvironmentNondeterm extends TestSemantics(Semantics_EnvironmentNondeterm)
-//class TestSemantics_RoutingNondeterm extends TestSemantics(Semantics_RoutingNondeterm)
-//class TestSemantics_GroupedRoutingNondetermextends extends TestSemantics(Semantics_GroupedRoutingNondeterm)
+class TestSemantics_RoutingNondeterm extends TestSemantics(Semantics_RoutingNondeterm)
+class TestSemantics_GroupedRoutingNondetermextends extends TestSemantics(Semantics_GroupedRoutingNondeterm)
 
 
-abstract class TestSemantics(sem: AbstractSemantics[_]) extends FunSuite {
+abstract class TestSemantics[V](sem: AbstractSemantics[V]) extends FunSuite {
+  val PRINT_SERVER = ServerImpl(Bag(Rule(Bag(Pattern('THIS_IS_PRINT, List())), Par(Bag()))))
+  def withPrintServer(p: Prog) = Def('Print, PRINT_SERVER, p)
+
   def testInterp(s: String, p: Prog, expected: sem.Res[Bag[Send]]): Unit =
     test(s) {
-      if (s == "p4") {
-      val res = sem.interp(p)
-      val norm = res map (sem.normalizeVal(_))
-      assert (norm == expected, s"Was $norm, expected $expected")
-    }}
+      if (p == p5) {
+        val res = sem.interp(withPrintServer(p))
+        val norm = res map (sem.normalizeVal(_))
+        assert(norm == expected, s"Was $norm, expected $expected")
+      }
+    }
 
 
   // single message send
@@ -30,7 +34,7 @@ abstract class TestSemantics(sem: AbstractSemantics[_]) extends FunSuite {
 
   testInterp("p1",
     p1,
-    Set(Bag(Send(ServiceRef(ServerVar('Print), 'foo), List(ServiceVar('bar))))))
+    Set(Bag(Send(ServiceRef(PRINT_SERVER, 'foo), List(ServiceVar('bar))))))
 
 
   // send message to 'this
@@ -47,7 +51,7 @@ abstract class TestSemantics(sem: AbstractSemantics[_]) extends FunSuite {
 
   testInterp("p2",
     p2,
-    Set(Bag(Send(ServiceRef(ServerVar('Print), 'foo), List(ServiceVar('bar))))))
+    Set(Bag(Send(ServiceRef(PRINT_SERVER, 'foo), List(ServiceVar('bar))))))
 
 
   // send message to other server
@@ -61,7 +65,7 @@ abstract class TestSemantics(sem: AbstractSemantics[_]) extends FunSuite {
 
   testInterp("p3",
     p3,
-    Set(Bag(Send(ServiceRef(ServerVar('Print), 'foo), List(ServiceVar('bar))))))
+    Set(Bag(Send(ServiceRef(PRINT_SERVER, 'foo), List(ServiceVar('bar))))))
 
 
   // join pattern
@@ -77,7 +81,7 @@ abstract class TestSemantics(sem: AbstractSemantics[_]) extends FunSuite {
 
   testInterp("p4",
     p4,
-    Set(Bag(Send(ServiceRef(ServerVar('Print), 'foo), List(ServiceVar('bar), ServiceVar('baz))))))
+    Set(Bag(Send(ServiceRef(PRINT_SERVER, 'foo), List(ServiceVar('bar), ServiceVar('baz))))))
 
 
   // nondeterminism
@@ -85,6 +89,11 @@ abstract class TestSemantics(sem: AbstractSemantics[_]) extends FunSuite {
     Bag(Rule(
       Bag(Pattern('m1, List('x)), Pattern('token, List())),
       Send(ServiceRef(ServerVar('Print), 'foo), List(ServiceVar('x))))))
+
+  val s5norm = ServerImpl(
+    Bag(Rule(
+      Bag(Pattern('m1, List('x)), Pattern('token, List())),
+      Send(ServiceRef(PRINT_SERVER, 'foo), List(ServiceVar('x))))))
 
   val p5 = Def('s5, s5, Par(Bag(
     Send(ServiceRef(ServerVar('s5), 'token), List()),
@@ -95,9 +104,21 @@ abstract class TestSemantics(sem: AbstractSemantics[_]) extends FunSuite {
   testInterp("p5",
     p5,
     Set(
-      Bag(Send(ServiceRef(ServerVar('Print), 'foo), List(ServiceVar('bar))), Send(ServiceRef(s5, 'm1), List(ServiceVar('baz)))),
-      Bag(Send(ServiceRef(ServerVar('Print), 'foo), List(ServiceVar('baz))), Send(ServiceRef(s5, 'm1), List(ServiceVar('bar))))))
+      Bag(Send(ServiceRef(PRINT_SERVER, 'foo), List(ServiceVar('bar))), Send(ServiceRef(s5norm, 'm1), List(ServiceVar('baz)))),
+      Bag(Send(ServiceRef(PRINT_SERVER, 'foo), List(ServiceVar('baz))), Send(ServiceRef(s5norm, 'm1), List(ServiceVar('bar))))))
 
+//  Set(
+//    Set(
+//      Send(
+//        ServiceRef(
+//          ServerImpl(Set(Rule(Set(Pattern('THIS_IS_PRINT,List())),Par(Set())))),
+//          'foo),
+//        List(ServiceVar('bar))),
+//      Send(
+//        ServiceRef(
+//          ServerImpl(Set(Rule(Set(Pattern('m1,List('x)), Pattern('token,List())),Send(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('THIS_IS_PRINT,List())),Par(Set())))),'foo),List(ServiceVar('x)))))),
+//          'm1),
+//        List(ServiceVar('baz)))))
 
   // server-variable shadowing
   val s6 = ServerImpl(
@@ -109,7 +130,7 @@ abstract class TestSemantics(sem: AbstractSemantics[_]) extends FunSuite {
 
   testInterp("p6",
     p6,
-    Set(Bag(Send(ServiceRef(ServerVar('Print), 'foo6), List(ServiceVar('bar))))))
+    Set(Bag(Send(ServiceRef(PRINT_SERVER, 'foo6), List(ServiceVar('bar))))))
 
 
   // higher-order service: s7.m2(s1.m1, "bar") -> s1.m1("bar") -> Print.foo("bar")
@@ -123,6 +144,5 @@ abstract class TestSemantics(sem: AbstractSemantics[_]) extends FunSuite {
 
   testInterp("p7",
     p7,
-    Set(Bag(Send(ServiceRef(ServerVar('Print), 'foo), List(ServiceVar('bar))))))
-
+    Set(Bag(Send(ServiceRef(PRINT_SERVER, 'foo), List(ServiceVar('bar))))))
 }
