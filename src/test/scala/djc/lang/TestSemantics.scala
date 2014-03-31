@@ -16,11 +16,11 @@ abstract class TestSemantics[V](sem: AbstractSemantics[V]) extends FunSuite {
 
   def testInterp(s: String, p: Prog, expected: sem.Res[Bag[Send]]): Unit =
     test(s) {
-      if (p == p5) {
+//      if (p == p3) {
         val res = sem.interp(withPrintServer(p))
         val norm = res map (sem.normalizeVal(_))
         assert(norm == expected, s"Was $norm, expected $expected")
-      }
+//      }
     }
 
 
@@ -111,14 +111,19 @@ abstract class TestSemantics[V](sem: AbstractSemantics[V]) extends FunSuite {
 //    Set(
 //      Send(
 //        ServiceRef(
-//          ServerImpl(Set(Rule(Set(Pattern('THIS_IS_PRINT,List())),Par(Set())))),
-//          'foo),
-//        List(ServiceVar('bar))),
+//          ServerImpl(Set(Rule(Set(Pattern('m1,List('x)), Pattern('token,List())),Send(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('THIS_IS_PRINT,List())),Par(Set())))),'foo),List(ServiceVar('x)))))),
+//          'm1),
+//        List(ServiceVar('baz))),
 //      Send(
 //        ServiceRef(
 //          ServerImpl(Set(Rule(Set(Pattern('m1,List('x)), Pattern('token,List())),Send(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('THIS_IS_PRINT,List())),Par(Set())))),'foo),List(ServiceVar('x)))))),
 //          'm1),
-//        List(ServiceVar('baz)))))
+//        List(ServiceVar('bar))),
+//      Send(
+//        ServiceRef(
+//          ServerImpl(Set(Rule(Set(Pattern('m1,List('x)), Pattern('token,List())),Send(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('THIS_IS_PRINT,List())),Par(Set())))),'foo),List(ServiceVar('x)))))),
+//          'token),
+//        List())))
 
   // server-variable shadowing
   val s6 = ServerImpl(

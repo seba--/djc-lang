@@ -11,10 +11,13 @@ object Crossproduct {
       tss.head
     else {
       val rest = crossProduct(tss.tail)
-      for (prod <- rest;
-           ts <- tss.head;
-           t <- ts)
-      yield prod + t
+      if (tss.head.isEmpty)
+        rest
+      else
+        for (prod <- rest;
+             ts <- tss.head;
+             t <- ts)
+        yield prod + t
     }
 
   def crossProductAlt[T](tss: Bag[Set[T]]): Set[Bag[T]] =

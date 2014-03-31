@@ -53,8 +53,9 @@ object Semantics_ParallelRoutingNondeterm_Data {
   }
 
   type EnvServer = Map[Symbol, ServerAddr]
-  case class Closure(send: Send, env: EnvServer) extends Prog {
-    def normalize = env.toList.reverse.foldLeft(send)((s: Send, p: (Symbol, ServerAddr)) => map(substServer(p._1,lookupAddr(p._2)), s).asInstanceOf[Send])
+  case class ClosureProg(prog: Prog, env: EnvServer) extends Prog
+  case class Closure(send: Send, env: EnvServer) {
+    def normalize = env.toList.reverse.foldLeft(send)((s: Send, p: (Symbol, ServerAddr)) => map(substServer(p._1, lookupAddr(p._2)), s).asInstanceOf[Send])
   }
 
   type Servers = Map[Router.Addr, Bag[Closure]]
@@ -100,6 +101,7 @@ object Semantics_ParallelRoutingNondeterm extends AbstractSemantics[Semantics_Pa
       val addr = ServerAddr.unapply(envServer(x)).get
       interpSends(sendToServer(servers, addr, Closure(s, envServer)))
     }
+    case ClosureProg(p, env) => interp(p, env, servers)
   }
 
   def interpSends(v: Val): Res[Val] = {
@@ -114,8 +116,12 @@ object Semantics_ParallelRoutingNondeterm extends AbstractSemantics[Semantics_Pa
   }
 
   def selectServerSends(servers: Servers): Res[Bag[(ServerAddr, Rule, EnvServer, Map[Symbol, Service], Bag[Closure])]] = {
-    val bag = (Bag() ++ servers.values).map((bag: Bag[Closure]) => selectSends(bag))
-    crossProductAlt(bag)
+    type R = Res[(ServerAddr, Rule, EnvServer, Map[Symbol, Service], Bag[Closure])]
+    val bag = (Bag() ++ servers.values).map((b: Bag[Closure]) => selectSends(b)).filter(!_.isEmpty)
+    if (bag.isEmpty)
+      Set()
+    else
+      crossProductAlt(bag)
   }
 
 
@@ -160,13 +166,12 @@ object Semantics_ParallelRoutingNondeterm extends AbstractSemantics[Semantics_Pa
       val addr = ServerAddr.unapply(p._1).get
       val oldQueue = oldServers(addr)
       val (prog, newQueue) = fireRule(p._1, p._2, p._3, p._4, p._5, oldQueue)
-      (prog, p._3, addr, newQueue)
+      (ClosureProg(prog, p._3), addr, newQueue)
     })
 
-    // HACK: normalize away environment, because cannot make single call to interp for multiple interpretation stubs
-    val newProgs = updates map (u => u._2.foldLeft(u._1)((pr: Prog, p: (Symbol, ServerAddr)) => map(substServer(p._1, p._2), pr)))
+    val newProgs = updates map (_._1)
 
-    val newServers = updates.foldLeft(oldServers)((ss: Servers, u: (Prog, EnvServer, Router.Addr, Bag[Closure])) => ss + (u._3 -> u._4))
+    val newServers = updates.foldLeft(oldServers)((ss: Servers, u: (Prog, Router.Addr, Bag[Closure])) => ss + (u._2 -> u._3))
 
     interp(Par(Bag() ++ newProgs), Map(), newServers)
   }
