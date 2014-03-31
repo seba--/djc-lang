@@ -4,6 +4,9 @@ import util.Bag
 
 
 object Crossproduct {
+  def nondeterministic[T,U](ts: Set[T], f: T => Set[U]): Set[U] =
+    (ts map f).flatten
+
   def crossProduct[T](tss: Bag[Set[Bag[T]]]): Set[Bag[T]] =
     if (tss.isEmpty)
       throw new IllegalArgumentException("Cross product requires non-empty input list")

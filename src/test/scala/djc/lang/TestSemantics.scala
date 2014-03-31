@@ -7,19 +7,26 @@ import util.Bag
 class TestSemantics_SubstNondeterm extends TestSemantics(Semantics_SubstNondeterm)
 class TestSemantics_EnvironmentNondeterm extends TestSemantics(Semantics_EnvironmentNondeterm)
 class TestSemantics_RoutingNondeterm extends TestSemantics(Semantics_RoutingNondeterm)
-class TestSemantics_GroupedRoutingNondetermextends extends TestSemantics(Semantics_GroupedRoutingNondeterm)
-class TestSemantics_ParallelRoutingNondetermextends extends TestSemantics(Semantics_ParallelRoutingNondeterm)
+class TestSemantics_GroupedRoutingNondeterm extends TestSemantics(Semantics_GroupedRoutingNondeterm)
+class TestSemantics_ParallelRoutingNondeterm extends TestSemantics(Semantics_ParallelRoutingNondeterm)
+class TestSemantics_ParallelRoutingConcurrent extends TestSemantics(Semantics_ParallelRoutingConcurrent, false)
 
-abstract class TestSemantics[V](sem: AbstractSemantics[V]) extends FunSuite {
+abstract class TestSemantics[V](sem: AbstractSemantics[V], nondeterm: Boolean = true) extends FunSuite {
   val PRINT_SERVER = ServerImpl(Bag(Rule(Bag(Pattern('THIS_IS_PRINT, List())), Par(Bag()))))
   def withPrintServer(p: Prog) = Def('Print, PRINT_SERVER, p)
 
   def testInterp(s: String, p: Prog, expected: sem.Res[Bag[Send]]): Unit =
     test(s) {
-//      if (p == p3) {
+//      if (p == p1) {
         val res = sem.interp(withPrintServer(p))
         val norm = res map (sem.normalizeVal(_))
-        assert(norm == expected, s"Was $norm, expected $expected")
+        if (nondeterm)
+          assert(norm == expected, s"Was $norm, expected $expected")
+        else {
+          assert(!norm.isEmpty, s"No result found, expected one of $expected")
+          assert(norm.size == 1, s"Too many results found $norm, expected one of $expected")
+          assert(expected.contains(norm.head), s"Was $norm, expected one of $expected")
+        }
 //      }
     }
 

@@ -11,7 +11,4 @@ trait AbstractSemantics[V] {
   type Res[T] = Set[T] // nondeterminstic result as set of values
 
   def interp(p: Prog): Res[Val]
-
-  def nondeterministic[T,U](ts: Res[T], f: T => Res[U]): Res[U] =
-    (ts map f).flatten
 }
