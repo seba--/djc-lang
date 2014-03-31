@@ -149,11 +149,6 @@ object Semantics_RoutingNondeterm extends AbstractSemantics[Bag[Semantics_Routin
   }
 
   def collectRules(cl: Closure): Bag[(ServerAddr, Rule, EnvServer)] = cl match {
-    case Closure(Send(ServiceRef(s@ServerImpl(rules), _), _), env) => {
-      throw new IllegalStateException(s"Found send to unregistered server $cl")
-//      val addr = Router.registerServer(s)
-//      rules map ((ServerAddr(addr), _, env))
-    }
     case Closure(Send(ServiceRef(addr@ServerAddr(_), _), _), env) => {
       val rules = lookupAddr(addr).rules
       rules map ((addr, _, env))
