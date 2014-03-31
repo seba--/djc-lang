@@ -17,7 +17,7 @@ abstract class TestSemantics[V](sem: AbstractSemantics[V], nondeterm: Boolean = 
 
   def testInterp(s: String, p: Prog, expected: sem.Res[Bag[Send]]): Unit =
     test(s) {
-//      if (p == p1) {
+//      if (p == p5) {
         val res = sem.interp(withPrintServer(p))
         val norm = res map (sem.normalizeVal(_))
         if (nondeterm)

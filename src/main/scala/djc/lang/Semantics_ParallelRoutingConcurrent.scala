@@ -70,6 +70,7 @@ class ServerThread(val impl: ServerImpl, val env: Map[Symbol, ServerAddr]) exten
   var dirty = false
   var inbox = Bag[Closure]()
   var newMessages = Bag[Closure]()
+  var terminate = false
 
   def sendRequest(cl: Closure) {
     synchronized {
@@ -79,7 +80,7 @@ class ServerThread(val impl: ServerImpl, val env: Map[Symbol, ServerAddr]) exten
   }
 
   override def run() {
-    while (true) {
+    while (!terminate) {
       if (dirty) {
         synchronized {
           inbox ++= newMessages
@@ -130,6 +131,7 @@ object Semantics_ParallelRoutingConcurrent extends AbstractSemantics[Unit] { // 
     Router.routeTable = collection.mutable.Map()
     interp(p, Map())
     Thread.sleep(50)
+    Router.routeTable.values.map(_.terminate = true)
     Set(Unit)
   }
 
