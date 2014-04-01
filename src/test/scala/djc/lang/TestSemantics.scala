@@ -5,12 +5,14 @@ import util.Bag
 import djc.lang.sem.AbstractSemantics
 import djc.lang.sem.nondeterm_subst
 import djc.lang.sem.nondeterm_env
+import djc.lang.sem.nondeterm_routed
+import djc.lang.sem.nondeterm_grouped
 
 
 class TestSemantics_SubstNondeterm extends TestSemantics(nondeterm_subst.Semantics)
 class TestSemantics_EnvironmentNondeterm extends TestSemantics(nondeterm_env.Semantics)
-//class TestSemantics_RoutingNondeterm extends TestSemantics(Semantics_RoutingNondeterm)
-class TestSemantics_GroupedRoutingNondeterm extends TestSemantics(Semantics_GroupedRoutingNondeterm)
+class TestSemantics_RoutingNondeterm extends TestSemantics(nondeterm_routed.Semantics)
+class TestSemantics_GroupedRoutingNondeterm extends TestSemantics(nondeterm_grouped.Semantics)
 class TestSemantics_ParallelRoutingNondeterm extends TestSemantics(Semantics_ParallelRoutingNondeterm)
 class TestSemantics_ParallelRoutingConcurrent extends TestSemantics(Semantics_ParallelRoutingConcurrent, false)
 

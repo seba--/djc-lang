@@ -1,55 +1,55 @@
-package djc.lang.sem.nondeterm_routed
+package djc.lang.sem.nondeterm_grouped
 
 import scala.Symbol
-import djc.lang.Mapper._
 import scala.language.postfixOps
 import util.Bag
+import djc.lang.Mapper._
 import djc.lang.sem.{Substitution, Crossproduct, AbstractSemantics}
-
-
 import djc.lang._
 import djc.lang.Def
 import djc.lang.ServerImpl
 import djc.lang.Send
 import djc.lang.ServerVar
+import scala.Some
 import djc.lang.ServiceRef
 import djc.lang.Rule
 import djc.lang.Pattern
 import djc.lang.Par
 
-import Substitution._
-import Crossproduct._
-import Data._
 
+object Semantics extends AbstractSemantics[Data.Servers] {
+  import Substitution._
+  import Crossproduct._
+  import Data._
 
-object Semantics extends AbstractSemantics[Bag[SendClosure]] {
-
-  def normalizeVal(v: Val) = v map (_.normalize)
+  def normalizeVal(v: Val) = (Bag() ++ v.values).flatten map (_.normalize)
 
   override def interp(p: Prog) = {
     Router.routeTable = collection.mutable.Map()
-    interp(p, Map())
+    interp(p, Map(), Map())
   }
 
-  def interp(p: Prog, env: Env): Res[Val] = p match {
+  def interp(p: Prog, env: Env, servers: Servers): Res[Val] = p match {
     case Def(x, s@ServerVar(y), p) if env.isDefinedAt(y) => {
-      interp(p, env + (x -> env(y)))
+      interp(p, env + (x -> env(y)), servers)
     }
     case Def(x, s@ServerImpl(_), p) => {
       val addr = Router.registerServer(ServerClosure(s, env))
-      interp(p, env + (x -> ServerAddr(addr)))
+      interp(p, env + (x -> ServerAddr(addr)), servers + (addr -> Bag()))
     }
     case Par(ps) => {
       nondeterministic(
-        crossProduct(ps map (interp(_, env))),
+        crossProductMap(ps map (interp(_, env, servers))),
         (x: Val) => interpSends(x))
     }
-    case s@Send(rcv, args) => interpSends(Bag(SendClosure(s, env)))
-    case cl@SendClosure(s, env) => Set(Bag(cl))
+    case s@Send(ServiceRef(ServerVar(x), _), args) if env.isDefinedAt(x) => {
+      val addr = ServerAddr.unapply(env(x)).get
+      interpSends(sendToServer(servers, addr, SendClosure(s, env)))
+    }
   }
 
   def interpSends(v: Val): Res[Val] = {
-    val canSend = selectSends(v)
+    val canSend = selectServerSends(v)
     if (canSend.isEmpty)
       Set(v)
     else
@@ -58,20 +58,23 @@ object Semantics extends AbstractSemantics[Bag[SendClosure]] {
         (p: (RuleClosure, Match)) => {
           val cl = p._1
           val ma = p._2
-          val (prog, restSends) = fireRule(cl, ma, v)
+          val (prog, newServers) = fireRule(cl, ma, v)
           val ienv = cl.env + ('this -> cl.server)
-          interp(Par(Bag(prog) ++ restSends), ienv) // env has no effect on `restSends`, but is needed for `p`
+          interp(prog, ienv, newServers) // env has no effect on `restSends`, but is needed for `p`
         })
   }
 
-  def selectSends(v: Val): Res[(RuleClosure, Match)] =
+  def selectServerSends(servers: Servers): Res[(RuleClosure, Match)] =
+    servers.values.toSet.map((bag: Bag[SendClosure]) => selectSends(bag)).flatten
+
+  def selectSends(v: Bag[SendClosure]): Res[(RuleClosure, Match)] =
     nondeterministic(
       (v map (collectRules(_))).flatten,
-      (p: (Server, RuleClosure)) =>
-        matchRule(p._1, p._2.rule.ps, v) map (x => (p._2, x))
+      (r: (Server, RuleClosure)) =>
+        matchRule(r._1, r._2.rule.ps, v) map (x => (r._2, x))
     )
 
-  def matchRule(server: Server, pats: Bag[Pattern], v: Val): Res[Match] =
+  def matchRule(server: Server, pats: Bag[Pattern], v: Bag[SendClosure]): Res[Match] =
     if (pats.isEmpty)
       Set(Match(Map(), Bag()))
     else {
@@ -90,11 +93,16 @@ object Semantics extends AbstractSemantics[Bag[SendClosure]] {
     }
 
   def fireRule(cl: RuleClosure, ma: Match, orig: Val): (Prog, Val) = {
-    var p = cl.rule.p // map(substServer('this, server), rule.p)
+    var p = cl.rule.p
     for ((x, s) <- ma.subst)
       p = map(substService(x, s), p)
-    val restSends = orig diff ma.used
-    (p, restSends)
+
+    val addr = ServerAddr.unapply(cl.server).get
+    val oldQueue = orig(addr)
+    val newQueue = oldQueue diff ma.used
+    val newServers = orig.updated(addr, newQueue)
+
+    (p, newServers)
   }
 
   def collectRules(cl: SendClosure): Bag[(Server, RuleClosure)] = cl match {
