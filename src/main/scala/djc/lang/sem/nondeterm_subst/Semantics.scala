@@ -1,12 +1,19 @@
-package djc.lang
+package djc.lang.sem.nondeterm_subst
 
 import scala.Symbol
-import djc.lang.Folder._
 import djc.lang.Mapper._
 import scala.language.postfixOps
 import util.Bag
+import djc.lang.sem.{Substitution, Crossproduct, AbstractSemantics}
+import djc.lang._
+import djc.lang.Def
+import djc.lang.Send
+import djc.lang.ServiceRef
+import djc.lang.Rule
+import djc.lang.Pattern
+import djc.lang.Par
 
-object Semantics_SubstNondeterm extends AbstractSemantics[Bag[Send]] {
+object Semantics extends AbstractSemantics[Bag[Send]] {
   import Substitution._
   import Crossproduct._
 

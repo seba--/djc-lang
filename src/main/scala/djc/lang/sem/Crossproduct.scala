@@ -1,4 +1,4 @@
-package djc.lang
+package djc.lang.sem
 
 import util.Bag
 

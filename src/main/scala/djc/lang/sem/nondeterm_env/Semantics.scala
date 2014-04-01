@@ -1,41 +1,22 @@
-package djc.lang
+package djc.lang.sem.nondeterm_env
 
-import scala.Symbol
-import scala.language.postfixOps
+import djc.lang.sem.{Crossproduct, Substitution, AbstractSemantics}
 import util.Bag
-import scala.Some
-import Mapper.map
+import djc.lang._
+import djc.lang.Mapper._
+import Substitution.substService
+import Crossproduct._
+import Data._
 
-object Semantics_EnvironmentNondeterm_Data {
-  import Substitution._
+object Semantics extends AbstractSemantics[Bag[SendClosure]] {
 
-  type Env = Map[Symbol, ServerClosure]
-
-  def subst(p: Prog, env: Env): Prog =
-    env.foldLeft(p)((p: Prog, r: (Symbol, ServerClosure)) => subst(map(substServer(r._1, r._2.ths), p), r._2.env))
-
-  case class Match(subst: Map[Symbol, Service], used: Bag[SendClosure])
-
-  case class SendClosure(send: Send, env: Env) extends Prog
-  case class ServerClosure(ths: Server, env: Env)
-  case class RuleClosure(rule: Rule, server: ServerClosure) {
-//    def normalize =  env.reverse.fold(send)((s: Send, p: (Symbol, Server, Env)) => map(substServer(p._1,p._2), s).asInstanceOf[Send])
-  }
-}
-import Semantics_EnvironmentNondeterm_Data._
-
-object Semantics_EnvironmentNondeterm extends AbstractSemantics[Bag[SendClosure]] {
-
-  import Substitution._
-  import Crossproduct._
-
-  def normalizeVal(v: Val) = v map (s => (subst(s.send, s.env).asInstanceOf[Send])) // map (_.normalize)
+  def normalizeVal(v: Val) = v map (_.normalize)
 
   override def interp(p: Prog) = interp(p, Map())
 
   def interp(p: Prog, env: Env): Res[Val] = p match {
     case Def(x, s@ServerVar(y), p) if env.isDefinedAt(y) =>
-      interp(p, env + (x -> ServerClosure(s, env)))
+      interp(p, env + (x -> env(y)))
     case Def(x, s@ServerImpl(_), p) =>
       interp(p, env + (x -> ServerClosure(s, env)))
     case Par(ps) => {
@@ -44,7 +25,7 @@ object Semantics_EnvironmentNondeterm extends AbstractSemantics[Bag[SendClosure]
         (x: Val) => interpSends(x))
     }
     case s@Send(rcv, args) => interpSends(Bag(SendClosure(s, env)))
-    case sc@SendClosure(_, _) => interpSends(Bag(sc))
+    case sc@SendClosure(_, _) => Set(Bag(sc))
   }
 
   def interpSends(v: Val): Res[Val] = {
@@ -58,7 +39,7 @@ object Semantics_EnvironmentNondeterm extends AbstractSemantics[Bag[SendClosure]
           val cl = p._1
           val ma = p._2
           val (prog, restSends) = fireRule(cl, ma, v)
-          val ienv = cl.server.env + ('this -> cl.server)
+          val ienv = cl.env + ('this -> ServerClosure(cl.server, cl.env))
           interp(Par(Bag(prog) ++ restSends), ienv) // env has no effect on `restSends`, but is needed for `p`
         })
   }
@@ -103,6 +84,6 @@ object Semantics_EnvironmentNondeterm extends AbstractSemantics[Bag[SendClosure]
         yield (sv, r)
     }
     case SendClosure(Send(ServiceRef(si@ServerImpl(rules), _), _), env) =>
-      rules map ((r: Rule) => (si, RuleClosure(r, ServerClosure(si, env))))
+      rules map ((r: Rule) => (si, RuleClosure(r, si, env)))
   }
 }
