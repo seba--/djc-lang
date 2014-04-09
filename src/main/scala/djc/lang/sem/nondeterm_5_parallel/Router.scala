@@ -1,7 +1,10 @@
-package djc.lang.sem.nondeterm_routed
+package djc.lang.sem.nondeterm_5_parallel
 
 import Data._
 
+/**
+ * Created by seba on 01/04/14.
+ */
 object Router {
   type Addr = String
 

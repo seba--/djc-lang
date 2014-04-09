@@ -1,4 +1,4 @@
-package djc.lang.sem.nondeterm_env
+package djc.lang.sem.nondeterm_2_env
 
 import scala.Symbol
 import scala.language.postfixOps

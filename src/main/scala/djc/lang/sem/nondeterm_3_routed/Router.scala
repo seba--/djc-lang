@@ -1,12 +1,11 @@
-package djc.lang.sem.concurrent_thread
+package djc.lang.sem.nondeterm_3_routed
 
-/**
- * Created by seba on 09/04/14.
- */
+import Data._
+
 object Router {
   type Addr = String
 
-  var routeTable: collection.mutable.Map[Addr, ServerThread] = null
+  var routeTable: collection.mutable.Map[Addr, ServerClosure] = null
 
   var addrNum = 0
   val addrPrefix = "Server@"
@@ -19,11 +18,11 @@ object Router {
       nextAddr
   }
 
-  def registerServer(s: ServerThread): Addr = {
+  def registerServer(s: ServerClosure): Addr = {
     val addr = nextAddr
     routeTable += (addr -> s)
     addr
   }
 
-  def lookupAddr(addr: Addr): ServerThread = routeTable(addr)
+  def lookupAddr(addr: Addr): ServerClosure = routeTable(addr)
 }

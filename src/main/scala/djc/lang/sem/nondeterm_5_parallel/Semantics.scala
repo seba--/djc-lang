@@ -1,4 +1,4 @@
-package djc.lang.sem.nondeterm_grouped
+package djc.lang.sem.nondeterm_5_parallel
 
 import scala.Symbol
 import scala.language.postfixOps
@@ -46,6 +46,7 @@ object Semantics extends AbstractSemantics[Data.Servers] {
       val addr = ServerAddr.unapply(env(x)).get
       interpSends(sendToServer(servers, addr, SendClosure(s, env)))
     }
+    case ProgClosure(p, env) => interp(p, env, servers)
   }
 
   def interpSends(v: Val): Res[Val] = {
@@ -55,17 +56,21 @@ object Semantics extends AbstractSemantics[Data.Servers] {
     else
       nondeterministic(
         canSend,
-        (p: (RuleClosure, Match)) => {
-          val cl = p._1
-          val ma = p._2
-          val (prog, newServers) = fireRule(cl, ma, v)
-          val ienv = cl.env + ('this -> cl.server)
-          interp(prog, ienv, newServers) // env has no effect on `restSends`, but is needed for `p`
+        (p: Bag[(RuleClosure, Match)]) => {
+          val (newProgs, newServers) = fireRules(p, v)
+          val progClosures = newProgs map (p => ProgClosure(p._1, p._2))
+          interp(Par(Bag() ++ progClosures), Map(), newServers)
         })
   }
 
-  def selectServerSends(servers: Servers): Res[(RuleClosure, Match)] =
-    servers.values.toSet.map((bag: Bag[SendClosure]) => selectSends(bag)).flatten
+  def selectServerSends(servers: Servers): Res[Bag[(RuleClosure, Match)]] = {
+    val bag = (Bag() ++ servers.values).map(selectSends(_)).filter(!_.isEmpty)
+    if (bag.isEmpty)
+      Set()
+    else
+      crossProductAlt(bag)
+  }
+
 
   def selectSends(v: Bag[SendClosure]): Res[(RuleClosure, Match)] =
     nondeterministic(
@@ -88,21 +93,34 @@ object Semantics extends AbstractSemantics[Data.Servers] {
         matchingSends,
         (cl: SendClosure) => matchRule(server, pats.tail, v - cl) map (
           p => Match(p.subst ++ (params zip cl.send.args), p.used + cl)
-        )
+          )
       )
     }
 
-  def fireRule(cl: RuleClosure, ma: Match, orig: Val): (Prog, Val) = {
+  def fireRules(rules: Bag[(RuleClosure, Match)], oldServers: Servers): (Bag[(Prog, Env)], Servers) = {
+    var newServers = oldServers
+    val newProgs = rules map (p => { // fire rules in parallel
+      val addr = ServerAddr.unapply(p._1.server).get
+      val oldQueue = oldServers(addr)
+      val (prog, env, newQueue) = fireRule(p._1, p._2, oldQueue)
+      newServers = newServers updated(addr, newQueue)
+      (prog, env)
+    })
+
+    (Bag() ++ newProgs, newServers)
+  }
+
+  def fireRule(cl: RuleClosure, ma: Match, oldQueue: Bag[SendClosure]): (Prog, Env, Bag[SendClosure]) = {
     var p = cl.rule.p
     for ((x, s) <- ma.subst)
       p = map(substService(x, s), p)
 
     val addr = ServerAddr.unapply(cl.server).get
-    val oldQueue = orig(addr)
     val newQueue = oldQueue diff ma.used
-    val newServers = orig.updated(addr, newQueue)
+//    val newServers = orig.updated(addr, newQueue)
 
-    (p, newServers)
+    val env = cl.env + ('this -> cl.server)
+    (p, env, newQueue)
   }
 
   def collectRules(cl: SendClosure): Bag[(Server, RuleClosure)] = cl match {

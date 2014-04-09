@@ -1,4 +1,4 @@
-package djc.lang.sem.nondeterm_grouped
+package djc.lang.sem.nondeterm_4_grouped
 
 import djc.lang.sem.Substitution
 import djc.lang._

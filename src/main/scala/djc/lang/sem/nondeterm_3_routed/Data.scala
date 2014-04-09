@@ -1,7 +1,7 @@
-package djc.lang.sem.nondeterm_parallel
+package djc.lang.sem.nondeterm_3_routed
 
 import djc.lang.sem.Substitution
-import djc.lang.Prog
+import djc.lang._
 import djc.lang.Mapper._
 import djc.lang.ServerImpl
 import djc.lang.Send
@@ -10,7 +10,6 @@ import scala.Some
 import util.Bag
 
 object Data {
-  import Substitution._
 
   type ServerAddr = ServerVar
   object ServerAddr {
@@ -24,18 +23,24 @@ object Data {
       else
         None
   }
-  def lookupAddr(a: ServerAddr): ServerImpl = a match {
+  def lookupAddr(a: ServerAddr): ServerClosure = a match {
     case ServerAddr(addr) => Router.lookupAddr(addr)
     case _ => throw new IllegalArgumentException(s"Not a server address: $a")
   }
 
   type Env = Map[Symbol, ServerAddr]
-  case class ClosureProg(prog: Prog, env: Env) extends Prog
-  case class Closure(send: Send, env: Env) {
-    def normalize = env.toList.reverse.foldLeft(send)((s: Send, p: (Symbol, ServerAddr)) => map(substServer(p._1, lookupAddr(p._2)), s).asInstanceOf[Send])
-  }
 
-  type Servers = Map[Router.Addr, Bag[Closure]]
-  def sendToServer(servers: Servers, addr: Router.Addr, cl: Closure) =
-    servers + (addr -> (servers(addr) + cl))
+  def normalizeProg(p: Prog, env: Env): Prog =
+    env.foldLeft(p)((p: Prog, r: (Symbol, ServerAddr)) => {
+      val server = lookupAddr(r._2)
+      normalizeProg(map(Substitution.substServer(r._1, server.ths), p), server.env)
+    })
+
+  case class Match(subst: Map[Symbol, Service], used: Bag[SendClosure])
+
+  case class SendClosure(send: Send, env: Env) extends Prog {
+    def normalize = normalizeProg(send, env).asInstanceOf[Send]
+  }
+  case class ServerClosure(ths: ServerImpl, env: Env)
+  case class RuleClosure(rule: Rule, server: ServerAddr, env: Env)
 }

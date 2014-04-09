@@ -1,4 +1,4 @@
-package djc.lang.sem.concurrent_thread
+package djc.lang.sem.concurrent_6_thread
 
 import djc.lang.sem.Substitution._
 import djc.lang.Mapper._

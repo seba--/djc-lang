@@ -1,4 +1,4 @@
-package djc.lang.sem.nondeterm_subst
+package djc.lang.sem.nondeterm_1_subst
 
 import scala.Symbol
 import djc.lang.Mapper._
