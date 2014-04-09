@@ -29,7 +29,7 @@ object Semantics extends AbstractSemantics[Data.Servers] {
     interp(p, Map(), Map())
   }
 
-  def interp(p: Prog, envServer: EnvServer, servers: Servers): Res[Val] = p match {
+  def interp(p: Prog, envServer: Env, servers: Servers): Res[Val] = p match {
     case Def(x, addr@ServerAddr(_), p)
     => interp(p, envServer + (x -> addr), servers)
     case Def(x, ServerVar(y), p)
@@ -64,12 +64,12 @@ object Semantics extends AbstractSemantics[Data.Servers] {
     else
       nondeterministic(
         canSend,
-        (p: Bag[(ServerAddr, Rule, EnvServer, Map[Symbol, Service], Bag[Closure])])
+        (p: Bag[(ServerAddr, Rule, Env, Map[Symbol, Service], Bag[Closure])])
            => fireRules(p, v))
   }
 
-  def selectServerSends(servers: Servers): Res[Bag[(ServerAddr, Rule, EnvServer, Map[Symbol, Service], Bag[Closure])]] = {
-    type R = Res[(ServerAddr, Rule, EnvServer, Map[Symbol, Service], Bag[Closure])]
+  def selectServerSends(servers: Servers): Res[Bag[(ServerAddr, Rule, Env, Map[Symbol, Service], Bag[Closure])]] = {
+    type R = Res[(ServerAddr, Rule, Env, Map[Symbol, Service], Bag[Closure])]
     val bag = (Bag() ++ servers.values).map((b: Bag[Closure]) => selectSends(b)).filter(!_.isEmpty)
     if (bag.isEmpty)
       Set()
@@ -78,10 +78,10 @@ object Semantics extends AbstractSemantics[Data.Servers] {
   }
 
 
-  def selectSends(v: Bag[Closure]): Res[(ServerAddr, Rule, EnvServer, Map[Symbol, Service], Bag[Closure])] =
+  def selectSends(v: Bag[Closure]): Res[(ServerAddr, Rule, Env, Map[Symbol, Service], Bag[Closure])] =
     nondeterministic(
       (v map (collectRules(_))).flatten,
-      (r: (ServerAddr, Rule, EnvServer)) =>
+      (r: (ServerAddr, Rule, Env)) =>
         matchRule(r._1, r._2.ps, v) map (x => (r._1, r._2, r._3, x._1, x._2))
     )
 
@@ -104,7 +104,7 @@ object Semantics extends AbstractSemantics[Data.Servers] {
       )
     }
 
-  def serverEqual(s1: Server, s2: Server, env: EnvServer): Boolean = (s1, s2) match {
+  def serverEqual(s1: Server, s2: Server, env: Env): Boolean = (s1, s2) match {
     case (ServerAddr(addr1), ServerAddr(addr2)) if addr1 == addr2 => true
     case (ServerVar(x1), ServerVar(x2)) if x1 == x2 => true
     case (ServerVar(x1), s2) if env.isDefinedAt(x1) => serverEqual(env(x1), s2, env)
@@ -114,7 +114,7 @@ object Semantics extends AbstractSemantics[Data.Servers] {
     case (s1@ServerImpl(_), s2@ServerImpl(_)) => s1 == s2
   }
 
-  def fireRules(rules: Bag[(ServerAddr, Rule, EnvServer, Map[Symbol, Service], Bag[Closure])], oldServers: Servers): Res[Val] = {
+  def fireRules(rules: Bag[(ServerAddr, Rule, Env, Map[Symbol, Service], Bag[Closure])], oldServers: Servers): Res[Val] = {
     val updates = rules map (p => { // fire rule in parallel
       val addr = ServerAddr.unapply(p._1).get
       val oldQueue = oldServers(addr)
@@ -129,7 +129,7 @@ object Semantics extends AbstractSemantics[Data.Servers] {
     interp(Par(Bag() ++ newProgs), Map(), newServers)
   }
 
-  def fireRule(server: ServerAddr, rule: Rule, env: EnvServer, subst: Map[Symbol, Service], used: Bag[Closure], oldQueue: Bag[Closure]): (Prog, Bag[Closure]) = {
+  def fireRule(server: ServerAddr, rule: Rule, env: Env, subst: Map[Symbol, Service], used: Bag[Closure], oldQueue: Bag[Closure]): (Prog, Bag[Closure]) = {
     var p = map(substServer('this, server), rule.p)
     for ((x, s) <- subst)
       p = map(substService(x, s), p)
@@ -138,7 +138,7 @@ object Semantics extends AbstractSemantics[Data.Servers] {
     (p, newQueue)
   }
 
-  def collectRules(cl: Closure): Bag[(ServerAddr, Rule, EnvServer)] = cl match {
+  def collectRules(cl: Closure): Bag[(ServerAddr, Rule, Env)] = cl match {
     case Closure(Send(ServiceRef(addr@ServerAddr(_), _), _), env) => {
       val rules = lookupAddr(addr).rules
       rules map ((addr, _, env))

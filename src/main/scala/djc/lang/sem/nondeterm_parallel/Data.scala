@@ -29,9 +29,9 @@ object Data {
     case _ => throw new IllegalArgumentException(s"Not a server address: $a")
   }
 
-  type EnvServer = Map[Symbol, ServerAddr]
-  case class ClosureProg(prog: Prog, env: EnvServer) extends Prog
-  case class Closure(send: Send, env: EnvServer) {
+  type Env = Map[Symbol, ServerAddr]
+  case class ClosureProg(prog: Prog, env: Env) extends Prog
+  case class Closure(send: Send, env: Env) {
     def normalize = env.toList.reverse.foldLeft(send)((s: Send, p: (Symbol, ServerAddr)) => map(substServer(p._1, lookupAddr(p._2)), s).asInstanceOf[Send])
   }
 
