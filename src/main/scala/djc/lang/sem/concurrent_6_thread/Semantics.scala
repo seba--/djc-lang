@@ -18,67 +18,76 @@ object Semantics extends AbstractSemantics[Unit] { // all data is in the global 
 
   override def interp(p: Prog): Res[Val] = {
     Router.routeTable = collection.mutable.Map()
-    interp(p, Map())
+    val res = interp(p, Map())
     Thread.sleep(50)
     Router.routeTable.values.map(_.terminate = true)
-    Set(Unit)
+    res
   }
 
-  def interp(p: Prog, envServer: Env): Res[Val] = p match {
-    case Def(x, addr@ServerAddr(_), p)
-    => interp(p, envServer + (x -> addr))
-    case Def(x, ServerVar(y), p)
-    => envServer get(y) match {
-      case Some(s) => interp(p, envServer + (y -> s))
-      case None => throw new IllegalArgumentException(s"Unbound server variable $y in ${Def(x, ServerVar(y), p)}")
-    }
+  def interp(p: Prog, env: Env): Res[Val] = p match {
+    case Def(x, s@ServerVar(y), p) if env.isDefinedAt(y) =>
+      interp(p, env + (x -> env(y)))
     case Def(x, impl@ServerImpl(_), p)
     => {
-      val server = new ServerThread(impl, envServer)
+      val server = new ServerThread(impl, env)
       val addr = Router.registerServer(server)
       server.addr = ServerAddr(addr)
       server.start()
-      interp(p, envServer + (x -> ServerAddr(addr)))
+      interp(p, env + (x -> ServerAddr(addr)))
     }
     case Par(ps) => {
-      ps map (interp(_, envServer))
+      ps map (interp(_, env))
       Set(Unit)
     }
-    case s@Send(ServiceRef(ServerAddr(addr), _), args) => {
-      Router.lookupAddr(addr).sendRequest(Closure(s, envServer))
+    case s@Send(ServiceRef(ServerVar(x), _), args) if env.isDefinedAt(x) => {
+      lookupAddr(env(x)).sendRequest(SendClosure(s, env))
       Set(Unit)
     }
-    case s@Send(ServiceRef(ServerVar(x), _), args) if envServer.isDefinedAt(x) => {
-      lookupAddr(envServer(x)).sendRequest(Closure(s, envServer))
-      Set(Unit)
-    }
-    case ClosureProg(p, env) => interp(p, env)
+    case ProgClosure(p, env) => interp(p, env)
   }
 
-  def matchRule(pats: Bag[Pattern], v: Bag[Closure]): Res[(Map[Symbol, Service], Bag[Closure])] =
+  def interpSends(server: ServerThread) {
+    for (r <- server.impl.rules) {
+      val canSend = matchRule(r.ps, server.inbox)
+      if (!canSend.isEmpty) {
+        val ma = canSend.head
+        val (newProg, env, newQueue) = fireRule(RuleClosure(r, server.addr, server.env), ma, server.inbox)
+        server.inbox = newQueue
+        interp(newProg, env)
+        return
+      }
+    }
+  }
+
+  def matchRule(pats: Bag[Pattern], v: Bag[SendClosure]): Res[Match] =
     if (pats.isEmpty)
-      Set((Map(), Bag()))
+      Set(Match(Map(), Bag()))
     else {
       val name = pats.head.name
       val params = pats.head.params
       val matchingSends = v filter({
-        case Closure(Send(ServiceRef(s, `name`), args), env) if params.size == args.size => true
+        case SendClosure(Send(ServiceRef(s, `name`), args), env) if params.size == args.size => true
         case _ => false
       })
       nondeterministic(
         matchingSends,
-        (cl: Closure) => matchRule(pats.tail, v - cl) map (
-          p => (p._1 ++ (params zip cl.send.args), p._2 + cl)
+        (cl: SendClosure) => matchRule(pats.tail, v - cl) map (
+          p => Match(p.subst ++ (params zip cl.send.args), p.used + cl)
           )
       )
     }
 
-  def fireRule(server: ServerAddr, rule: Rule, subst: Map[Symbol, Service], used: Bag[Closure], oldQueue: Bag[Closure]): (Prog, Bag[Closure]) = {
-    var p = map(substServer('this, server), rule.p)
-    for ((x, s) <- subst)
+  def fireRule(cl: RuleClosure, ma: Match, oldQueue: Bag[SendClosure]): (Prog, Env, Bag[SendClosure]) = {
+    var p = cl.rule.p
+    for ((x, s) <- ma.subst)
       p = map(substService(x, s), p)
 
-    val newQueue = oldQueue diff used
-    (p, newQueue)
+    val addr = ServerAddr.unapply(cl.server).get
+    val newQueue = oldQueue diff ma.used
+    //    val newServers = orig.updated(addr, newQueue)
+
+    val env = cl.env + ('this -> cl.server)
+    (p, env, newQueue)
   }
+
 }

@@ -35,17 +35,13 @@ object Data {
       normalizeProg(map(substServer(r._1, server.impl), p), server.env)
     })
 
-//  case class Match(subst: Map[Symbol, Service], used: Bag[SendClosure])
+  case class Match(subst: Map[Symbol, Service], used: Bag[SendClosure])
 
-//  case class SendClosure(send: Send, env: Env) extends Prog {
-//    def normalize = normalizeProg(send, env).asInstanceOf[Send]
-//  }
-//  type ServerClosure = ServerThread
-//  case class RuleClosure(rule: Rule, server: ServerAddr, env: Env)
-
-  case class ClosureProg(prog: Prog, env: Env) extends Prog
-  case class Closure(send: Send, env: Env) {
-    def normalize = env.toList.reverse.foldLeft(send)((s: Send, p: (Symbol, ServerAddr)) => map(substServer(p._1, lookupAddr(p._2).impl), s).asInstanceOf[Send])
+  case class SendClosure(send: Send, env: Env) {
+    def normalize = normalizeProg(send, env).asInstanceOf[Send]
   }
+  case class ServerClosure(ths: ServerImpl, env: Env)
+  case class RuleClosure(rule: Rule, server: ServerAddr, env: Env)
 
+  case class ProgClosure(p: Prog, env: Env) extends Prog
 }

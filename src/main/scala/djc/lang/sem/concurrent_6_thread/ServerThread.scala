@@ -10,11 +10,11 @@ class ServerThread(val impl: ServerImpl, val env: Env) extends Thread {
   var addr: ServerAddr = null
 
   var dirty = false
-  var inbox = Bag[Closure]()
-  var newMessages = Bag[Closure]()
+  var inbox = Bag[SendClosure]()
+  var newMessages = Bag[SendClosure]()
   var terminate = false
 
-  def sendRequest(cl: Closure) {
+  def sendRequest(cl: SendClosure) {
     synchronized {
       newMessages += cl
       dirty = true
@@ -29,26 +29,10 @@ class ServerThread(val impl: ServerImpl, val env: Env) extends Thread {
           newMessages = Bag()
           dirty = false
         }
-        tryFireRule()
+        Semantics.interpSends(this)
       }
       else
         Thread.sleep(1)
-    }
-  }
-
-  def tryFireRule() {
-    import Semantics._
-
-    for (r <- impl.rules) {
-      val canSend = matchRule(r.ps, inbox)
-      if (!canSend.isEmpty) {
-        val (subst, used) = canSend.head
-        val (newProg, newInbox) = fireRule(addr, r, subst, used, inbox)
-        inbox = newInbox
-        interp(newProg, env)
-        return
-      }
-
     }
   }
 
