@@ -7,13 +7,14 @@ import djc.lang.sem.nondeterm_subst
 import djc.lang.sem.nondeterm_env
 import djc.lang.sem.nondeterm_routed
 import djc.lang.sem.nondeterm_grouped
+import djc.lang.sem.nondeterm_parallel.Semantics
 
 
 class TestSemantics_SubstNondeterm extends TestSemantics(nondeterm_subst.Semantics)
 class TestSemantics_EnvironmentNondeterm extends TestSemantics(nondeterm_env.Semantics)
 class TestSemantics_RoutingNondeterm extends TestSemantics(nondeterm_routed.Semantics)
 class TestSemantics_GroupedRoutingNondeterm extends TestSemantics(nondeterm_grouped.Semantics)
-class TestSemantics_ParallelRoutingNondeterm extends TestSemantics(Semantics_ParallelRoutingNondeterm)
+class TestSemantics_ParallelRoutingNondeterm extends TestSemantics(Semantics)
 class TestSemantics_ParallelRoutingConcurrent extends TestSemantics(Semantics_ParallelRoutingConcurrent, false)
 
 abstract class TestSemantics[V](sem: AbstractSemantics[V], nondeterm: Boolean = true) extends FunSuite {

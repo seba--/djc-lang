@@ -1,74 +1,26 @@
-package djc.lang
+package djc.lang.sem.nondeterm_parallel
 
 import scala.Symbol
 import scala.language.postfixOps
 import util.Bag
 import djc.lang.Mapper._
-import scala.Some
 import djc.lang.sem.{Substitution, Crossproduct, AbstractSemantics}
+import djc.lang._
+import djc.lang.Def
+import djc.lang.ServerImpl
+import djc.lang.Send
+import djc.lang.ServerVar
+import scala.Some
+import djc.lang.ServiceRef
+import djc.lang.Rule
+import djc.lang.Pattern
+import djc.lang.Par
 
-object Semantics_ParallelRoutingNondeterm_Router {
-  type Addr = String
 
-  var routeTable: collection.mutable.Map[Addr, ServerImpl] = null
-
-  var addrNum = 0
-  val addrPrefix = "Server@"
-  def nextAddr: Addr = {
-    addrNum += 1
-    val addr = addrPrefix + addrNum
-    if (!routeTable.isDefinedAt(addr))
-      addr
-    else
-      nextAddr
-  }
-
-  def registerServer(s: ServerImpl): Addr = {
-    val addr = nextAddr
-    routeTable += (addr -> s)
-    addr
-  }
-
-  def lookupAddr(addr: Addr): ServerImpl = routeTable(addr)
-}
-
-object Semantics_ParallelRoutingNondeterm_Data {
-  import Substitution._
-  import djc.lang.{Semantics_ParallelRoutingNondeterm_Router => Router}
-
-  type ServerAddr = ServerVar
-  object ServerAddr {
-    val prefix = "ADDR:"
-    def apply(addr: Router.Addr) = new ServerAddr(Symbol(prefix + addr))
-    def unapply(s: ServerVar): Option[Router.Addr] = getAddr(s.x.name)
-
-    def getAddr(name: String): Option[Router.Addr] =
-      if (name.startsWith(prefix))
-        Some(name.substring(prefix.length))
-      else
-        None
-  }
-  def lookupAddr(a: ServerAddr): ServerImpl = a match {
-    case ServerAddr(addr) => Router.lookupAddr(addr)
-    case _ => throw new IllegalArgumentException(s"Not a server address: $a")
-  }
-
-  type EnvServer = Map[Symbol, ServerAddr]
-  case class ClosureProg(prog: Prog, env: EnvServer) extends Prog
-  case class Closure(send: Send, env: EnvServer) {
-    def normalize = env.toList.reverse.foldLeft(send)((s: Send, p: (Symbol, ServerAddr)) => map(substServer(p._1, lookupAddr(p._2)), s).asInstanceOf[Send])
-  }
-
-  type Servers = Map[Router.Addr, Bag[Closure]]
-  def sendToServer(servers: Servers, addr: Router.Addr, cl: Closure) =
-    servers + (addr -> (servers(addr) + cl))
-}
-
-object Semantics_ParallelRoutingNondeterm extends AbstractSemantics[Semantics_ParallelRoutingNondeterm_Data.Servers] {
+object Semantics extends AbstractSemantics[Data.Servers] {
   import Substitution._
   import Crossproduct._
-  import Semantics_ParallelRoutingNondeterm_Data._
-  import djc.lang.{Semantics_ParallelRoutingNondeterm_Router => Router}
+  import Data._
 
   def normalizeVal(v: Val) = (Bag() ++ v.values).flatten map (_.normalize)
 
