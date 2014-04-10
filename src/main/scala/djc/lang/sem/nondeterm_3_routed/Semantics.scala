@@ -1,21 +1,13 @@
 package djc.lang.sem.nondeterm_3_routed
 
-import scala.Symbol
-import djc.lang.Mapper._
+import djc.lang.Syntax.Mapper._
 import scala.language.postfixOps
+
 import util.Bag
 import djc.lang.sem.{Substitution, Crossproduct, AbstractSemantics}
 
 
-import djc.lang._
-import djc.lang.Def
-import djc.lang.ServerImpl
-import djc.lang.Send
-import djc.lang.ServerVar
-import djc.lang.ServiceRef
-import djc.lang.Rule
-import djc.lang.Pattern
-import djc.lang.Par
+import djc.lang.Syntax._
 
 import Substitution._
 import Crossproduct._

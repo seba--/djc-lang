@@ -4,9 +4,8 @@ import scala.Symbol
 import scala.language.postfixOps
 import util.Bag
 import djc.lang.sem.Substitution
-import djc.lang._
-import djc.lang.Mapper._
-import djc.lang.Send
+import djc.lang.Syntax._
+import djc.lang.Syntax.Mapper._
 
 object Data {
   type Env = Map[Symbol, ServerClosure]

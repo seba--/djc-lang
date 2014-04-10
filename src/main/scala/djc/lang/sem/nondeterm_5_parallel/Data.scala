@@ -1,13 +1,9 @@
 package djc.lang.sem.nondeterm_5_parallel
 
 import djc.lang.sem.Substitution
-import djc.lang._
-import djc.lang.Mapper._
-import scala.Some
+import djc.lang.Syntax._
+import djc.lang.Syntax.Mapper._
 import util.Bag
-import djc.lang.ServerImpl
-import djc.lang.Send
-import djc.lang.ServerVar
 import scala.Some
 
 object Data {

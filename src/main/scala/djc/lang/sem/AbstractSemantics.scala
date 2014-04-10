@@ -1,9 +1,7 @@
 package djc.lang.sem
 
-import scala.language.higherKinds
-
 import util.Bag
-import djc.lang.{Prog, Send}
+import djc.lang.Syntax._
 
 trait AbstractSemantics[V] {
   type Val = V

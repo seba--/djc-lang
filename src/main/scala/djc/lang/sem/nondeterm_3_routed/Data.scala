@@ -1,11 +1,8 @@
 package djc.lang.sem.nondeterm_3_routed
 
 import djc.lang.sem.Substitution
-import djc.lang._
-import djc.lang.Mapper._
-import djc.lang.ServerImpl
-import djc.lang.Send
-import djc.lang.ServerVar
+import djc.lang.Syntax._
+import djc.lang.Syntax.Mapper._
 import scala.Some
 import util.Bag
 

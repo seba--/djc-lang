@@ -1,8 +1,8 @@
 package djc.lang.sem.concurrent_6_thread
 
 import djc.lang.sem.Substitution._
-import djc.lang.Mapper._
-import djc.lang._
+import djc.lang.Syntax.Mapper._
+import djc.lang.Syntax._
 import util.Bag
 
 /**

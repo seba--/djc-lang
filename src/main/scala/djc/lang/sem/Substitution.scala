@@ -1,17 +1,9 @@
 package djc.lang.sem
 
-import djc.lang.Mapper._
+import djc.lang.Syntax.Mapper._
 import util.Bag
-import djc.lang.Folder._
-import djc.lang._
-import djc.lang.Folder.Folder
-import djc.lang.Mapper.Mapper
-import djc.lang.Def
-import djc.lang.ServiceVar
-import djc.lang.ServerVar
-import scala.Some
-import djc.lang.Rule
-import djc.lang.Pattern
+import djc.lang.Syntax.Folder._
+import djc.lang.Syntax._
 
 object Substitution {
   def substService(x: Symbol, s: Service): Mapper = {

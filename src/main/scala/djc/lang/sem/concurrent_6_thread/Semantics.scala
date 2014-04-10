@@ -2,11 +2,11 @@ package djc.lang.sem.concurrent_6_thread
 
 import util.Bag
 
-import djc.lang._
+import djc.lang.Syntax._
 import djc.lang.sem.AbstractSemantics
 
 import Data._
-import djc.lang.Mapper._
+import djc.lang.Syntax.Mapper._
 import djc.lang.sem.Substitution._
 import djc.lang.sem.Crossproduct._
 

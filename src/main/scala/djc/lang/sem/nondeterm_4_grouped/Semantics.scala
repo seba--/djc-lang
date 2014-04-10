@@ -1,20 +1,10 @@
 package djc.lang.sem.nondeterm_4_grouped
 
-import scala.Symbol
 import scala.language.postfixOps
 import util.Bag
-import djc.lang.Mapper._
+import djc.lang.Syntax.Mapper._
 import djc.lang.sem.{Substitution, Crossproduct, AbstractSemantics}
-import djc.lang._
-import djc.lang.Def
-import djc.lang.ServerImpl
-import djc.lang.Send
-import djc.lang.ServerVar
-import scala.Some
-import djc.lang.ServiceRef
-import djc.lang.Rule
-import djc.lang.Pattern
-import djc.lang.Par
+import djc.lang.Syntax._
 
 
 object Semantics extends AbstractSemantics[Data.Servers] {

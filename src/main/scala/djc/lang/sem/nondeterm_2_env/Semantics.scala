@@ -1,10 +1,10 @@
 package djc.lang.sem.nondeterm_2_env
 
-import djc.lang.sem.{Crossproduct, Substitution, AbstractSemantics}
+import djc.lang.sem.{Crossproduct, AbstractSemantics}
+import djc.lang.sem.Substitution._
 import util.Bag
-import djc.lang._
-import djc.lang.Mapper._
-import Substitution.substService
+import djc.lang.Syntax._
+import djc.lang.Syntax.Mapper._
 import Crossproduct._
 import Data._
 
