@@ -58,6 +58,8 @@ class Bag[T](m: ListMap[T, Int]) extends scala.collection.immutable.Set[T]
 object Bag extends SetFactory[Bag] {
   implicit def canBuildFrom[A]: CanBuildFrom[Coll, A, Bag[A]] = setCanBuildFrom[A]
   override def newBuilder[A]: Builder[A, Bag[A]] = new BagBuilder[A](ListBuffer())
+
+  def unapply[T](b: Bag[T]): Boolean = b.isEmpty
 }
 
 class BagBuilder[T](l: ListBuffer[T]) extends Builder[T, Bag[T]] {

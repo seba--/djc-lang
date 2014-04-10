@@ -12,28 +12,26 @@ object Semantics extends AbstractSemantics[Value] {
   import FlatSubstitution._
   import Crossproduct._
 
-  def normalizeVal(v: Value) = v match {
-    case SendsVal(sends) => sends map (_.toSend.toSyntaxProg)
-  }
+  def normalizeVal(v: Value) = v.sval map (_.toSend.toSyntaxProg)
 
-  override def interp(p: Syntax.Prog) = interp(p.toFlatSyntax)
+  override def interp(p: Syntax.Prog) = interp(p.toFlatSyntax, Bag[SendVal]())
 
-  def interp(p: Prog): Res[Value] = p match {
+  def interp(p: Prog, sends: Bag[SendVal]): Res[Value] = p match {
     case Def(x, s, p) =>
       nondeterministic[Value,Value](
-        interp(s),
-        {case ServerVal(impl) => interp(p.map(subst(x, impl)))}
+        interp(s, sends),
+        {case Value(ServerVal(impl), sends) => interp(p.map(subst(x, impl)), sends)}
       )
     case Par(ps) =>
       nondeterministic[Bag[SendVal],Value](
-        crossProduct(ps map (interp(_) map (_ match {case SendsVal(sends) => sends}))),
+        crossProduct(ps map (interp(_, Bag()) map (_ match {case Value(UnitVal, sends) => sends}))),
         x => interpSends(x))
     case s@Send(rcv, args) =>
       nondeterministic[Value,Value](
-        interp(rcv),
-        {case rcvVal@ServiceVal(_, _) =>
+        interp(rcv, sends),
+        {case Value(rcvVal@ServiceVal(_, _), sends) =>
            nondeterministic[List[ServiceVal], Value](
-             crossProductList(args map (interp(_) map (_ match {case v@ServiceVal(_,_) => v}))),
+             crossProductList(args map (interp(_, Bag()) map {case Value(v@ServiceVal(_, _), Bag()) => v})),
              argvals => interpSends(Bag(SendVal(rcvVal, argvals)))
            )
         }
@@ -42,22 +40,23 @@ object Semantics extends AbstractSemantics[Value] {
       throw new IllegalStateException(s"Unbound variable $x")
     case ServiceRef(srv, x) =>
       nondeterministic[Value,Value](
-        interp(srv),
-        {case srv@ServerVal(_) => Set(ServiceVal(srv, x))}
+        interp(srv, sends),
+        {case Value(srv@ServerVal(_), sends) => Set(Value(ServiceVal(srv, x), sends))}
       )
-    case impl@ServerImpl(_) => Set(ServerVal(impl))
+    case impl@ServerImpl(_) => 
+      Set(Value(ServerVal(impl), sends))
   }
 
   def interpSends(sends: Bag[SendVal]): Res[Value] = {
     val canSend = selectSends(sends)
     if (canSend.isEmpty)
-      Set(SendsVal(sends))
+      Set(Value(UnitVal, sends))
     else
       nondeterministic[(ServerVal, Rule, Match), Value](
         canSend,
         p => {
           val (newProg, newQueue) = fireRule(p._1, p._2, p._3, sends)
-          interp(Par((newQueue map (_.toSend.asInstanceOf[Prog])) + newProg))
+          interp(newProg, newQueue)
         })
   }
 
