@@ -30,7 +30,7 @@ abstract class TestSemantics[V](sem: AbstractSemantics[V], nondeterm: Boolean = 
 
   def testInterp(s: String, p: Prog, expected: sem.Res[Bag[Send]]): Unit =
     test(s) {
-//      if (p == p6) {
+//      if (p == p5) {
         val res = sem.interp(withPrintServer(withConstServer(p)))
         val norm = res map (sem.normalizeVal(_))
         if (nondeterm)
@@ -126,22 +126,7 @@ abstract class TestSemantics[V](sem: AbstractSemantics[V], nondeterm: Boolean = 
     Set(
       Bag(Send(ServiceRef(PRINT_SERVER, 'foo), List(ServiceRef(CONST_SERVER, 'bar))), Send(ServiceRef(s5norm, 'm1), List(ServiceRef(CONST_SERVER, 'baz)))),
       Bag(Send(ServiceRef(PRINT_SERVER, 'foo), List(ServiceRef(CONST_SERVER, 'baz))), Send(ServiceRef(s5norm, 'm1), List(ServiceRef(CONST_SERVER, 'bar))))))
-
-//  Set(
-//    Set(
-//      Send(
-//        ServiceRef(
-//          ServerImpl(Set(Rule(Set(Pattern('PRINT,List())),Par(Set())))),
-//          'foo),
-//        List(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('CONST,List())),Par(Set())))),'baz)))),
-//    Set(
-//      Send(
-//        ServiceRef(
-//          ServerImpl(Set(Rule(Set(Pattern('PRINT,List())),Par(Set())))),
-//          'foo),
-//        List(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('CONST,List())),Par(Set())))),'bar)))))
-//  expected Set(Set(Send(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('PRINT,List())),Par(Set())))),'foo),List(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('CONST,List())),Par(Set())))),'bar))), Send(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('m1,List('x)), Pattern('token,List())),Send(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('PRINT,List())),Par(Set())))),'foo),List(ServiceVar('x)))))),'m1),List(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('CONST,List())),Par(Set())))),'baz)))), Set(Send(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('PRINT,List())),Par(Set())))),'foo),List(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('CONST,List())),Par(Set())))),'baz))), Send(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('m1,List('x)), Pattern('token,List())),Send(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('PRINT,List())),Par(Set())))),'foo),List(ServiceVar('x)))))),'m1),List(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('CONST,List())),Par(Set())))),'bar)))))
-
+  
 
   // server-variable shadowing
   val s6 = ServerImpl(

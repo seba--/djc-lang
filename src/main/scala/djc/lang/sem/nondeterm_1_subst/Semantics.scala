@@ -25,14 +25,14 @@ object Semantics extends AbstractSemantics[Value] {
     case Par(ps) =>
       nondeterministic[Bag[SendVal],Value](
         crossProduct(ps map (interp(_, Bag()) map (_ match {case UnitVal(sends) => sends}))),
-        x => interpSends(x))
+        x => interpSends(sends ++ x))
     case s@Send(rcv, args) =>
       nondeterministic[Value,Value](
         interp(rcv, sends),
         {case rcvVal@ServiceVal(_, _) =>
            nondeterministic[List[ServiceVal], Value](
              crossProductList(args map (interp(_, Bag()) map {case v@ServiceVal(_, _) => v})),
-             argvals => interpSends(Bag(SendVal(rcvVal, argvals)))
+             argvals => interpSends(sends + SendVal(rcvVal, argvals))
            )
         }
       )
