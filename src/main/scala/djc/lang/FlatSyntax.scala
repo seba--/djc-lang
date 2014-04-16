@@ -103,7 +103,6 @@ object FlatSyntax {
     def toSyntaxPattern = Syntax.Pattern(name, params)
   }
 
-
   object Folder {
     type FDef[T] = (Symbol, T, T) => T
     type FPar[T] = Bag[T] => T

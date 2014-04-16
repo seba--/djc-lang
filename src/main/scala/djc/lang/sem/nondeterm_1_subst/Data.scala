@@ -5,12 +5,10 @@ import util.Bag
 import djc.lang.Syntax
 
 object Data {
-  case class Value(pval: PVal, sval: Bag[SendVal])
-
-  abstract class PVal
-  case object UnitVal extends PVal
-  case class ServerVal(impl: ServerImpl) extends PVal
-  case class ServiceVal(srv: ServerVal, x: Symbol) extends PVal
+  abstract class Value
+  case class UnitVal(sval: Bag[SendVal]) extends Value
+  case class ServerVal(impl: ServerImpl) extends Value
+  case class ServiceVal(srv: ServerVal, x: Symbol) extends Value
 
   case class SendVal(rcv: ServiceVal, args: List[ServiceVal]) {
     def toSend =

@@ -12,7 +12,7 @@ object Semantics extends AbstractSemantics[Value] {
   import FlatSubstitution._
   import Crossproduct._
 
-  def normalizeVal(v: Value) = v.sval map (_.toSend.toSyntaxProg)
+  def normalizeVal(v: Value) = v.asInstanceOf[UnitVal].sval map (_.toSend.toSyntaxProg)
 
   override def interp(p: Syntax.Prog) = interp(p.toFlatSyntax, Bag[SendVal]())
 
@@ -20,18 +20,18 @@ object Semantics extends AbstractSemantics[Value] {
     case Def(x, s, p) =>
       nondeterministic[Value,Value](
         interp(s, sends),
-        {case Value(ServerVal(impl), sends) => interp(p.map(subst(x, impl)), sends)}
+        {case ServerVal(impl) => interp(p.map(subst(x, impl)), sends)}
       )
     case Par(ps) =>
       nondeterministic[Bag[SendVal],Value](
-        crossProduct(ps map (interp(_, Bag()) map (_ match {case Value(UnitVal, sends) => sends}))),
+        crossProduct(ps map (interp(_, Bag()) map (_ match {case UnitVal(sends) => sends}))),
         x => interpSends(x))
     case s@Send(rcv, args) =>
       nondeterministic[Value,Value](
         interp(rcv, sends),
-        {case Value(rcvVal@ServiceVal(_, _), sends) =>
+        {case rcvVal@ServiceVal(_, _) =>
            nondeterministic[List[ServiceVal], Value](
-             crossProductList(args map (interp(_, Bag()) map {case Value(v@ServiceVal(_, _), Bag()) => v})),
+             crossProductList(args map (interp(_, Bag()) map {case v@ServiceVal(_, _) => v})),
              argvals => interpSends(Bag(SendVal(rcvVal, argvals)))
            )
         }
@@ -41,16 +41,16 @@ object Semantics extends AbstractSemantics[Value] {
     case ServiceRef(srv, x) =>
       nondeterministic[Value,Value](
         interp(srv, sends),
-        {case Value(srv@ServerVal(_), sends) => Set(Value(ServiceVal(srv, x), sends))}
+        {case srv@ServerVal(_) => Set(ServiceVal(srv, x))}
       )
     case impl@ServerImpl(_) => 
-      Set(Value(ServerVal(impl), sends))
+      Set(ServerVal(impl))
   }
 
   def interpSends(sends: Bag[SendVal]): Res[Value] = {
     val canSend = selectSends(sends)
     if (canSend.isEmpty)
-      Set(Value(UnitVal, sends))
+      Set(UnitVal(sends))
     else
       nondeterministic[(ServerVal, Rule, Match), Value](
         canSend,

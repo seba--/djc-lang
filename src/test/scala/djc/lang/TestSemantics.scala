@@ -30,7 +30,7 @@ abstract class TestSemantics[V](sem: AbstractSemantics[V], nondeterm: Boolean = 
 
   def testInterp(s: String, p: Prog, expected: sem.Res[Bag[Send]]): Unit =
     test(s) {
-      if (p == p6) {
+//      if (p == p6) {
         val res = sem.interp(withPrintServer(withConstServer(p)))
         val norm = res map (sem.normalizeVal(_))
         if (nondeterm)
@@ -40,7 +40,7 @@ abstract class TestSemantics[V](sem: AbstractSemantics[V], nondeterm: Boolean = 
           assert(norm.size == 1, s"Too many results found $norm, expected one of $expected")
           assert(expected.contains(norm.head), s"Was $norm, expected one of $expected")
         }
-      }
+//      }
     }
 
 
@@ -131,19 +131,17 @@ abstract class TestSemantics[V](sem: AbstractSemantics[V], nondeterm: Boolean = 
 //    Set(
 //      Send(
 //        ServiceRef(
-//          ServerImpl(Set(Rule(Set(Pattern('m1,List('x)), Pattern('token,List())),Send(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('THIS_IS_PRINT,List())),Par(Set())))),'foo),List(ServiceVar('x)))))),
-//          'm1),
-//        List(ServiceVar('baz))),
+//          ServerImpl(Set(Rule(Set(Pattern('PRINT,List())),Par(Set())))),
+//          'foo),
+//        List(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('CONST,List())),Par(Set())))),'baz)))),
+//    Set(
 //      Send(
 //        ServiceRef(
-//          ServerImpl(Set(Rule(Set(Pattern('m1,List('x)), Pattern('token,List())),Send(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('THIS_IS_PRINT,List())),Par(Set())))),'foo),List(ServiceVar('x)))))),
-//          'm1),
-//        List(ServiceVar('bar))),
-//      Send(
-//        ServiceRef(
-//          ServerImpl(Set(Rule(Set(Pattern('m1,List('x)), Pattern('token,List())),Send(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('THIS_IS_PRINT,List())),Par(Set())))),'foo),List(ServiceVar('x)))))),
-//          'token),
-//        List())))
+//          ServerImpl(Set(Rule(Set(Pattern('PRINT,List())),Par(Set())))),
+//          'foo),
+//        List(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('CONST,List())),Par(Set())))),'bar)))))
+//  expected Set(Set(Send(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('PRINT,List())),Par(Set())))),'foo),List(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('CONST,List())),Par(Set())))),'bar))), Send(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('m1,List('x)), Pattern('token,List())),Send(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('PRINT,List())),Par(Set())))),'foo),List(ServiceVar('x)))))),'m1),List(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('CONST,List())),Par(Set())))),'baz)))), Set(Send(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('PRINT,List())),Par(Set())))),'foo),List(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('CONST,List())),Par(Set())))),'baz))), Send(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('m1,List('x)), Pattern('token,List())),Send(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('PRINT,List())),Par(Set())))),'foo),List(ServiceVar('x)))))),'m1),List(ServiceRef(ServerImpl(Set(Rule(Set(Pattern('CONST,List())),Par(Set())))),'bar)))))
+
 
   // server-variable shadowing
   val s6 = ServerImpl(
@@ -156,7 +154,6 @@ abstract class TestSemantics[V](sem: AbstractSemantics[V], nondeterm: Boolean = 
   testInterp("p6",
     p6,
     Set(Bag(Send(ServiceRef(PRINT_SERVER, 'foo6), List(ServiceRef(CONST_SERVER, 'bar))))))
-
 
   // higher-order service: s7.m2(s1.m1, "bar") -> s1.m1("bar") -> Print.foo("bar")
   val s7 = ServerImpl(Bag(

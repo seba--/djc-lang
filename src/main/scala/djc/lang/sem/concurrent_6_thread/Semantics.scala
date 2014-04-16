@@ -82,7 +82,7 @@ object Semantics extends AbstractSemantics[Unit] { // all data is in the global 
     for ((x, s) <- ma.subst)
       p = map(substService(x, s), p)
 
-    val addr = ServerAddr.unapply(cl.server).get
+//    val addr = ServerAddr.unapply(cl.server).get
     val newQueue = oldQueue diff ma.used
     //    val newServers = orig.updated(addr, newQueue)
 
