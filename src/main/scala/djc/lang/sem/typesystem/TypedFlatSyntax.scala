@@ -8,7 +8,7 @@ object TypedFlatSyntax {
 
   abstract class Type
   case object Unit extends Type
-  case class TSvc(params : List[Type]) extends Type
+  case class TSvc(params : Type*) extends Type
   case class TSrv(svcs : Map[Symbol, Type]) extends Type
   case class TVar(alpha : Symbol) extends Type
   case class TUniv(alpha : Symbol, tpe : Type) extends Type
@@ -24,9 +24,9 @@ object TypedFlatSyntax {
       if ps.map(typeCheck(gamma, boundTv, _)) forall (_ == Unit) =>
       Unit
 
-    case Send(rcv, args) =>
+    case Send(rcv, args @ _*) =>
       (typeCheck(gamma, boundTv, rcv), args.map(typeCheck(gamma, boundTv, _))) match {
-        case (TSvc(ts1), ts2) if ts1 == ts2 =>
+        case (TSvc(ts1 @ _*), ts2) if ts1 == ts2 => //TODO type equality modulo renaming of bound variables?
           Unit
       }
 
@@ -39,7 +39,7 @@ object TypedFlatSyntax {
           svcs(x)
       }
 
-    case srv@ServerImpl(rules)
+    case srv @ ServerImpl(rules)
       if (rules.map { r =>
         typeCheck(gamma ++ r.rcvars  + ('this -> srv.signature), boundTv, r.p)
       } forall (_ == Unit))
@@ -72,12 +72,17 @@ object TypedFlatSyntax {
     override def toFlatSyntax = FlatSyntax.Def(x, s.toFlatSyntax, p.toFlatSyntax)
   }
 
-  case class Par(ps: Bag[Prog]) extends Prog {
+  class Par(val ps: Bag[Prog]) extends Prog {
     override def toFlatSyntax = FlatSyntax.Par(ps map (_.toFlatSyntax))
   }
+  object Par {
+    def apply(ps : Bag[Prog]) = new Par(ps)
+    def apply(ps : Prog*) = new Par(Bag(ps:_*))
+    def unapply(x : Par) = Some(x.ps)
+  }
 
-  case class Send(rcv: Prog, args: List[Prog]) extends Prog {
-    override def toFlatSyntax = FlatSyntax.Send(rcv.toFlatSyntax, args map (_.toFlatSyntax))
+  case class Send(rcv: Prog, args: Prog*) extends Prog {
+    override def toFlatSyntax = FlatSyntax.Send(rcv.toFlatSyntax, args.map(_.toFlatSyntax).toList)
   }
 
   case class Var(x: Symbol) extends Prog {
@@ -88,14 +93,14 @@ object TypedFlatSyntax {
     override def toFlatSyntax = FlatSyntax.ServiceRef(srv.toFlatSyntax, x)
   }
 
-  case class ServerImpl(rules: Bag[Rule]) extends Prog {
+  class ServerImpl(val rules: Bag[Rule]) extends Prog {
     override def toFlatSyntax = FlatSyntax.ServerImpl(rules map (_.toFlatSyntax))
 
     lazy val signature = {
       import collection.mutable.{ HashMap, MultiMap, Set }
       val mm = new HashMap[Symbol, Set[Type]] with MultiMap[Symbol, Type]
       for(Rule(ps, _) <- rules; Pattern(svcname, params) <- ps )
-        mm.addBinding(svcname, TSvc(params.map(_._2).toList))
+        mm.addBinding(svcname, TSvc(params.map(_._2).toSeq:_*))
 
       val m =
         mm.foldLeft(Map[Symbol, Type]()) { (m, kv) =>
@@ -107,6 +112,12 @@ object TypedFlatSyntax {
       TSrv(m)
     }
   }
+  object ServerImpl {
+    def apply(rules : Bag[Rule]) = new ServerImpl(rules)
+    def apply(rules : Rule*) = new ServerImpl(Bag(rules:_*))
+    def unapply(x : ServerImpl) = Some(x.rules)
+  }
+
 
   case class TApp(p : Prog, t : Type) extends Prog {
     override def toFlatSyntax = p.toFlatSyntax
@@ -125,10 +136,14 @@ object TypedFlatSyntax {
     }
   }
 
-  case class Pattern(name: Symbol, params: ListMap[Symbol,Type]) {
+  class Pattern(val name: Symbol, val params: ListMap[Symbol,Type]) {
     def toFlatSyntax = FlatSyntax.Pattern(name, params.keys.toList)
   }
-
+  object Pattern {
+    def apply(name : Symbol, params : ListMap[Symbol, Type]) = new Pattern(name, params)
+    def apply(name : Symbol, param : (Symbol, Type)*) = new Pattern(name, ListMap(param:_*))
+    def unapply(x : Pattern) = Some((x.name, x.params))
+  }
 
   case class SyntaxException(msg : String) extends RuntimeException(msg)
 
@@ -141,8 +156,8 @@ object TypedFlatSyntax {
         Def(x, map(p1), map(p2))
       case Par(ps) =>
         Par(ps map map)
-      case Send(p, args) =>
-        Send(map(p), args map map)
+      case Send(p, args @ _*) =>
+        Send(map(p), (args map map):_*)
       case Var(x) =>
         Var(x)
       case ServiceRef(p1, x) =>
@@ -157,7 +172,7 @@ object TypedFlatSyntax {
 
     def mapType(tpe : Type) : Type = tpe match {
       case Unit => Unit
-      case TSvc(ts) => TSvc(ts map mapType)
+      case TSvc(ts @ _*) => TSvc((ts map mapType) :_*)
       case TSrv(svcs) =>
         TSrv(svcs mapValues mapType)
       case TVar(alpha) => TVar(alpha)
@@ -185,7 +200,7 @@ object TypedFlatSyntax {
         fold(fold(init)(p1))(p2)
       case Par(ps) =>
         ps.foldLeft(init)(fold(_)(_))
-      case Send(p, args) =>
+      case Send(p, args @ _*) =>
         args.foldLeft(fold(init)(p))(fold(_)(_))
       case Var(x) =>
         init
@@ -202,7 +217,7 @@ object TypedFlatSyntax {
     def foldType[T](init : T)(tpe : Type) : T = tpe match {
       case Unit =>
         init
-      case TSvc(ts) =>
+      case TSvc(ts @ _*) =>
         ts.foldLeft(init)(foldType(_)(_))
       case TSrv(svcs) =>
         svcs.foldLeft(init) { (i, kv) => foldType(i)(kv._2) }
