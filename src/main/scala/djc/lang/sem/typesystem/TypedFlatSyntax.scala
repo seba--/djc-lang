@@ -7,7 +7,7 @@ import scala.collection.immutable.ListMap
 object TypedFlatSyntax {
 
   abstract class Type
-  case class Unit() extends Type
+  case object Unit extends Type
   case class TSvc(params : List[Type]) extends Type
   case class TSrv(svcs : Map[Symbol, Type]) extends Type
   case class TVar(alpha : Symbol) extends Type
@@ -21,13 +21,13 @@ object TypedFlatSyntax {
       typeCheck(gamma + (x -> t), boundTv, p2)
 
     case Par(ps)
-      if ps.map(typeCheck(gamma, boundTv, _)) forall (_ == Unit()) =>
-      Unit()
+      if ps.map(typeCheck(gamma, boundTv, _)) forall (_ == Unit) =>
+      Unit
 
     case Send(rcv, args) =>
       (typeCheck(gamma, boundTv, rcv), args.map(typeCheck(gamma, boundTv, _))) match {
         case (TSvc(ts1), ts2) if ts1 == ts2 =>
-          Unit()
+          Unit
       }
 
     case Var(x) if gamma.contains(x) =>
@@ -42,7 +42,7 @@ object TypedFlatSyntax {
     case srv@ServerImpl(rules)
       if (rules.map { r =>
         typeCheck(gamma ++ r.rcvars  + ('this -> srv.signature), boundTv, r.p)
-      } forall (_ == Unit()))
+      } forall (_ == Unit))
       && (FreeTypeVars(srv.signature) subsetOf boundTv) =>
 
       srv.signature
@@ -156,7 +156,7 @@ object TypedFlatSyntax {
     }
 
     def mapType(tpe : Type) : Type = tpe match {
-      case Unit() => Unit()
+      case Unit => Unit
       case TSvc(ts) => TSvc(ts map mapType)
       case TSrv(svcs) =>
         TSrv(svcs mapValues mapType)
@@ -200,7 +200,7 @@ object TypedFlatSyntax {
     }
 
     def foldType[T](init : T)(tpe : Type) : T = tpe match {
-      case Unit() =>
+      case Unit =>
         init
       case TSvc(ts) =>
         ts.foldLeft(init)(foldType(_)(_))
