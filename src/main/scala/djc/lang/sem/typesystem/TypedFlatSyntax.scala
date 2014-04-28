@@ -8,8 +8,16 @@ object TypedFlatSyntax {
 
   abstract class Type
   case object Unit extends Type
-  case class TSvc(params : Type*) extends Type
+  case class TSvc(params : List[Type]) extends Type
+  object TSvc {
+    def apply(params : Type*) : TSvc = TSvc(List(params:_*))
+  }
+
   case class TSrv(svcs : Map[Symbol, Type]) extends Type
+  object TSrv {
+    def apply(svcs : (Symbol, Type)*) : TSrv = TSrv(Map(svcs:_*))
+  }
+
   case class TVar(alpha : Symbol) extends Type
   case class TUniv(alpha : Symbol, tpe : Type) extends Type
 
@@ -26,7 +34,7 @@ object TypedFlatSyntax {
 
     case Send(rcv, args @ _*) =>
       (typeCheck(gamma, boundTv, rcv), args.map(typeCheck(gamma, boundTv, _))) match {
-        case (TSvc(ts1 @ _*), ts2) if ts1 == ts2 => //TODO type equality modulo renaming of bound variables?
+        case (TSvc(ts1), ts2) if ts1 == ts2 => //TODO type equality modulo renaming of bound variables?
           Unit
       }
 
@@ -61,8 +69,12 @@ object TypedFlatSyntax {
       val t = typeCheck(gamma, boundTv + alphares, p1res)
 
       TUniv(alphares, t)
+
+    case x =>
+      throw TypeCheckException(s"typeCheck failed at $x\ngamma: $gamma\nboundTv: $boundTv")
   }
 
+  case class TypeCheckException(msg : String) extends RuntimeException(msg)
 
   abstract class Prog {
     def toFlatSyntax : FlatSyntax.Prog
@@ -72,13 +84,11 @@ object TypedFlatSyntax {
     override def toFlatSyntax = FlatSyntax.Def(x, s.toFlatSyntax, p.toFlatSyntax)
   }
 
-  class Par(val ps: Bag[Prog]) extends Prog {
+  case class Par(ps: Bag[Prog]) extends Prog {
     override def toFlatSyntax = FlatSyntax.Par(ps map (_.toFlatSyntax))
   }
   object Par {
-    def apply(ps : Bag[Prog]) = new Par(ps)
     def apply(ps : Prog*) = new Par(Bag(ps:_*))
-    def unapply(x : Par) = Some(x.ps)
   }
 
   case class Send(rcv: Prog, args: Prog*) extends Prog {
@@ -93,14 +103,14 @@ object TypedFlatSyntax {
     override def toFlatSyntax = FlatSyntax.ServiceRef(srv.toFlatSyntax, x)
   }
 
-  class ServerImpl(val rules: Bag[Rule]) extends Prog {
+  case class ServerImpl(rules: Bag[Rule]) extends Prog {
     override def toFlatSyntax = FlatSyntax.ServerImpl(rules map (_.toFlatSyntax))
 
     lazy val signature = {
       import collection.mutable.{ HashMap, MultiMap, Set }
       val mm = new HashMap[Symbol, Set[Type]] with MultiMap[Symbol, Type]
       for(Rule(ps, _) <- rules; Pattern(svcname, params) <- ps )
-        mm.addBinding(svcname, TSvc(params.map(_._2).toSeq:_*))
+        mm.addBinding(svcname, TSvc(params.map(_._2).toList))
 
       val m =
         mm.foldLeft(Map[Symbol, Type]()) { (m, kv) =>
@@ -113,9 +123,7 @@ object TypedFlatSyntax {
     }
   }
   object ServerImpl {
-    def apply(rules : Bag[Rule]) = new ServerImpl(rules)
     def apply(rules : Rule*) = new ServerImpl(Bag(rules:_*))
-    def unapply(x : ServerImpl) = Some(x.rules)
   }
 
 
@@ -136,13 +144,11 @@ object TypedFlatSyntax {
     }
   }
 
-  class Pattern(val name: Symbol, val params: ListMap[Symbol,Type]) {
+  case class Pattern(name: Symbol, params: ListMap[Symbol,Type]) {
     def toFlatSyntax = FlatSyntax.Pattern(name, params.keys.toList)
   }
   object Pattern {
-    def apply(name : Symbol, params : ListMap[Symbol, Type]) = new Pattern(name, params)
     def apply(name : Symbol, param : (Symbol, Type)*) = new Pattern(name, ListMap(param:_*))
-    def unapply(x : Pattern) = Some((x.name, x.params))
   }
 
   case class SyntaxException(msg : String) extends RuntimeException(msg)
@@ -172,7 +178,7 @@ object TypedFlatSyntax {
 
     def mapType(tpe : Type) : Type = tpe match {
       case Unit => Unit
-      case TSvc(ts @ _*) => TSvc((ts map mapType) :_*)
+      case TSvc(ts) => TSvc((ts map mapType))
       case TSrv(svcs) =>
         TSrv(svcs mapValues mapType)
       case TVar(alpha) => TVar(alpha)
@@ -217,7 +223,7 @@ object TypedFlatSyntax {
     def foldType[T](init : T)(tpe : Type) : T = tpe match {
       case Unit =>
         init
-      case TSvc(ts @ _*) =>
+      case TSvc(ts) =>
         ts.foldLeft(init)(foldType(_)(_))
       case TSrv(svcs) =>
         svcs.foldLeft(init) { (i, kv) => foldType(i)(kv._2) }
