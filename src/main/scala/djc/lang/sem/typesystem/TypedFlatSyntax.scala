@@ -19,6 +19,7 @@ object TypedFlatSyntax {
   }
 
   case class TVar(alpha : Symbol) extends Type
+  case class TBase(name : Symbol) extends Type
   case class TUniv(alpha : Symbol, tpe : Type) extends Type
 
   type Context = Map[Symbol, Type]
@@ -32,10 +33,11 @@ object TypedFlatSyntax {
       if ps.map(typeCheck(gamma, boundTv, _)) forall (_ == Unit) =>
       Unit
 
-    case Send(rcv, args @ _*) =>
+    case Send(rcv, args@_*) =>
       (typeCheck(gamma, boundTv, rcv), args.map(typeCheck(gamma, boundTv, _))) match {
         case (TSvc(ts1), ts2) if ts1 == ts2 => //TODO type equality modulo renaming of bound variables?
           Unit
+        case x => throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\nboundTv: $boundTv\nwith $x")
       }
 
     case Var(x) if gamma.contains(x) =>
@@ -45,13 +47,15 @@ object TypedFlatSyntax {
       typeCheck(gamma, boundTv, srv) match {
         case TSrv(svcs) if svcs.contains(x) =>
           svcs(x)
+        case x => throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\nboundTv: $boundTv\nwith $x")
       }
 
-    case srv @ ServerImpl(rules)
-      if (rules.map { r =>
-        typeCheck(gamma ++ r.rcvars  + ('this -> srv.signature), boundTv, r.p)
+    case srv@ServerImpl(rules)
+      if (rules.map {
+        r =>
+          typeCheck(gamma ++ r.rcvars + ('this -> srv.signature), boundTv, r.p)
       } forall (_ == Unit))
-      && (FreeTypeVars(srv.signature) subsetOf boundTv) =>
+        && (FreeTypeVars(srv.signature) subsetOf boundTv) =>
 
       srv.signature
 
@@ -59,6 +63,8 @@ object TypedFlatSyntax {
       typeCheck(gamma, boundTv, p2) match {
         case TUniv(alpha, t2) =>
           SubstType(alpha, t)(t2)
+
+        case x => throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\nboundTv: $boundTv\nwith $x")
       }
 
     case TAbs(alpha, p1) =>
@@ -70,8 +76,8 @@ object TypedFlatSyntax {
 
       TUniv(alphares, t)
 
-    case x =>
-      throw TypeCheckException(s"typeCheck failed at $x\ngamma: $gamma\nboundTv: $boundTv")
+    case _ =>
+      throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\nboundTv: $boundTv")
   }
 
   case class TypeCheckException(msg : String) extends RuntimeException(msg)
@@ -182,6 +188,7 @@ object TypedFlatSyntax {
       case TSrv(svcs) =>
         TSrv(svcs mapValues mapType)
       case TVar(alpha) => TVar(alpha)
+      case TBase(name) => TBase(name)
       case TUniv(alpha, tpe1) => TUniv(alpha, mapType(tpe1))
     }
     
@@ -228,6 +235,8 @@ object TypedFlatSyntax {
       case TSrv(svcs) =>
         svcs.foldLeft(init) { (i, kv) => foldType(i)(kv._2) }
       case TVar(alpha) =>
+        init
+      case TBase(name) =>
         init
       case TUniv(alpha, tpe1) =>
         foldType(init)(tpe1)
