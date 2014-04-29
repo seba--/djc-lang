@@ -36,9 +36,7 @@ class TypeCheckTest extends FunSuite {
   test("mkCell typeCheck factory") {
     val t = TUniv('V,TSrv('mkCell -> TSvc(TVar('V), TSvc(TSvc(TSvc(TVar('V))), TSvc(TVar('V), TSvc())))))
 
-    assertResult(t) {
-      typeCheck(Map(), Set(), mkCell(Var('factory)))
-    }
+    assert(t === typeCheck(Map(), Set(), mkCell(Var('factory))))
   }
 
   test("typeCheck should fail") {

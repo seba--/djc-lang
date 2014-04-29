@@ -6,21 +6,43 @@ import scala.collection.immutable.ListMap
 
 object TypedFlatSyntax {
 
-  abstract class Type
+  abstract class Type {
+    /**
+     * Equality modulo bound vars
+     */
+    def ===(that : Type ) : Boolean = this == that
+  }
+
   case object Unit extends Type
-  case class TSvc(params : List[Type]) extends Type
+
+  case class TSvc(params : List[Type]) extends Type {
+    override def ===(that : Type) = that match {
+      case TSvc(params1) => params.corresponds(params1)(_ === _)
+      case _ => false
+    }
+  }
   object TSvc {
     def apply(params : Type*) : TSvc = TSvc(List(params:_*))
   }
 
-  case class TSrv(svcs : Map[Symbol, Type]) extends Type
+  case class TSrv(svcs : Map[Symbol, Type]) extends Type {
+    override def ===(that : Type) = that match {
+      case TSrv(svcs1) => svcs.keySet == svcs1.keySet && svcs.forall { case (s,tpe) => tpe === svcs1(s)}
+      case _ => false
+    }
+  }
   object TSrv {
     def apply(svcs : (Symbol, Type)*) : TSrv = TSrv(Map(svcs:_*))
   }
 
   case class TVar(alpha : Symbol) extends Type
   case class TBase(name : Symbol) extends Type
-  case class TUniv(alpha : Symbol, tpe : Type) extends Type
+  case class TUniv(alpha : Symbol, tpe : Type) extends Type {
+    override def ===(that: Type) = that match {
+      case TUniv(beta, tpe1) => tpe === SubstType(beta, TVar(alpha))(tpe1)
+      case _ => false
+    }
+  }
 
   type Context = Map[Symbol, Type]
 
@@ -30,12 +52,12 @@ object TypedFlatSyntax {
       typeCheck(gamma + (x -> t), boundTv, p2)
 
     case Par(ps)
-      if ps.map(typeCheck(gamma, boundTv, _)) forall (_ == Unit) =>
+      if ps.map(typeCheck(gamma, boundTv, _)) forall (_ === Unit) =>
       Unit
 
     case Send(rcv, args@_*) =>
       (typeCheck(gamma, boundTv, rcv), args.map(typeCheck(gamma, boundTv, _))) match {
-        case (TSvc(ts1), ts2) if ts1 == ts2 => //TODO type equality modulo renaming of bound variables?
+        case (TSvc(ts1), ts2) if ts1.corresponds(ts2)(_ === _) =>
           Unit
         case x => throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\nboundTv: $boundTv\nwith $x")
       }
@@ -54,7 +76,7 @@ object TypedFlatSyntax {
       if (rules.map {
         r =>
           typeCheck(gamma ++ r.rcvars + ('this -> srv.signature), boundTv, r.p)
-      } forall (_ == Unit))
+      } forall (_ === Unit))
         && (FreeTypeVars(srv.signature) subsetOf boundTv) =>
 
       srv.signature
