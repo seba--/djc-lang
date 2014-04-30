@@ -10,34 +10,40 @@ object TypedFlatSyntax {
     /**
      * Equality modulo bound vars
      */
-    def ===(that : Type ) : Boolean = this == that
+    def ===(that: Type): Boolean = this == that
   }
 
   case object Unit extends Type
 
-  case class TSvc(params : List[Type]) extends Type {
-    override def ===(that : Type) = that match {
+  case class TSvc(params: List[Type]) extends Type {
+    override def ===(that: Type) = that match {
       case TSvc(params1) => params.corresponds(params1)(_ === _)
       case _ => false
     }
   }
+
   object TSvc {
-    def apply(params : Type*) : TSvc = TSvc(List(params:_*))
+    def apply(params: Type*): TSvc = TSvc(List(params: _*))
   }
 
-  case class TSrv(svcs : Map[Symbol, Type]) extends Type {
-    override def ===(that : Type) = that match {
-      case TSrv(svcs1) => svcs.keySet == svcs1.keySet && svcs.forall { case (s,tpe) => tpe === svcs1(s)}
+  case class TSrv(svcs: Map[Symbol, Type]) extends Type {
+    override def ===(that: Type) = that match {
+      case TSrv(svcs1) => svcs.keySet == svcs1.keySet && svcs.forall {
+        case (s, tpe) => tpe === svcs1(s)
+      }
       case _ => false
     }
   }
+
   object TSrv {
-    def apply(svcs : (Symbol, Type)*) : TSrv = TSrv(Map(svcs:_*))
+    def apply(svcs: (Symbol, Type)*): TSrv = TSrv(Map(svcs: _*))
   }
 
-  case class TVar(alpha : Symbol) extends Type
-  case class TBase(name : Symbol) extends Type
-  case class TUniv(alpha : Symbol, tpe : Type) extends Type {
+  case class TVar(alpha: Symbol) extends Type
+
+  case class TBase(name: Symbol) extends Type
+
+  case class TUniv(alpha: Symbol, tpe: Type) extends Type {
     override def ===(that: Type) = that match {
       case TUniv(beta, tpe1) => tpe === SubstType(beta, TVar(alpha))(tpe1)
       case _ => false
@@ -46,7 +52,7 @@ object TypedFlatSyntax {
 
   type Context = Map[Symbol, Type]
 
-  def typeCheck(gamma : Context, boundTv : Set[Symbol], p : Prog) : Type = p match {
+  def typeCheck(gamma: Context, boundTv: Set[Symbol], p: Prog): Type = p match {
     case Def(x, s, p2) =>
       val t = typeCheck(gamma, boundTv, s)
       typeCheck(gamma + (x -> t), boundTv, p2)
@@ -55,7 +61,7 @@ object TypedFlatSyntax {
       if ps.map(typeCheck(gamma, boundTv, _)) forall (_ === Unit) =>
       Unit
 
-    case Send(rcv, args@_*) =>
+    case Send(rcv, args) =>
       (typeCheck(gamma, boundTv, rcv), args.map(typeCheck(gamma, boundTv, _))) match {
         case (TSvc(ts1), ts2) if ts1.corresponds(ts2)(_ === _) =>
           Unit
@@ -102,10 +108,10 @@ object TypedFlatSyntax {
       throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\nboundTv: $boundTv")
   }
 
-  case class TypeCheckException(msg : String) extends RuntimeException(msg)
+  case class TypeCheckException(msg: String) extends RuntimeException(msg)
 
   abstract class Prog {
-    def toFlatSyntax : FlatSyntax.Prog
+    def toFlatSyntax: FlatSyntax.Prog
   }
 
   case class Def(x: Symbol, s: Prog, p: Prog) extends Prog {
@@ -115,12 +121,17 @@ object TypedFlatSyntax {
   case class Par(ps: Bag[Prog]) extends Prog {
     override def toFlatSyntax = FlatSyntax.Par(ps map (_.toFlatSyntax))
   }
+
   object Par {
-    def apply(ps : Prog*) = new Par(Bag(ps:_*))
+    def apply(ps: Prog*) = new Par(Bag(ps: _*))
   }
 
-  case class Send(rcv: Prog, args: Prog*) extends Prog {
-    override def toFlatSyntax = FlatSyntax.Send(rcv.toFlatSyntax, args.map(_.toFlatSyntax).toList)
+  case class Send(rcv: Prog, args: List[Prog]) extends Prog {
+    override def toFlatSyntax = FlatSyntax.Send(rcv.toFlatSyntax, args.map(_.toFlatSyntax))
+  }
+
+  object Send {
+    def apply(rcv: Prog, args: Prog*) = new Send(rcv, List(args: _*))
   }
 
   case class Var(x: Symbol) extends Prog {
@@ -135,63 +146,67 @@ object TypedFlatSyntax {
     override def toFlatSyntax = FlatSyntax.ServerImpl(rules map (_.toFlatSyntax))
 
     lazy val signature = {
-      import collection.mutable.{ HashMap, MultiMap, Set }
+      import collection.mutable.{HashMap, MultiMap, Set}
       val mm = new HashMap[Symbol, Set[Type]] with MultiMap[Symbol, Type]
-      for(Rule(ps, _) <- rules; Pattern(svcname, params) <- ps )
+      for (Rule(ps, _) <- rules; Pattern(svcname, params) <- ps)
         mm.addBinding(svcname, TSvc(params.map(_._2).toList))
 
       val m =
-        mm.foldLeft(Map[Symbol, Type]()) { (m, kv) =>
-          val (svcname, types) = kv
-          if (types.size > 1)
-            throw SyntaxException(s"inconsistent type annotations for service $svcname : $types")
-          m + (svcname -> types.last)
+        mm.foldLeft(Map[Symbol, Type]()) {
+          (m, kv) =>
+            val (svcname, types) = kv
+            if (types.size > 1)
+              throw SyntaxException(s"inconsistent type annotations for service $svcname : $types")
+            m + (svcname -> types.last)
         }
       TSrv(m)
     }
   }
+
   object ServerImpl {
-    def apply(rules : Rule*) = new ServerImpl(Bag(rules:_*))
+    def apply(rules: Rule*) = new ServerImpl(Bag(rules: _*))
   }
 
 
-  case class TApp(p : Prog, t : Type) extends Prog {
+  case class TApp(p: Prog, t: Type) extends Prog {
     override def toFlatSyntax = p.toFlatSyntax
   }
 
-  case class TAbs(alpha : Symbol, p : Prog) extends Prog {
+  case class TAbs(alpha: Symbol, p: Prog) extends Prog {
     override def toFlatSyntax = p.toFlatSyntax
   }
 
   case class Rule(ps: Bag[Pattern], p: Prog) {
     def toFlatSyntax = FlatSyntax.Rule(ps map (_.toFlatSyntax), p.toFlatSyntax)
 
-    lazy val rcvars : ListMap[Symbol, Type] = {
+    lazy val rcvars: ListMap[Symbol, Type] = {
       val m = ListMap[Symbol, Type]()
       ps.foldLeft(m)(_ ++ _.params)
     }
   }
 
-  case class Pattern(name: Symbol, params: ListMap[Symbol,Type]) {
+  case class Pattern(name: Symbol, params: ListMap[Symbol, Type]) {
     def toFlatSyntax = FlatSyntax.Pattern(name, params.keys.toList)
   }
+
   object Pattern {
-    def apply(name : Symbol, param : (Symbol, Type)*) = new Pattern(name, ListMap(param:_*))
+    def apply(name: Symbol, param: (Symbol, Type)*) = new Pattern(name, ListMap(param: _*))
   }
 
-  case class SyntaxException(msg : String) extends RuntimeException(msg)
+  case class SyntaxException(msg: String) extends RuntimeException(msg)
 
   trait Mapper {
-    def apply(prog : Prog) : Prog = map(prog)
-    def apply(tpe : Type) : Type = mapType(tpe)
+    def apply(prog: Prog): Prog = map(prog)
 
-    def map(prog : Prog) : Prog = prog match {
+    def apply(tpe: Type): Type = mapType(tpe)
+
+    def map(prog: Prog): Prog = prog match {
       case Def(x, p1, p2) =>
         Def(x, map(p1), map(p2))
       case Par(ps) =>
         Par(ps map map)
-      case Send(p, args @ _*) =>
-        Send(map(p), (args map map):_*)
+      case Send(p, args) =>
+        Send(map(p), (args map map))
       case Var(x) =>
         Var(x)
       case ServiceRef(p1, x) =>
@@ -204,7 +219,7 @@ object TypedFlatSyntax {
         TAbs(alpha, map(p1))
     }
 
-    def mapType(tpe : Type) : Type = tpe match {
+    def mapType(tpe: Type): Type = tpe match {
       case Unit => Unit
       case TSvc(ts) => TSvc((ts map mapType))
       case TSrv(svcs) =>
@@ -213,16 +228,16 @@ object TypedFlatSyntax {
       case TBase(name) => TBase(name)
       case TUniv(alpha, tpe1) => TUniv(alpha, mapType(tpe1))
     }
-    
-    def mapRule(rule : Rule) : Rule  = {
+
+    def mapRule(rule: Rule): Rule = {
       val Rule(ps, prog) = rule
       Rule(ps map mapPattern, map(prog))
     }
-    
-    def mapPattern(pattern : Pattern) : Pattern = {
+
+    def mapPattern(pattern: Pattern): Pattern = {
       val Pattern(name, params) = pattern
       val transformedParams = params.foldLeft(ListMap[Symbol, Type]()) {
-        (m,kv) =>
+        (m, kv) =>
           m + (kv._1 -> mapType(kv._2))
       }
       Pattern(name, transformedParams)
@@ -230,12 +245,12 @@ object TypedFlatSyntax {
   }
 
   trait Fold {
-    def fold[T](init : T)(prog : Prog) : T = prog match {
+    def fold[T](init: T)(prog: Prog): T = prog match {
       case Def(x, p1, p2) =>
         fold(fold(init)(p1))(p2)
       case Par(ps) =>
         ps.foldLeft(init)(fold(_)(_))
-      case Send(p, args @ _*) =>
+      case Send(p, args) =>
         args.foldLeft(fold(init)(p))(fold(_)(_))
       case Var(x) =>
         init
@@ -249,13 +264,15 @@ object TypedFlatSyntax {
         fold(init)(p1)
     }
 
-    def foldType[T](init : T)(tpe : Type) : T = tpe match {
+    def foldType[T](init: T)(tpe: Type): T = tpe match {
       case Unit =>
         init
       case TSvc(ts) =>
         ts.foldLeft(init)(foldType(_)(_))
       case TSrv(svcs) =>
-        svcs.foldLeft(init) { (i, kv) => foldType(i)(kv._2) }
+        svcs.foldLeft(init) {
+          (i, kv) => foldType(i)(kv._2)
+        }
       case TVar(alpha) =>
         init
       case TBase(name) =>
@@ -264,21 +281,23 @@ object TypedFlatSyntax {
         foldType(init)(tpe1)
     }
 
-    def foldRule[T](init : T)(rule : Rule) : T = {
+    def foldRule[T](init: T)(rule: Rule): T = {
       val Rule(ps, prog) = rule
       fold((ps.foldLeft(init)(foldPattern(_)(_))))(prog)
     }
 
-    def foldPattern[T](init : T)(pattern : Pattern) : T = {
+    def foldPattern[T](init: T)(pattern: Pattern): T = {
       val Pattern(_, params) = pattern
-      params.foldLeft(init) { (i, kv) => foldType(i)(kv._2) }
+      params.foldLeft(init) {
+        (i, kv) => foldType(i)(kv._2)
+      }
     }
   }
 
   object FreeVars extends Fold {
-    def apply(prog : Prog) : Set[Symbol] = fold(Set[Symbol]())(prog)
+    def apply(prog: Prog): Set[Symbol] = fold(Set[Symbol]())(prog)
 
-    def fold(init : Set[Symbol])(prog : Prog) : Set[Symbol] = prog match {
+    def fold(init: Set[Symbol])(prog: Prog): Set[Symbol] = prog match {
       case Def(x, p1, p2) =>
         fold(fold(init)(p1) - 'this)(p2) - x
       case Var(x) =>
@@ -286,24 +305,27 @@ object TypedFlatSyntax {
       case _ => super.fold(init)(prog)
     }
 
-    def foldType(init : Set[Symbol])(tpe : Type) = init
-    def foldPattern(init : Set[Symbol])(pattern : Pattern) = init
-    def foldRule(init : Set[Symbol])(rule : Rule) : Set[Symbol] = {
+    def foldType(init: Set[Symbol])(tpe: Type) = init
+
+    def foldPattern(init: Set[Symbol])(pattern: Pattern) = init
+
+    def foldRule(init: Set[Symbol])(rule: Rule): Set[Symbol] = {
       super.foldRule(init)(rule) -- rule.rcvars.keySet
     }
   }
 
   object FreeTypeVars extends Fold {
-    def apply(prog : Prog) : Set[Symbol] = fold(Set[Symbol]())(prog)
-    def apply(tpe : Type) : Set[Symbol] = foldType(Set[Symbol]())(tpe)
+    def apply(prog: Prog): Set[Symbol] = fold(Set[Symbol]())(prog)
 
-    def fold(init : Set[Symbol])(prog : Prog) : Set[Symbol] = prog match {
+    def apply(tpe: Type): Set[Symbol] = foldType(Set[Symbol]())(tpe)
+
+    def fold(init: Set[Symbol])(prog: Prog): Set[Symbol] = prog match {
       case TAbs(alpha, p1) =>
         fold(init)(p1) - alpha
       case _ => super.fold(init)(prog)
     }
 
-    def foldType(init : Set[Symbol])(tpe : Type) : Set[Symbol] = tpe match {
+    def foldType(init: Set[Symbol])(tpe: Type): Set[Symbol] = tpe match {
       case TVar(alpha) =>
         init + alpha
       case TUniv(alpha, tpe1) =>
@@ -312,16 +334,16 @@ object TypedFlatSyntax {
     }
   }
 
-  case class SubstProg(x : Symbol, repl : Prog) extends Mapper {
+  case class SubstProg(x: Symbol, repl: Prog) extends Mapper {
     lazy val replVars = FreeVars(repl)
     lazy val replTVars = FreeTypeVars(repl)
 
-    override def map(prog : Prog) : Prog = prog match {
+    override def map(prog: Prog): Prog = prog match {
       case Def(x2, p1, p2) =>
         val captureAvoiding = !replVars.contains(x2)
         lazy val x2fresh = gensym(x2, replVars)
         lazy val p2fresh = SubstProg(x2, Var(x2fresh))(p2)
-        val (x2res, p2res) = if (captureAvoiding) (x2,p2) else (x2fresh,p2fresh)
+        val (x2res, p2res) = if (captureAvoiding) (x2, p2) else (x2fresh, p2fresh)
 
         if (x == 'this)
           Def(x2res, p1, p2res)
@@ -345,19 +367,25 @@ object TypedFlatSyntax {
         super.map(prog)
     }
 
-    override def mapRule(rule : Rule) : Rule = {
+    override def mapRule(rule: Rule): Rule = {
       val Rule(ps, prog) = rule
       val boundNames = rule.rcvars.toList map (_._1)
       val conflictingNames = boundNames filter replVars
       val captureAvoiding = conflictingNames.isEmpty
 
       lazy val replacements = conflictingNames zip gensyms(conflictingNames, replVars)
-      lazy val progfresh =  replacements.foldLeft(prog) {
+      lazy val progfresh = replacements.foldLeft(prog) {
         (p, kv) => SubstProg(kv._1, Var(kv._2))(p)
       }
-      lazy val rename : Symbol => Symbol = replacements.toMap orElse { case s : Symbol => s }
-      lazy val psfresh = ps map { pat =>
-        Pattern(pat.name, pat.params.map { kv => rename(kv._1) -> kv._2 } ) }
+      lazy val rename: Symbol => Symbol = replacements.toMap orElse {
+        case s: Symbol => s
+      }
+      lazy val psfresh = ps map {
+        pat =>
+          Pattern(pat.name, pat.params.map {
+            kv => rename(kv._1) -> kv._2
+          })
+      }
       val (psres, progres) = if (captureAvoiding) (ps, prog) else (psfresh, progfresh)
 
       if (boundNames contains x)
@@ -366,13 +394,13 @@ object TypedFlatSyntax {
         Rule(psres, map(progres))
     }
 
-    override def mapType(tpe : Type) : Type = tpe
+    override def mapType(tpe: Type): Type = tpe
   }
 
-  case class SubstType(alpha : Symbol, repl : Type) extends Mapper {
+  case class SubstType(alpha: Symbol, repl: Type) extends Mapper {
     lazy val replTVars = FreeTypeVars(repl)
 
-    override def map(prog : Prog) : Prog = prog match {
+    override def map(prog: Prog): Prog = prog match {
       case TAbs(alpha1, p1) =>
         val captureAvoiding = !replTVars(alpha1)
         lazy val alpha1fresh = gensym(alpha1, replTVars)
@@ -387,7 +415,7 @@ object TypedFlatSyntax {
       case _ => super.map(prog)
     }
 
-    override def mapType(tpe : Type) : Type = tpe match {
+    override def mapType(tpe: Type): Type = tpe match {
       case TVar(alpha1) if alpha == alpha1 =>
         repl
 
@@ -406,17 +434,19 @@ object TypedFlatSyntax {
     }
   }
 
-  def gensyms(l : List[Symbol], used : Set[Symbol]) : List[Symbol] = l match {
+  def gensyms(l: List[Symbol], used: Set[Symbol]): List[Symbol] = l match {
     case Nil => Nil
     case s :: ss =>
       val sfresh = gensym(s, used)
       sfresh :: gensyms(ss, used + sfresh)
   }
+
   def gensym(x: Symbol, used: Set[Symbol]): Symbol = gensym(x, 0, used)
+
   def gensym(x: Symbol, i: Int, used: Set[Symbol]): Symbol = {
     val s = Symbol(s"${x.name}_$i")
     if (used contains s)
-      gensym(x, i+1, used)
+      gensym(x, i + 1, used)
     else
       s
   }
