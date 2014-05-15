@@ -1,69 +1,74 @@
 package djc.lang.sem.nondeterm_1_subst
 
-import scala.Symbol
 import scala.language.postfixOps
 import util.Bag
-import djc.lang.sem.{FlatSubstitution, Crossproduct, AbstractSemantics}
+import djc.lang.sem.{Crossproduct, AbstractSemantics}
 import djc.lang.FlatSyntax._
 import djc.lang.Syntax
 import Data._
+import djc.lang.sem.FlatSubstitution.Subst
 
 object Semantics extends AbstractSemantics[Value] {
-  import FlatSubstitution._
   import Crossproduct._
 
-  def normalizeVal(v: Value) = v.asInstanceOf[UnitVal].sval map (_.toSend.toSyntaxProg)
+  def normalizeVal(v: Val) = v.asInstanceOf[UnitVal].sval map (_.toSend)
 
-  override def interp(p: Syntax.Prog) = interp(p.toFlatSyntax, Bag[SendVal]())
+  override def interp(p: Prog) = interp(p, Bag[SendVal]())
+  def interp(p: Syntax.Prog): Res[Val] = interp(p.toFlatSyntax, Bag[SendVal]())
 
-  def interp(p: Prog, sends: Bag[SendVal]): Res[Value] = p match {
-    case Def(x, s, p) =>
-      nondeterministic[Value,Value](
+  def interp(p: Prog, sends: Bag[SendVal]): Res[Val] = p match {
+    case Def(x, s, p1) =>
+      nondeterministic[Val,Val](
         interp(s, sends),
-        {case ServerVal(impl) => interp(p.map(subst(x, impl)), sends)}
+        value => interp(Subst(x, value.toProg)(p1), sends)
       )
+
     case Par(ps) =>
-      nondeterministic[Bag[SendVal],Value](
-        crossProduct(ps map (interp(_, Bag()) map (_ match {case UnitVal(sends) => sends}))),
+      nondeterministic[Bag[SendVal],Val](
+        crossProduct(ps map (interp(_, Bag()) map {case UnitVal(s) => s})),
         x => interpSends(sends ++ x))
+
     case s@Send(rcv, args) =>
-      nondeterministic[Value,Value](
+      nondeterministic[Val,Val](
         interp(rcv, sends),
         {case rcvVal@ServiceVal(_, _) =>
-           nondeterministic[List[ServiceVal], Value](
-             crossProductList(args map (interp(_, Bag()) map {case v@ServiceVal(_, _) => v})),
-             argvals => interpSends(sends + SendVal(rcvVal, argvals))
-           )
+          nondeterministic[List[Val], Val](
+            crossProductList(args map (interp(_, Bag()))),
+            argvals => interpSends(sends + SendVal(rcvVal, argvals))
+          )
         }
       )
+
     case Var(x) =>
-      throw new IllegalStateException(s"Unbound variable $x")
+      throw SemanticException(s"Free variable $x")
+
     case ServiceRef(srv, x) =>
-      nondeterministic[Value,Value](
+      nondeterministic[Val,Val](
         interp(srv, sends),
         {case srv@ServerVal(_) => Set(ServiceVal(srv, x))}
       )
+
     case impl@ServerImpl(_) => 
       Set(ServerVal(impl))
   }
 
-  def interpSends(sends: Bag[SendVal]): Res[Value] = {
+  def interpSends(sends: Bag[SendVal]): Res[Val] = {
     val canSend = selectSends(sends)
     if (canSend.isEmpty)
       Set(UnitVal(sends))
     else
-      nondeterministic[(ServerVal, Rule, Match), Value](
+      nondeterministic[(ServerVal, Rule, Match), Val](
         canSend,
         p => {
           val (newProg, newQueue) = fireRule(p._1, p._2, p._3, sends)
-          interp(newProg, newQueue)
+          interp(newProg, newQueue) + UnitVal(sends)
         })
   }
 
   def selectSends(sends: Bag[SendVal]): Res[(ServerVal, Rule, Match)] =
     nondeterministic[(ServerVal, Rule), (ServerVal, Rule, Match)](
-      (sends map (collectRules(_))).flatten,
-      r => matchRule(r._1, r._2.ps, sends) map (x => (r._1, r._2, x))
+      (sends map collectRules).flatten,
+      { case (srvVal, rule) => matchRule(srvVal, rule.ps, sends) map (x => (srvVal, rule, x)) }
     )
 
   def matchRule(server: ServerVal, pats: Bag[Pattern], sends: Bag[SendVal]): Res[Match] =
@@ -85,12 +90,15 @@ object Semantics extends AbstractSemantics[Value] {
     }
 
   def fireRule(server: ServerVal, rule: Rule, ma: Match, orig: Bag[SendVal]): (Prog, Bag[SendVal]) = {
-    var p = rule.p.map(subst('this, server.impl))
-    for ((x, s) <- ma.subst)
-      p = p.map(subst(x, ServiceRef(s.srv.impl, s.x)))
+    var p = Subst('this, server.toProg)(rule.p)
+    for ((x, v) <- ma.subst)
+      p = Subst(x, v.toProg)(p)
     val rest = orig diff ma.used
     (p, rest)
   }
 
-  def collectRules(s: SendVal): Bag[(ServerVal, Rule)] = s.rcv.srv.impl.rules map ((s.rcv.srv, _))
+  def collectRules(s: SendVal): Bag[(ServerVal, Rule)] = {
+    val Send(ServiceRef(ServerImpl(rules), _), _) = s.toSend
+    rules map ((s.rcv.srv, _))
+  }
 }

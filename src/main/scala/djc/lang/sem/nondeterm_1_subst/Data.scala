@@ -2,19 +2,24 @@ package djc.lang.sem.nondeterm_1_subst
 
 import djc.lang.FlatSyntax._
 import util.Bag
-import djc.lang.Syntax
 
 object Data {
-  abstract class Value
-  case class UnitVal(sval: Bag[SendVal]) extends Value
-  case class ServerVal(impl: ServerImpl) extends Value
-  case class ServiceVal(srv: ServerVal, x: Symbol) extends Value
-
-  case class SendVal(rcv: ServiceVal, args: List[ServiceVal]) {
-    def toSend =
-      Send(ServiceRef(rcv.srv.impl, rcv.x),
-           args map (v => ServiceRef(v.srv.impl, v.x)))
+  abstract class Value {
+    def toProg: Prog
+  }
+  case class UnitVal(sval: Bag[SendVal]) extends Value {
+    def toProg = Par(sval.map(_.toSend.asInstanceOf[Prog]))
+  }
+  case class ServerVal(impl: ServerImpl) extends Value {
+    def toProg = impl
+  }
+  case class ServiceVal(srv: ServerVal, x: Symbol) extends Value {
+    def toProg = ServiceRef(srv.toProg, x)
   }
 
-  case class Match(subst: Map[Symbol, ServiceVal], used: Bag[SendVal])
+  case class SendVal(rcv: ServiceVal, args: List[Value]) {
+    def toSend = Send(rcv.toProg, args map (_.toProg))
+  }
+
+  case class Match(subst: Map[Symbol, Value], used: Bag[SendVal])
 }
