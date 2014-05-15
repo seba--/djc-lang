@@ -45,7 +45,7 @@ object Semantics extends AbstractSemantics[Value] {
     case ServiceRef(srv, x) =>
       nondeterministic[Val,Val](
         interp(srv, sends),
-        {case srv@ServerVal(_) => Set(ServiceVal(srv, x))}
+        {case srv@ServerVal(_) => Set(ServiceVal(srv, x))}        //TODO check if service defined in srv
       )
 
     case impl@ServerImpl(_) => 
