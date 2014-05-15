@@ -17,7 +17,7 @@ scalacOptions ++= List(
 
 resolvers ++= Seq()
 
-libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.1.3" % "test"
+libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.1.6" % "test"
 
 org.scalastyle.sbt.ScalastylePlugin.Settings
 
