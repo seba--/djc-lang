@@ -35,6 +35,7 @@ class Bag[T](m: ListMap[T, Int]) extends scala.collection.immutable.Set[T]
   /* Need to override string, so that it's not the Function1's string that gets mixed in.
    */
   override def toString = super[SetLike].toString
+  override def stringPrefix = "Bag"
 
   override def iterator = new Iterator[T]() {
     val mapIterator = m.iterator
