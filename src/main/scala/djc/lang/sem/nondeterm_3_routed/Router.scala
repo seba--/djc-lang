@@ -21,6 +21,7 @@ object Router {
   def registerServer(s: ServerClosure): Addr = {
     val addr = nextAddr
     routeTable += (addr -> s)
+    s.addr = addr
     addr
   }
 
