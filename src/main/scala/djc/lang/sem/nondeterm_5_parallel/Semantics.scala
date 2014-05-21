@@ -125,7 +125,6 @@ object Semantics extends AbstractSemantics[(Value, Servers)] {
   def fireRules(rules: Bag[(ServerVal, Rule, Match)], oldServers: Servers): (Bag[(Prog, Env)], Servers) = {
     var newServers = oldServers
     val newProgs = rules map { case (srv, rule, mtch) => { // fire rules in parallel
-      val addr = ServerAddr.unapply(srv.addr).get
       val (prog, env, newServers1) = fireRule(srv, rule, mtch, newServers)
       newServers = newServers1
       (prog, env)

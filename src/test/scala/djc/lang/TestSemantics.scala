@@ -12,9 +12,7 @@ import djc.lang.sem.nondeterm_2_env
 import djc.lang.sem.nondeterm_3_routed
 import djc.lang.sem.nondeterm_4_grouped
 import djc.lang.sem.nondeterm_5_parallel
-/*
 import djc.lang.sem.concurrent_6_thread
-import djc.lang.sem.concurrent_6_thread.Semantics*/
 
 
 class TestSemantics_nondeterm_subst extends TestSemantics(nondeterm_1_subst.Semantics)
@@ -22,8 +20,7 @@ class TestSemantics_nondeterm_env extends TestSemantics(nondeterm_2_env.Semantic
 class TestSemantics_nondeterm_routed extends TestSemantics(nondeterm_3_routed.Semantics)
 class TestSemantics_nondeterm_grouped extends TestSemantics(nondeterm_4_grouped.Semantics)
 class TestSemantics_nondeterm_parallel extends TestSemantics(nondeterm_5_parallel.Semantics)
-/*
-class TestSemantics_concurrent_thread extends TestSemantics(concurrent_6_thread.Semantics, false)*/
+class TestSemantics_concurrent_thread extends TestSemantics(concurrent_6_thread.Semantics, false)
 
 abstract class TestSemantics[V](sem: AbstractSemantics[V], nondeterm: Boolean = true) extends FunSuite {
   val PRINT_SERVER = ServerImpl(Bag(Rule(Bag(Pattern('PRINT)), Par())))
