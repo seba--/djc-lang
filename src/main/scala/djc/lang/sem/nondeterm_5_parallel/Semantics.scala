@@ -1,4 +1,4 @@
-package djc.lang.sem.nondeterm_4_grouped
+package djc.lang.sem.nondeterm_5_parallel
 
 import scala.language.postfixOps
 import util.Bag
@@ -6,20 +6,19 @@ import djc.lang.sem.{Crossproduct, AbstractSemantics}
 import djc.lang.FlatSyntax._
 import Data._
 
-
 object Semantics extends AbstractSemantics[(Value, Servers)] {
   import Crossproduct._
 
   def normalizeVal(v: Val) = v match {
     case (UnitVal, servers) =>
-    val sends = servers.values.toSet.foldLeft(Bag[SendVal]()) {
-      case (b, b1) => b ++ b1
-    }
-    sends.map(sval => sval.toNormalizedProg)
+      val sends = servers.values.toSet.foldLeft(Bag[SendVal]()) {
+        case (b, b1) => b ++ b1
+      }
+      sends.map(sval => sval.toNormalizedProg)
   }
 
   override def interp(p: Prog) = {
-    Router.routeTable = collection.mutable.Map()
+    Router.routeTable = collection.mutable.Map() //TODO case class for Router?
     interp(p, Map(), Map())
   }
 
@@ -29,8 +28,8 @@ object Semantics extends AbstractSemantics[(Value, Servers)] {
 
     case Def(x, p1, p2) =>
       nondeterministic[Val, Val](
-        interp(p1, env, servers),
-        { case (result, nuServers) => interp(p2, env + (x -> result), servers &&& nuServers) }
+      interp(p1, env, servers),
+      { case (result, nuServers) => interp(p2, env + (x -> result), servers &&& nuServers) }
       )
 
     case s@ServerImpl(rules) =>
@@ -41,14 +40,14 @@ object Semantics extends AbstractSemantics[(Value, Servers)] {
 
     case ServiceRef(srv, x) =>
       nondeterministic[Val,Val](
-        interp(srv, env, servers),
-        { case (sval@ServerVal(addr), nuServers) =>
-          //val ServerClosure(impl, _) = lookupAddr(addr)
-          //   if impl.rules.exists(_.ps.exists(_.name == x)) => //TODO add this check back once we have good solution for primitive services
-            Set((ServiceVal(sval, x), nuServers))
+      interp(srv, env, servers),
+      { case (sval@ServerVal(addr), nuServers) =>
+        //val ServerClosure(impl, _) = lookupAddr(addr)
+        //   if impl.rules.exists(_.ps.exists(_.name == x)) => //TODO add this check back once we have good solution for primitive services
+        Set((ServiceVal(sval, x), nuServers))
 
         //   case ServerVal(impl, _) => throw SemanticException(s"service $x not defined in server $impl")
-        }
+      }
       )
 
     case Par(ps) =>
@@ -60,18 +59,20 @@ object Semantics extends AbstractSemantics[(Value, Servers)] {
       nondeterministic[Val,Val](
       interp(rcv, env, servers),
       { case (svc@ServiceVal(srvVal, x), nuServers) =>
-          val addr = ServerAddr.unapply(srvVal.addr).get
-          val s = for(l <- crossProductList(args map (interp(_, env, servers)));
+        val addr = ServerAddr.unapply(srvVal.addr).get
+        val s = for(l <- crossProductList(args map (interp(_, env, servers)));
                     (values, maps) = l.unzip)
-                   yield (values, maps.foldLeft(emptyServers) { case (m, m1) => m &&& m1 })
+        yield (values, maps.foldLeft(emptyServers) { case (m, m1) => m &&& m1 })
 
-          nondeterministic[(List[Value], Servers), Val](s,
-            { case (argVals, nuServers1) =>
-              val srvs = List(servers, nuServers, nuServers1).reduce(_ &&& _)
-              interpSends(sendToServer(srvs, addr, SendVal(svc, argVals)))   }
+        nondeterministic[(List[Value], Servers), Val](s,
+        { case (argVals, nuServers1) =>
+          val srvs = List(servers, nuServers, nuServers1).reduce(_ &&& _)
+          interpSends(sendToServer(srvs, addr, SendVal(svc, argVals)))   }
         )
       }
       )
+
+    case ProgClosure(p1, env1) => interp(p1, env1, servers)
   }
 
   def interpSends(servers: Servers): Res[Val] = {
@@ -79,16 +80,23 @@ object Semantics extends AbstractSemantics[(Value, Servers)] {
     if (canSend.isEmpty)
       Set((UnitVal, servers))
     else
-      nondeterministic[(ServerVal, Rule, Match), Val](
-      canSend,
-      {case (srv, r, m) =>
-        val (newProg, newEnv, nuServers) = fireRule(srv, r, m, servers)
-        interp(newProg, newEnv, nuServers) + ((UnitVal, servers))
-      })
+      nondeterministic[Bag[(ServerVal, Rule, Match)], Val](
+        canSend,
+        {matches =>
+          val (newProgs, newServers) = fireRules(matches, servers)
+          val progClosures = newProgs map (p => ProgClosure(p._1, p._2).asInstanceOf[Prog])
+          interp(Par(progClosures), Map(), newServers) + ((UnitVal, servers))
+        })
   }
 
-  def selectServerSends(servers: Servers): Res[(ServerVal, Rule, Match)] =
-    servers.values.toSet.map((bag: Bag[SendVal]) => selectSends(bag)).flatten  //TODO is a set really adequate? what about bag?
+  def selectServerSends(servers: Servers): Res[Bag[(ServerVal, Rule, Match)]] = {
+    val bag = (Bag() ++ servers.values).map(selectSends(_)).filter(!_.isEmpty)
+    if (bag.isEmpty)
+      Set()
+    else
+      crossProductAlt(bag)
+  }
+
 
   def selectSends(sends: Bag[SendVal]): Res[(ServerVal, Rule, Match)] =
     nondeterministic[(ServerVal, Rule), (ServerVal, Rule, Match)](
@@ -113,6 +121,18 @@ object Semantics extends AbstractSemantics[(Value, Servers)] {
           )
       )
     }
+
+  def fireRules(rules: Bag[(ServerVal, Rule, Match)], oldServers: Servers): (Bag[(Prog, Env)], Servers) = {
+    var newServers = oldServers
+    val newProgs = rules map { case (srv, rule, mtch) => { // fire rules in parallel
+      val addr = ServerAddr.unapply(srv.addr).get
+      val (prog, env, newServers1) = fireRule(srv, rule, mtch, newServers)
+      newServers = newServers1
+      (prog, env)
+    }}
+
+    (Bag() ++ newProgs, newServers)
+  }
 
   def fireRule(server: ServerVal, rule: Rule, ma: Match, orig: Servers): (Prog, Env, Servers) = {
     val ServerClosure(_, env0) = lookupAddr(server.addr)
