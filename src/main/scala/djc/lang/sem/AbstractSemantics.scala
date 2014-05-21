@@ -11,5 +11,7 @@ trait AbstractSemantics[V] {
 
   def interp(p: Prog): Res[Val]
 
-  case class SemanticException(msg: String) extends RuntimeException(msg)
+
 }
+
+case class SemanticException(msg: String) extends RuntimeException(msg)

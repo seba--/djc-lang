@@ -2,7 +2,7 @@ package djc.lang.sem.nondeterm_1_subst
 
 import scala.language.postfixOps
 import util.Bag
-import djc.lang.sem.{Crossproduct, AbstractSemantics}
+import djc.lang.sem.{SemanticException, Crossproduct, AbstractSemantics}
 import djc.lang.FlatSyntax._
 import djc.lang.Syntax
 import Data._

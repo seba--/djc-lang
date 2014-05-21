@@ -26,8 +26,8 @@ object Data {
   }
 
   case class ServerClosure(srv: ServerImpl, env: Env) extends Prog {
-    private[this] var addr_ : ServerAddr = ???
-    private[Router] def addr_=(a: Router.Addr) = { addr_ = ServerAddr(a) }
+    private[this] var addr_ : ServerAddr = null
+    def addr_=(a: Router.Addr) = { addr_ = ServerAddr(a) }
     def addr = addr_
     def normalize = env.foldLeft(srv) {
       case (srv1, (x, value)) => Subst(x, value.toNormalizedProg)(srv1).asInstanceOf[ServerImpl]

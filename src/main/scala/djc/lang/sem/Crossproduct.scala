@@ -49,7 +49,7 @@ object Crossproduct {
 
   def crossProductMap[K,V](tss: Bag[Set[Map[K,Bag[V]]]]): Set[Map[K,Bag[V]]] =
     if (tss.isEmpty)
-      throw new IllegalArgumentException("Cross product requires non-empty input list")
+      Set()
     else if (tss.tail.isEmpty)
       tss.head
     else {
@@ -59,10 +59,22 @@ object Crossproduct {
       yield mergeMaps(prod, ts)
     }
 
+
+  implicit class MapOps[K,V](m : Map[K,Bag[V]]) {
+    def merge(that: Map[K,Bag[V]]) = mergeMaps(m, that)
+    def &&&(that: Map[K,Bag[V]]) = mergeMaps(m, that)
+  }
+
   def mergeMaps[K,V](m1: Map[K,Bag[V]], m2: Map[K,Bag[V]]) = {
     var m = Map[K, Bag[V]]()
-    for (k <- m1.keys)
+    for(k <- m1.keySet & m2.keySet)
       m = m + (k -> (m1(k) ++ m2(k)))
+    for(k <- m1.keySet &~ m2.keySet)
+      m = m + (k -> m1(k))
+    for(k <- m2.keySet &~ m1.keySet)
+      m = m + (k -> m2(k))
     m
   }
+
+
 }
