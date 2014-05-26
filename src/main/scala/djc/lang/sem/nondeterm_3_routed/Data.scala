@@ -13,8 +13,8 @@ object Data {
     def toNormalizedResolvedProg: Exp
   }
   case class UnitVal(sends: Bag[SendVal]) extends Value {
-    def toNormalizedProg = Par(Bag[Exp]() ++ sends.map(_.toSend))
-    def toNormalizedResolvedProg = Par(Bag[Exp]() ++ sends.map(_.toNormalizedProg))
+    def toNormalizedProg = Par(Bag[Exp]() ++ sends.map(_.toNormalizedProg))
+    def toNormalizedResolvedProg = Par(Bag[Exp]() ++ sends.map(_.toNormalizedResolvedProg))
   }
   case class ServerVal(addr: ServerAddr) extends Value {
     def toNormalizedProg = addr
@@ -37,8 +37,8 @@ object Data {
   case class Match(subst: Map[Symbol, Value], used: Bag[SendVal])
 
   case class SendVal(rcv: ServiceVal, args: List[Value]) {
-    def toSend = Send(rcv.toNormalizedProg, args map (_.toNormalizedProg))
-    def toNormalizedProg = Send(rcv.toNormalizedResolvedProg, args map (_.toNormalizedResolvedProg))
+    def toNormalizedProg = Send(rcv.toNormalizedProg, args map (_.toNormalizedProg))
+    def toNormalizedResolvedProg = Send(rcv.toNormalizedResolvedProg, args map (_.toNormalizedResolvedProg))
   }
 
   type ServerAddr = Var

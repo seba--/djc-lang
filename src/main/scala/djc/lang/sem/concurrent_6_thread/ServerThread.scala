@@ -41,7 +41,7 @@ class ServerThread(val impl: ServerImpl, val env: Env) extends Thread {
   def normalizeVal: Bag[Send] = {
     var res: Bag[Send] = null
     synchronized {
-      res = (inbox map (_.toNormalizedProg)) ++ (newMessages map (_.toNormalizedProg))
+      res = (inbox map (_.toNormalizedResolvedProg)) ++ (newMessages map (_.toNormalizedResolvedProg))
     }
     res
   }

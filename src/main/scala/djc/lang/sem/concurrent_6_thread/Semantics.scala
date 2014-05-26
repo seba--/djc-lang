@@ -21,7 +21,7 @@ object Semantics extends AbstractSemantics[Value] { // all data is in the global
 
     val res = interp(p, Map())
     ServerThread.waitUntilStable(Router.routeTable.values)
-    val res2 = res filter (v => interp(v.toProg, Map()).size == 1)
+    val res2 = res filter (v => interp(v.toNormalizedProg, Map()).size == 1)
     Router.routeTable.values.map(_.terminate = true)
     res2
   }

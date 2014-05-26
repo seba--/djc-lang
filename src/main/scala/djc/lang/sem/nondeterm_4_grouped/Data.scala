@@ -37,8 +37,7 @@ object Data {
   case class Match(subst: Map[Symbol, Value], used: Bag[SendVal])
 
   case class SendVal(rcv: ServiceVal, args: List[Value]) {
-    def toProg = Send(rcv.toNormalizedProg, args map (_.toNormalizedProg))
-    def toNormalizedProg = Send(rcv.toNormalizedResolvedProg, args map (_.toNormalizedResolvedProg))
+    def toNormalizedResolvedProg = Send(rcv.toNormalizedResolvedProg, args map (_.toNormalizedResolvedProg))
   }
 
   type ServerAddr = Var

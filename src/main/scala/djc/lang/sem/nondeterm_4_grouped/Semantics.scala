@@ -15,7 +15,7 @@ object Semantics extends AbstractSemantics[(Value, Servers)] {
       val sends = servers.values.toSet.foldLeft(Bag[SendVal]()) {
         case (b, b1) => b ++ b1
       }
-    sends.map(sval => sval.toNormalizedProg)
+    sends.map(sval => sval.toNormalizedResolvedProg)
   }
 
   override def interp(p: Exp) = {

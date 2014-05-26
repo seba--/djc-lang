@@ -8,7 +8,7 @@ import Data._
 
 object Semantics extends AbstractSemantics[Value] {
 
-  def normalizeVal(v: Val) = v.asInstanceOf[UnitVal].sends map (_.toNormalizedProg)
+  def normalizeVal(v: Val) = v.asInstanceOf[UnitVal].sends map (_.toNormalizedResolvedProg)
 
   override def interp(p: Exp) = {
     Router.routeTable = collection.mutable.Map()

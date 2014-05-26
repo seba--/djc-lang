@@ -12,35 +12,35 @@ object Data {
   type Env = Map[Symbol, Value]
 
   abstract class Value {
-    def toProg: Exp
     def toNormalizedProg: Exp
+    def toNormalizedResolvedProg: Exp
   }
 
   case object UnitVal extends Value {
     def toNormalizedProg = Par()
-    def toProg = Par()
+    def toNormalizedResolvedProg = Par()
   }
 
   case class ServerVal(addr: ServerAddr) extends Value {
-    def toNormalizedProg = {
+    def toNormalizedProg = addr
+    def toNormalizedResolvedProg = {
       val impl = lookupAddr(addr).impl
       val env = lookupAddr(addr).env
       env.foldLeft(impl) {
-        case (srv, (x, value)) => Substitution(x, value.toNormalizedProg)(srv).asInstanceOf[ServerImpl]
+        case (srv, (x, value)) => Substitution(x, value.toNormalizedResolvedProg)(srv).asInstanceOf[ServerImpl]
       }
     }
-    def toProg = addr
   }
 
   case class ServiceVal(srv: ServerVal, x: Symbol) extends Value {
     def toNormalizedProg = ServiceRef(srv.toNormalizedProg, x)
-    def toProg = ServiceRef(srv.toProg, x)
+    def toNormalizedResolvedProg = ServiceRef(srv.toNormalizedResolvedProg, x)
   }
 
   case class Match(subst: Map[Symbol, Value], used: Bag[SendVal])
 
   case class SendVal(rcv: ServiceVal, args: List[Value]) {
-    def toNormalizedProg = Send(rcv.toNormalizedProg, args map (_.toNormalizedProg))
+    def toNormalizedResolvedProg = Send(rcv.toNormalizedResolvedProg, args map (_.toNormalizedResolvedProg))
   }
 
   type ServerAddr = Var
