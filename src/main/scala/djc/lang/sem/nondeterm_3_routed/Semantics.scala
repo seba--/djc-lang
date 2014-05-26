@@ -13,7 +13,7 @@ object Semantics extends AbstractSemantics[Value] {
   override def interp(p: Exp) = {
     Router.routeTable = collection.mutable.Map()
     val res = interp(p, Map(), Bag())
-    res filter (v => interp(v.toProg, Map(), Bag()).size == 1)
+    res filter (v => interp(v.toNormalizedProg, Map(), Bag()).size == 1)
   }
 
   def interp(p: Exp, env: Env, sends: Bag[SendVal]): Res[Val] = p match {

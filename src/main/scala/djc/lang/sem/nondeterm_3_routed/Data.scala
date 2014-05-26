@@ -9,20 +9,20 @@ object Data {
   type Env = Map[Symbol, Value]
 
   abstract class Value {
-    def toProg: Exp
     def toNormalizedProg: Exp
+    def toNormalizedResolvedProg: Exp
   }
   case class UnitVal(sends: Bag[SendVal]) extends Value {
-    def toProg = Par(Bag[Exp]() ++ sends.map(_.toSend))
-    def toNormalizedProg = Par(Bag[Exp]() ++ sends.map(_.toNormalizedProg))
+    def toNormalizedProg = Par(Bag[Exp]() ++ sends.map(_.toSend))
+    def toNormalizedResolvedProg = Par(Bag[Exp]() ++ sends.map(_.toNormalizedProg))
   }
   case class ServerVal(addr: ServerAddr) extends Value {
-    def toProg = addr
-    def toNormalizedProg = lookupAddr(addr).normalize
+    def toNormalizedProg = addr
+    def toNormalizedResolvedProg = lookupAddr(addr).normalize
   }
   case class ServiceVal(srv: ServerVal, x: Symbol) extends Value {
-    def toProg = ServiceRef(srv.toProg, x)
     def toNormalizedProg = ServiceRef(srv.toNormalizedProg, x)
+    def toNormalizedResolvedProg = ServiceRef(srv.toNormalizedResolvedProg, x)
   }
 
   case class ServerClosure(srv: ServerImpl, env: Env) extends Exp {
@@ -30,15 +30,15 @@ object Data {
     def addr_=(a: Router.Addr) = { addr_ = ServerAddr(a) }
     def addr = addr_
     def normalize = env.foldLeft(srv) {
-      case (srv1, (x, value)) => Substitution(x, value.toNormalizedProg)(srv1).asInstanceOf[ServerImpl]
+      case (srv1, (x, value)) => Substitution(x, value.toNormalizedResolvedProg)(srv1).asInstanceOf[ServerImpl]
     }
   }
 
   case class Match(subst: Map[Symbol, Value], used: Bag[SendVal])
 
   case class SendVal(rcv: ServiceVal, args: List[Value]) {
-    def toSend = Send(rcv.toProg, args map (_.toProg))
-    def toNormalizedProg = Send(rcv.toNormalizedProg, args map (_.toNormalizedProg))
+    def toSend = Send(rcv.toNormalizedProg, args map (_.toNormalizedProg))
+    def toNormalizedProg = Send(rcv.toNormalizedResolvedProg, args map (_.toNormalizedResolvedProg))
   }
 
   type ServerAddr = Var
