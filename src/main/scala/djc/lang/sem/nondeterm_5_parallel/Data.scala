@@ -1,7 +1,7 @@
 package djc.lang.sem.nondeterm_5_parallel
 
 import util.Bag
-import djc.lang.sem.Substitution.Subst
+import djc.lang.sem.Substitution
 import djc.lang.Syntax._
 
 object Data {
@@ -30,7 +30,7 @@ object Data {
     }
     def addr = addr_
     def normalize = env.foldLeft(srv) {
-      case (srv1, (x, value)) => Subst(x, value.toNormalizedProg)(srv1).asInstanceOf[ServerImpl]
+      case (srv1, (x, value)) => Substitution(x, value.toNormalizedProg)(srv1).asInstanceOf[ServerImpl]
     }
   }
 

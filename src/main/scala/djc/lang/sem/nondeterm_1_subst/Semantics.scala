@@ -5,7 +5,7 @@ import util.Bag
 import djc.lang.sem.{SemanticException, Crossproduct, AbstractSemantics}
 import djc.lang.Syntax._
 import Data._
-import djc.lang.sem.Substitution.Subst
+import djc.lang.sem.Substitution
 
 object Semantics extends AbstractSemantics[Value] {
   import Crossproduct._
@@ -18,7 +18,7 @@ object Semantics extends AbstractSemantics[Value] {
     case Def(x, s, p1) =>
       nondeterministic[Val,Val](
         interp(s, sends),
-        value => interp(Subst(x, value.toProg)(p1), sends)
+        value => interp(Substitution(x, value.toProg)(p1), sends)
       )
 
     case Par(ps) =>
@@ -88,9 +88,9 @@ object Semantics extends AbstractSemantics[Value] {
     }
 
   def fireRule(server: ServerVal, rule: Rule, ma: Match, orig: Bag[SendVal]): (Prog, Bag[SendVal]) = {
-    var p = Subst('this, server.toProg)(rule.p)
+    var p = Substitution('this, server.toProg)(rule.p)
     for ((x, v) <- ma.subst)
-      p = Subst(x, v.toProg)(p)
+      p = Substitution(x, v.toProg)(p)
     val rest = orig diff ma.used
     (p, rest)
   }

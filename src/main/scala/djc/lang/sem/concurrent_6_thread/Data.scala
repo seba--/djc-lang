@@ -3,7 +3,7 @@ package djc.lang.sem.concurrent_6_thread
 
 import djc.lang.Syntax._
 import util.Bag
-import djc.lang.sem.Substitution.Subst
+import djc.lang.sem.Substitution
 
 /**
  * Created by seba on 09/04/14.
@@ -24,7 +24,7 @@ object Data {
       val impl = lookupAddr(addr).impl
       val env = lookupAddr(addr).env
       env.foldLeft(impl) {
-        case (srv, (x, value)) => Subst(x, value.toNormalizedProg)(srv).asInstanceOf[ServerImpl]
+        case (srv, (x, value)) => Substitution(x, value.toNormalizedProg)(srv).asInstanceOf[ServerImpl]
       }
     }
   }

@@ -3,10 +3,12 @@ package djc.lang.sem.typesystem
 import org.scalatest.FunSuite
 import util.Bag
 
+import djc.lang.typ.Types._
+import djc.lang.typ.Checker._
+import djc.lang.TypedSyntax._
+
 
 class TypeCheckTest extends FunSuite {
-
-  import TypedFlatSyntax._
 
   val gamma: Context = Map('n6 -> TBase('Int), 'n7 -> TBase('Int), 'echo -> TSvc(TBase('Int)))
 

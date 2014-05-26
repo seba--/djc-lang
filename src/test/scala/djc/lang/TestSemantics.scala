@@ -5,7 +5,7 @@ import util.Bag
 import Syntax._
 
 import djc.lang.sem.AbstractSemantics
-import djc.lang.sem.Substitution.Subst
+import djc.lang.sem.Substitution
 
 import djc.lang.sem.nondeterm_1_subst
 import djc.lang.sem.nondeterm_2_env
@@ -25,8 +25,8 @@ class TestSemantics_concurrent_thread extends TestSemantics(concurrent_6_thread.
 abstract class TestSemantics[V](sem: AbstractSemantics[V], nondeterm: Boolean = true) extends FunSuite {
   val PRINT_SERVER = ServerImpl(Bag(Rule(Bag(Pattern('PRINT)), Par())))
   val CONST_SERVER = ServerImpl(Bag(Rule(Bag(Pattern('CONST)), Par())))
-  val sigmap = Subst('Print, PRINT_SERVER)
-  val sigmac = Subst('Const, CONST_SERVER)
+  val sigmap = Substitution('Print, PRINT_SERVER)
+  val sigmac = Substitution('Const, CONST_SERVER)
 
   def withPrintServer(p: Prog) = Def('Print, PRINT_SERVER, p)
   def withConstServer(p: Prog) = Def('Const, CONST_SERVER, p)
@@ -93,7 +93,7 @@ abstract class TestSemantics[V](sem: AbstractSemantics[V], nondeterm: Boolean = 
       Send(ServiceRef(Var('s1), 'm1), Var('x)))
     ))
 
-  val s3norm = Subst('s1, s1norm)(s3)
+  val s3norm = Substitution('s1, s1norm)(s3)
 
   val p3 = Def('s1, s1, Def('s3, s3, Send(ServiceRef(Var('s3), 'm2), ServiceRef(CONST_SERVER, 'bar))))
 

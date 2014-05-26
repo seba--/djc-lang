@@ -2,7 +2,7 @@ package djc.lang.sem.nondeterm_3_routed
 
 import util.Bag
 import djc.lang.Syntax._
-import djc.lang.sem.Substitution.Subst
+import djc.lang.sem.Substitution
 
 
 object Data {
@@ -30,7 +30,7 @@ object Data {
     def addr_=(a: Router.Addr) = { addr_ = ServerAddr(a) }
     def addr = addr_
     def normalize = env.foldLeft(srv) {
-      case (srv1, (x, value)) => Subst(x, value.toNormalizedProg)(srv1).asInstanceOf[ServerImpl]
+      case (srv1, (x, value)) => Substitution(x, value.toNormalizedProg)(srv1).asInstanceOf[ServerImpl]
     }
   }
 

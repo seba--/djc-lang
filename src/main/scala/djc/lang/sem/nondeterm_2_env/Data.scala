@@ -4,7 +4,7 @@ import scala.Symbol
 import scala.language.postfixOps
 import util.Bag
 import djc.lang.Syntax._
-import djc.lang.sem.Substitution.Subst
+import djc.lang.sem.Substitution
 
 object Data {
   type Env = Map[Symbol, Value]
@@ -20,7 +20,7 @@ object Data {
   case class ServerVal(impl: ServerImpl, env : Env) extends Value {
     def toProg = ServerClosure(impl, env)
     def toNormalizedProg = env.foldLeft(impl) {
-      case (srv, (x, value)) => Subst(x, value.toNormalizedProg)(srv).asInstanceOf[ServerImpl]
+      case (srv, (x, value)) => Substitution(x, value.toNormalizedProg)(srv).asInstanceOf[ServerImpl]
     }
   }
   case class ServiceVal(srv: ServerVal, x: Symbol) extends Value {
@@ -31,7 +31,7 @@ object Data {
   case class ServerClosure(srv: ServerImpl, env: Env) extends Prog {
     def toValue = ServerVal(srv, env)
     def normalize = env.foldLeft(srv) {
-      case (srv, (x, value)) => Subst(x, value.toNormalizedProg)(srv).asInstanceOf[ServerImpl]
+      case (srv, (x, value)) => Substitution(x, value.toNormalizedProg)(srv).asInstanceOf[ServerImpl]
     }
   }
 
