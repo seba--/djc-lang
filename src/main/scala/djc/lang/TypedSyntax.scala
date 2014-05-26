@@ -78,8 +78,12 @@ object TypedSyntax {
     override def eraseType = p.eraseType
   }
 
-  case class TAbs(alpha: Symbol, p: Exp) extends Exp {
+  case class TAbs(alpha: Symbol, bound: Option[Type], p: Exp) extends Exp {
     override def eraseType = p.eraseType
+  }
+  object TAbs {
+    def apply(alpha: Symbol, p: Exp): TAbs = TAbs(alpha, None, p)
+    def apply(alpha: Symbol, bound: Type, p: Exp): TAbs = TAbs(alpha, Some(bound), p)
   }
 
   case class Rule(ps: Bag[Pattern], p: Exp) {
@@ -133,8 +137,8 @@ object TypedSyntax {
         ServerImpl(rs map mapRule)
       case TApp(p1, t) =>
         TApp(map(p1), mapType(t))
-      case TAbs(alpha, p1) =>
-        TAbs(alpha, map(p1))
+      case TAbs(alpha, bound1, p1) =>
+        TAbs(alpha, bound1.map(mapType(_)), map(p1))
     }
 
     def mapType(tpe: Type): Type = tpe match {
@@ -144,7 +148,7 @@ object TypedSyntax {
         TSrv(svcs mapValues mapType)
       case TVar(alpha) => TVar(alpha)
       case TBase(name) => TBase(name)
-      case TUniv(alpha, tpe1) => TUniv(alpha, mapType(tpe1))
+      case TUniv(alpha, bound, tpe1) => TUniv(alpha, bound.map(mapType(_)), mapType(tpe1))
     }
 
     def mapRule(rule: Rule): Rule = {
@@ -178,8 +182,8 @@ object TypedSyntax {
         rs.foldLeft(init)(foldRule(_)(_))
       case TApp(p1, t) =>
         fold(foldType(init)(t))(p1)
-      case TAbs(alpha, p1) =>
-        fold(init)(p1)
+      case TAbs(alpha, bound1, p1) =>
+        fold(bound1.map(foldType(init)(_)).getOrElse(init))(p1)
     }
 
     def foldType[T](init: T)(tpe: Type): T = tpe match {
@@ -195,8 +199,8 @@ object TypedSyntax {
         init
       case TBase(name) =>
         init
-      case TUniv(alpha, tpe1) =>
-        foldType(init)(tpe1)
+      case TUniv(alpha, bound1, tpe1) =>
+        foldType(bound1.map(foldType(init)(_)).getOrElse(init))(tpe1)
     }
 
     def foldRule[T](init: T)(rule: Rule): T = {

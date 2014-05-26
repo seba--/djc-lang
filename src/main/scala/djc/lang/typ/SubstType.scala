@@ -8,7 +8,7 @@ case class SubstType(alpha: Symbol, repl: Type) extends Mapper {
   lazy val replTVars = FreeTypeVars(repl)
 
   override def map(prog: Exp): Exp = prog match {
-    case TAbs(alpha1, p1) =>
+    case TAbs(alpha1, bound1, p1) =>
       val captureAvoiding = !replTVars(alpha1)
       lazy val alpha1fresh = gensym(alpha1, replTVars)
       lazy val p1fresh = SubstType(alpha1, TVar(alpha1fresh))(p1)
@@ -17,7 +17,7 @@ case class SubstType(alpha: Symbol, repl: Type) extends Mapper {
       if (alpha == alpha1)
         prog
       else
-        TAbs(alpha1res, map(p1res))
+        TAbs(alpha1res, bound1.map(mapType(_)), map(p1res))
 
     case _ => super.map(prog)
   }
@@ -26,7 +26,7 @@ case class SubstType(alpha: Symbol, repl: Type) extends Mapper {
     case TVar(alpha1) if alpha == alpha1 =>
       repl
 
-    case TUniv(alpha1, tpe1) =>
+    case TUniv(alpha1, bound1, tpe1) =>
       val captureAvoiding = !replTVars(alpha1)
       lazy val alpha1fresh = gensym(alpha1, replTVars)
       lazy val tpe1fresh = SubstType(alpha1, TVar(alpha1fresh))(tpe1)
@@ -35,7 +35,7 @@ case class SubstType(alpha: Symbol, repl: Type) extends Mapper {
       if (alpha == alpha1)
         tpe
       else
-        TUniv(alpha1res, tpe1res)
+        TUniv(alpha1res, bound1.map(mapType(_)), mapType(tpe1res))
 
     case _ => super.mapType(tpe)
   }
@@ -57,13 +57,13 @@ case class SubstProg(x: Symbol, repl: Exp) extends Mapper {
       else
         ServerImpl(rs map mapRule)
 
-    case TAbs(alpha, p1) =>
+    case TAbs(alpha, bound1, p1) =>
       val captureAvoiding = !replTVars(alpha)
       lazy val alphafresh = gensym(alpha, replTVars)
       lazy val p1fresh = SubstType(alpha, TVar(alphafresh))(p1)
       val (alphares, p1res) = if (captureAvoiding) (alpha, p1) else (alphafresh, p1fresh)
 
-      TAbs(alphares, map(p1res))
+      TAbs(alphares, bound1.map(mapType(_)), map(p1res))
 
     case _ =>
       super.map(prog)
@@ -125,16 +125,16 @@ object FreeTypeVars extends Fold {
   def apply(tpe: Type): Set[Symbol] = foldType(Set[Symbol]())(tpe)
 
   def fold(init: Set[Symbol])(prog: Exp): Set[Symbol] = prog match {
-    case TAbs(alpha, p1) =>
-      fold(init)(p1) - alpha
+    case TAbs(alpha, bound1, p1) =>
+      fold(bound1.map(foldType(init)(_)).getOrElse(init))(p1) - alpha
     case _ => super.fold(init)(prog)
   }
 
   def foldType(init: Set[Symbol])(tpe: Type): Set[Symbol] = tpe match {
     case TVar(alpha) =>
       init + alpha
-    case TUniv(alpha, tpe1) =>
-      foldType(init)(tpe1) - alpha
+    case TUniv(alpha, bound1, tpe1) =>
+      foldType(bound1.map(foldType(init)(_)).getOrElse(init))(tpe1) - alpha
     case _ => super.foldType(init)(tpe)
   }
 }

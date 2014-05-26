@@ -49,20 +49,20 @@ object Checker {
 
     case TApp(p2, t) if FreeTypeVars(t) subsetOf boundTv =>
       typeCheck(gamma, boundTv, p2) match {
-        case TUniv(alpha, t2) =>
+        case TUniv(alpha, bound, t2) if t <:< bound =>
           SubstType(alpha, t)(t2)
 
         case x => throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\nboundTv: $boundTv\nwith $x")
       }
 
-    case TAbs(alpha, p1) =>
+    case TAbs(alpha, bound1, p1) =>
       val dontSubst = !boundTv(alpha)
       lazy val alphafresh = gensym(alpha, boundTv)
       lazy val p1fresh = SubstType(alpha, TVar(alphafresh))(p1)
       val (alphares, p1res) = if (dontSubst) (alpha, p1) else (alphafresh, p1fresh)
       val t = typeCheck(gamma, boundTv + alphares, p1res)
 
-      TUniv(alphares, t)
+      TUniv(alphares, bound1, t)
 
     case _ =>
       throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\nboundTv: $boundTv")
