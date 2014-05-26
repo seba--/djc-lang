@@ -17,12 +17,12 @@ object Semantics extends AbstractSemantics[(Value, Servers)] {
       sends.map(sval => sval.toNormalizedProg)
   }
 
-  override def interp(p: Prog) = {
+  override def interp(p: Exp) = {
     Router.routeTable = collection.mutable.Map() //TODO case class for Router?
     interp(p, Map(), Map())
   }
 
-  def interp(p: Prog, env: Env, servers: Servers): Res[Val] = p match {
+  def interp(p: Exp, env: Env, servers: Servers): Res[Val] = p match {
     case Var(y) if env.isDefinedAt(y) =>
       Set((env(y), emptyServers))
 
@@ -72,7 +72,7 @@ object Semantics extends AbstractSemantics[(Value, Servers)] {
       }
       )
 
-    case ProgClosure(p1, env1) => interp(p1, env1, servers)
+    case ExpClosure(p1, env1) => interp(p1, env1, servers)
   }
 
   def interpSends(servers: Servers): Res[Val] = {
@@ -84,7 +84,7 @@ object Semantics extends AbstractSemantics[(Value, Servers)] {
         canSend,
         {matches =>
           val (newProgs, newServers) = fireRules(matches, servers)
-          val progClosures = newProgs map (p => ProgClosure(p._1, p._2).asInstanceOf[Prog])
+          val progClosures = newProgs map (p => ExpClosure(p._1, p._2).asInstanceOf[Exp])
           interp(Par(progClosures), Map(), newServers) + ((UnitVal, servers))
         })
   }
@@ -122,7 +122,7 @@ object Semantics extends AbstractSemantics[(Value, Servers)] {
       )
     }
 
-  def fireRules(rules: Bag[(ServerVal, Rule, Match)], oldServers: Servers): (Bag[(Prog, Env)], Servers) = {
+  def fireRules(rules: Bag[(ServerVal, Rule, Match)], oldServers: Servers): (Bag[(Exp, Env)], Servers) = {
     var newServers = oldServers
     val newProgs = rules map { case (srv, rule, mtch) => { // fire rules in parallel
       val (prog, env, newServers1) = fireRule(srv, rule, mtch, newServers)
@@ -133,7 +133,7 @@ object Semantics extends AbstractSemantics[(Value, Servers)] {
     (Bag() ++ newProgs, newServers)
   }
 
-  def fireRule(server: ServerVal, rule: Rule, ma: Match, orig: Servers): (Prog, Env, Servers) = {
+  def fireRule(server: ServerVal, rule: Rule, ma: Match, orig: Servers): (Exp, Env, Servers) = {
     val ServerClosure(_, env0) = lookupAddr(server.addr)
     val env = env0 ++ ma.subst + ('this -> server)
 

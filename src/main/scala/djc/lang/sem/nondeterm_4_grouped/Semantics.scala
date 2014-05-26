@@ -18,12 +18,12 @@ object Semantics extends AbstractSemantics[(Value, Servers)] {
     sends.map(sval => sval.toNormalizedProg)
   }
 
-  override def interp(p: Prog) = {
+  override def interp(p: Exp) = {
     Router.routeTable = collection.mutable.Map()
     interp(p, Map(), Map())
   }
 
-  def interp(p: Prog, env: Env, servers: Servers): Res[Val] = p match {
+  def interp(p: Exp, env: Env, servers: Servers): Res[Val] = p match {
     case Var(y) if env.isDefinedAt(y) =>
       Set((env(y), emptyServers))
 
@@ -114,7 +114,7 @@ object Semantics extends AbstractSemantics[(Value, Servers)] {
       )
     }
 
-  def fireRule(server: ServerVal, rule: Rule, ma: Match, orig: Servers): (Prog, Env, Servers) = {
+  def fireRule(server: ServerVal, rule: Rule, ma: Match, orig: Servers): (Exp, Env, Servers) = {
     val ServerClosure(_, env0) = lookupAddr(server.addr)
     val env = env0 ++ ma.subst + ('this -> server)
 

@@ -7,7 +7,7 @@ import djc.lang.TypedSyntax._
 case class SubstType(alpha: Symbol, repl: Type) extends Mapper {
   lazy val replTVars = FreeTypeVars(repl)
 
-  override def map(prog: Prog): Prog = prog match {
+  override def map(prog: Exp): Exp = prog match {
     case TAbs(alpha1, p1) =>
       val captureAvoiding = !replTVars(alpha1)
       lazy val alpha1fresh = gensym(alpha1, replTVars)
@@ -43,11 +43,11 @@ case class SubstType(alpha: Symbol, repl: Type) extends Mapper {
 
 }
 
-case class SubstProg(x: Symbol, repl: Prog) extends Mapper {
+case class SubstProg(x: Symbol, repl: Exp) extends Mapper {
   lazy val replVars = FreeVars(repl)
   lazy val replTVars = FreeTypeVars(repl)
 
-  override def map(prog: Prog): Prog = prog match {
+  override def map(prog: Exp): Exp = prog match {
     case Def(x2, p1, p2) =>
       val captureAvoiding = !replVars.contains(x2)
       lazy val x2fresh = gensym(x2, replVars)
@@ -107,9 +107,9 @@ case class SubstProg(x: Symbol, repl: Prog) extends Mapper {
 }
 
 object FreeVars extends Fold {
-  def apply(prog: Prog): Set[Symbol] = fold(Set[Symbol]())(prog)
+  def apply(prog: Exp): Set[Symbol] = fold(Set[Symbol]())(prog)
 
-  def fold(init: Set[Symbol])(prog: Prog): Set[Symbol] = prog match {
+  def fold(init: Set[Symbol])(prog: Exp): Set[Symbol] = prog match {
     case Def(x, p1, p2) =>
       fold(fold(init)(p1) - 'this)(p2) - x
     case Var(x) =>
@@ -127,11 +127,11 @@ object FreeVars extends Fold {
 }
 
 object FreeTypeVars extends Fold {
-  def apply(prog: Prog): Set[Symbol] = fold(Set[Symbol]())(prog)
+  def apply(prog: Exp): Set[Symbol] = fold(Set[Symbol]())(prog)
 
   def apply(tpe: Type): Set[Symbol] = foldType(Set[Symbol]())(tpe)
 
-  def fold(init: Set[Symbol])(prog: Prog): Set[Symbol] = prog match {
+  def fold(init: Set[Symbol])(prog: Exp): Set[Symbol] = prog match {
     case TAbs(alpha, p1) =>
       fold(init)(p1) - alpha
     case _ => super.fold(init)(prog)

@@ -7,39 +7,39 @@ import djc.lang.typ.Types._
 
 object TypedSyntax {
 
-  abstract class Prog {
-    def eraseType: Syntax.Prog
+  abstract class Exp {
+    def eraseType: Syntax.Exp
   }
 
-  case class Def(x: Symbol, s: Prog, p: Prog) extends Prog {
+  case class Def(x: Symbol, s: Exp, p: Exp) extends Exp {
     override def eraseType = Syntax.Def(x, s.eraseType, p.eraseType)
   }
 
-  case class Par(ps: Bag[Prog]) extends Prog {
+  case class Par(ps: Bag[Exp]) extends Exp {
     override def eraseType = Syntax.Par(ps map (_.eraseType))
   }
 
   object Par {
-    def apply(ps: Prog*) = new Par(Bag(ps: _*))
+    def apply(ps: Exp*) = new Par(Bag(ps: _*))
   }
 
-  case class Send(rcv: Prog, args: List[Prog]) extends Prog {
+  case class Send(rcv: Exp, args: List[Exp]) extends Exp {
     override def eraseType = Syntax.Send(rcv.eraseType, args.map(_.eraseType))
   }
 
   object Send {
-    def apply(rcv: Prog, args: Prog*) = new Send(rcv, List(args: _*))
+    def apply(rcv: Exp, args: Exp*) = new Send(rcv, List(args: _*))
   }
 
-  case class Var(x: Symbol) extends Prog {
+  case class Var(x: Symbol) extends Exp {
     override def eraseType = Syntax.Var(x)
   }
 
-  case class ServiceRef(srv: Prog, x: Symbol) extends Prog {
+  case class ServiceRef(srv: Exp, x: Symbol) extends Exp {
     override def eraseType = Syntax.ServiceRef(srv.eraseType, x)
   }
 
-  case class ServerImpl(rules: Bag[Rule]) extends Prog {
+  case class ServerImpl(rules: Bag[Rule]) extends Exp {
     override def eraseType = Syntax.ServerImpl(rules map (_.eraseType))
 
     lazy val signature = {
@@ -65,15 +65,15 @@ object TypedSyntax {
   }
 
 
-  case class TApp(p: Prog, t: Type) extends Prog {
+  case class TApp(p: Exp, t: Type) extends Exp {
     override def eraseType = p.eraseType
   }
 
-  case class TAbs(alpha: Symbol, p: Prog) extends Prog {
+  case class TAbs(alpha: Symbol, p: Exp) extends Exp {
     override def eraseType = p.eraseType
   }
 
-  case class Rule(ps: Bag[Pattern], p: Prog) {
+  case class Rule(ps: Bag[Pattern], p: Exp) {
     def eraseType = Syntax.Rule(ps map (_.eraseType), p.eraseType)
 
     lazy val rcvars: ListMap[Symbol, Type] = {
@@ -105,11 +105,11 @@ object TypedSyntax {
 
 
   trait Mapper {
-    def apply(prog: Prog): Prog = map(prog)
+    def apply(prog: Exp): Exp = map(prog)
 
     def apply(tpe: Type): Type = mapType(tpe)
 
-    def map(prog: Prog): Prog = prog match {
+    def map(prog: Exp): Exp = prog match {
       case Def(x, p1, p2) =>
         Def(x, map(p1), map(p2))
       case Par(ps) =>
@@ -154,7 +154,7 @@ object TypedSyntax {
   }
 
   trait Fold {
-    def fold[T](init: T)(prog: Prog): T = prog match {
+    def fold[T](init: T)(prog: Exp): T = prog match {
       case Def(x, p1, p2) =>
         fold(fold(init)(p1))(p2)
       case Par(ps) =>

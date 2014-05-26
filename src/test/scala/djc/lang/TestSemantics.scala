@@ -28,10 +28,10 @@ abstract class TestSemantics[V](sem: AbstractSemantics[V], nondeterm: Boolean = 
   val sigmap = Substitution('Print, PRINT_SERVER)
   val sigmac = Substitution('Const, CONST_SERVER)
 
-  def withPrintServer(p: Prog) = Def('Print, PRINT_SERVER, p)
-  def withConstServer(p: Prog) = Def('Const, CONST_SERVER, p)
+  def withPrintServer(p: Exp) = Def('Print, PRINT_SERVER, p)
+  def withConstServer(p: Exp) = Def('Const, CONST_SERVER, p)
 
-  def testInterp(s: String, p: Prog, expected: sem.Res[Bag[Send]]): Unit =
+  def testInterp(s: String, p: Exp, expected: sem.Res[Bag[Send]]): Unit =
     test(s) {
 //      if (p == p5) {
         val res = sem.interp(withPrintServer(withConstServer(p)))

@@ -9,7 +9,7 @@ trait AbstractSemantics[V] {
 
   type Res[T] = Set[T] // nondeterminstic result as set of values
 
-  def interp(p: Prog): Res[Val]
+  def interp(p: Exp): Res[Val]
 
 
 }

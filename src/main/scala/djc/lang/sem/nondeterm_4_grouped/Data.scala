@@ -9,7 +9,7 @@ object Data {
   type Env = Map[Symbol, Value]
 
   abstract class Value {
-    def toNormalizedProg: Prog
+    def toNormalizedProg: Exp
   }
   case object UnitVal extends Value {
     def toNormalizedProg = Par()

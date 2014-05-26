@@ -9,12 +9,12 @@ object Data {
   type Env = Map[Symbol, Value]
 
   abstract class Value {
-    def toProg: Prog
-    def toNormalizedProg: Prog
+    def toProg: Exp
+    def toNormalizedProg: Exp
   }
   case class UnitVal(sends: Bag[SendVal]) extends Value {
-    def toProg = Par(sends.map(_.toSend.asInstanceOf[Prog]))
-    def toNormalizedProg = Par(sends.map(_.toNormalizedProg.asInstanceOf[Prog]))
+    def toProg = Par(sends.map(_.toSend.asInstanceOf[Exp]))
+    def toNormalizedProg = Par(sends.map(_.toNormalizedProg.asInstanceOf[Exp]))
   }
   case class ServerVal(addr: ServerAddr) extends Value {
     def toProg = lookupAddr(addr)
@@ -25,7 +25,7 @@ object Data {
     def toNormalizedProg = ServiceRef(srv.toNormalizedProg, x)
   }
 
-  case class ServerClosure(srv: ServerImpl, env: Env) extends Prog {
+  case class ServerClosure(srv: ServerImpl, env: Env) extends Exp {
     private[this] var addr_ : ServerAddr = null
     def addr_=(a: Router.Addr) = { addr_ = ServerAddr(a) }
     def addr = addr_

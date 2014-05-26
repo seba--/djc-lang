@@ -10,12 +10,12 @@ object Data {
   type Env = Map[Symbol, Value]
 
   abstract class Value {
-    def toProg: Prog
-    def toNormalizedProg: Prog
+    def toProg: Exp
+    def toNormalizedProg: Exp
   }
   case class UnitVal(sends: Bag[SendVal]) extends Value {
-    def toProg = Par(sends.map(_.toSend.asInstanceOf[Prog]))
-    def toNormalizedProg = Par(sends.map(_.toNormalizedProg.asInstanceOf[Prog]))
+    def toProg = Par(sends.map(_.toSend.asInstanceOf[Exp]))
+    def toNormalizedProg = Par(sends.map(_.toNormalizedProg.asInstanceOf[Exp]))
   }
   case class ServerVal(impl: ServerImpl, env : Env) extends Value {
     def toProg = ServerClosure(impl, env)
@@ -28,7 +28,7 @@ object Data {
     def toNormalizedProg = ServiceRef(srv.toNormalizedProg, x)
   }
 
-  case class ServerClosure(srv: ServerImpl, env: Env) extends Prog {
+  case class ServerClosure(srv: ServerImpl, env: Env) extends Exp {
     def toValue = ServerVal(srv, env)
     def normalize = env.foldLeft(srv) {
       case (srv, (x, value)) => Substitution(x, value.toNormalizedProg)(srv).asInstanceOf[ServerImpl]

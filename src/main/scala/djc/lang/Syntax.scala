@@ -4,24 +4,24 @@ import util.Bag
 
 object Syntax {
 
-  abstract class Prog
+  abstract class Exp
 
-  case class Def(x: Symbol, s: Prog, p: Prog) extends Prog
+  case class Def(x: Symbol, s: Exp, p: Exp) extends Exp
 
-  case class Par(ps: Bag[Prog]) extends Prog
-  object Par { def apply(ps : Prog*): Par = new Par(Bag(ps:_*)) }
+  case class Par(ps: Bag[Exp]) extends Exp
+  object Par { def apply(ps : Exp*): Par = new Par(Bag(ps:_*)) }
 
-  case class Send(rcv: Prog, args: List[Prog]) extends Prog
-  object Send { def apply(rcv: Prog, args: Prog*): Send = new Send(rcv, List(args:_*)) }
+  case class Send(rcv: Exp, args: List[Exp]) extends Exp
+  object Send { def apply(rcv: Exp, args: Exp*): Send = new Send(rcv, List(args:_*)) }
 
-  case class Var(x: Symbol) extends Prog
+  case class Var(x: Symbol) extends Exp
 
-  case class ServiceRef(srv: Prog, x: Symbol) extends Prog
+  case class ServiceRef(srv: Exp, x: Symbol) extends Exp
 
-  case class ServerImpl(rules: Bag[Rule]) extends Prog
+  case class ServerImpl(rules: Bag[Rule]) extends Exp
   object ServerImpl { def apply(rules: Rule*): ServerImpl = new ServerImpl(Bag(rules:_*)) }
 
-  case class Rule(ps: Bag[Pattern], p: Prog)
+  case class Rule(ps: Bag[Pattern], p: Exp)
 
   case class Pattern(name: Symbol, params: List[Symbol])
   object Pattern { def apply(name: Symbol, params: Symbol*): Pattern = new Pattern(name, List(params:_*)) }
@@ -39,9 +39,9 @@ object Syntax {
 
 
   trait Mapper {
-    def apply(prog: Prog): Prog = map(prog)
+    def apply(prog: Exp): Exp = map(prog)
 
-    def map(prog: Prog): Prog = prog match {
+    def map(prog: Exp): Exp = prog match {
       case Def(x, p1, p2) =>
         Def(x, map(p1), map(p2))
       case Par(ps) =>
@@ -65,7 +65,7 @@ object Syntax {
   }
 
   trait Fold {
-    def fold[T](init: T)(prog: Prog): T = prog match {
+    def fold[T](init: T)(prog: Exp): T = prog match {
       case Def(x, p1, p2) =>
         fold(fold(init)(p1))(p2)
       case Par(ps) =>

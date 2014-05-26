@@ -12,7 +12,7 @@ object Data {
   type Env = Map[Symbol, Value]
 
   abstract class Value {
-    def toNormalizedProg: Prog
+    def toNormalizedProg: Exp
   }
 
   case object UnitVal extends Value {
@@ -69,6 +69,6 @@ object Data {
   }
 
 
-  case class ProgClosure(p: Prog, env: Env) extends Prog
+  case class ExpClosure(p: Exp, env: Env) extends Exp
 
 }

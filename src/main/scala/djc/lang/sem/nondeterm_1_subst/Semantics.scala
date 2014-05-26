@@ -12,9 +12,9 @@ object Semantics extends AbstractSemantics[Value] {
 
   def normalizeVal(v: Val) = v.asInstanceOf[UnitVal].sval map (_.toSend)
 
-  override def interp(p: Prog) = interp(p, Bag[SendVal]())
+  override def interp(p: Exp) = interp(p, Bag[SendVal]())
 
-  def interp(p: Prog, sends: Bag[SendVal]): Res[Val] = p match {
+  def interp(p: Exp, sends: Bag[SendVal]): Res[Val] = p match {
     case Def(x, s, p1) =>
       nondeterministic[Val,Val](
         interp(s, sends),
@@ -87,7 +87,7 @@ object Semantics extends AbstractSemantics[Value] {
       )
     }
 
-  def fireRule(server: ServerVal, rule: Rule, ma: Match, orig: Bag[SendVal]): (Prog, Bag[SendVal]) = {
+  def fireRule(server: ServerVal, rule: Rule, ma: Match, orig: Bag[SendVal]): (Exp, Bag[SendVal]) = {
     var p = Substitution('this, server.toProg)(rule.p)
     for ((x, v) <- ma.subst)
       p = Substitution(x, v.toProg)(p)

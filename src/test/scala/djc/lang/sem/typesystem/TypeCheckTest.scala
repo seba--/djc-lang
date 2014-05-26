@@ -12,7 +12,7 @@ class TypeCheckTest extends FunSuite {
 
   val gamma: Context = Map('n6 -> TBase('Int), 'n7 -> TBase('Int), 'echo -> TSvc(TBase('Int)))
 
-  def mkCell(prog: Prog): Prog = {
+  def mkCell(prog: Exp): Exp = {
     val cell = Def('cell, ServerImpl(Rule(Bag(Pattern('get, 'k -> TSvc(TVar('V))),
       Pattern('s, 'v -> TVar('V))), Par(Send(Var('k), Var('v)),
       Send(ServiceRef(Var('this), 's), Var('v)))),

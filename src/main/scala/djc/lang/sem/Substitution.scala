@@ -3,10 +3,10 @@ package djc.lang.sem
 import djc.lang.Syntax._
 import djc.lang.Gensym._
 
-case class Substitution(x: Symbol, repl: Prog) extends Mapper {
+case class Substitution(x: Symbol, repl: Exp) extends Mapper {
   lazy val replVars = FreeVars(repl)
 
-  override def map(p: Prog): Prog = p match {
+  override def map(p: Exp): Exp = p match {
     case Def(x2, s2, p2) =>
       val isThis = x == 'this
       val captureAvoiding = !replVars.contains(x2)
@@ -52,9 +52,9 @@ case class Substitution(x: Symbol, repl: Prog) extends Mapper {
 }
 
 object FreeVars extends Fold {
-  def apply(prog: Prog): Set[Symbol] = fold(Set[Symbol]())(prog)
+  def apply(prog: Exp): Set[Symbol] = fold(Set[Symbol]())(prog)
 
-  def fold(init: Set[Symbol])(prog: Prog): Set[Symbol] = prog match {
+  def fold(init: Set[Symbol])(prog: Exp): Set[Symbol] = prog match {
     case Def(x, p1, p2) =>
       fold(fold(init)(p1) - 'this)(p2) - x
     case Var(x) =>

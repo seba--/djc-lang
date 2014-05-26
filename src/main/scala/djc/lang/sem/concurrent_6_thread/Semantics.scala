@@ -16,7 +16,7 @@ import djc.lang.sem.Crossproduct._
 object Semantics extends AbstractSemantics[Value] { // all data is in the global state
   def normalizeVal(v: Val) = ((Bag() ++ Router.routeTable.values) map (_.normalizeVal)).flatten
 
-  override def interp(p: Prog): Res[Val] = {
+  override def interp(p: Exp): Res[Val] = {
     Router.routeTable = collection.mutable.Map()
     val res = interp(p, Map())
     Thread.sleep(50)
@@ -24,7 +24,7 @@ object Semantics extends AbstractSemantics[Value] { // all data is in the global
     res
   }
 
-  def interp(p: Prog, env: Env): Res[Val] = p match {
+  def interp(p: Exp, env: Env): Res[Val] = p match {
     case Var(y) if env.isDefinedAt(y) =>
       Set(env(y))
 
@@ -71,7 +71,7 @@ object Semantics extends AbstractSemantics[Value] { // all data is in the global
       }
       )
 
-    case ProgClosure(p1, env1) => interp(p1, env1)
+    case ExpClosure(p1, env1) => interp(p1, env1)
   }
 
   def interpSends(server: ServerThread) {
@@ -105,7 +105,7 @@ object Semantics extends AbstractSemantics[Value] { // all data is in the global
       )
     }
 
-  def fireRule(server: ServerVal, rule: Rule, ma: Match, oldQueue: Bag[SendVal]): (Prog, Env, Bag[SendVal]) = {
+  def fireRule(server: ServerVal, rule: Rule, ma: Match, oldQueue: Bag[SendVal]): (Exp, Env, Bag[SendVal]) = {
     val serverThread = lookupAddr(server.addr)
     val env = serverThread.env ++ ma.subst + ('this -> server)
     val newQueue = oldQueue -- ma.used

@@ -5,10 +5,10 @@ import util.Bag
 
 object Data {
   abstract class Value {
-    def toProg: Prog
+    def toProg: Exp
   }
   case class UnitVal(sval: Bag[SendVal]) extends Value {
-    def toProg = Par(sval.map(_.toSend.asInstanceOf[Prog]))
+    def toProg = Par(sval.map(_.toSend.asInstanceOf[Exp]))
   }
   case class ServerVal(impl: ServerImpl) extends Value {
     def toProg = impl
