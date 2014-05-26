@@ -14,6 +14,7 @@ object Checker {
       if ps.map(typeCheck(gamma, boundTv, _)) forall (_ === Unit) =>
       Unit
 
+    case Seq(Nil) => Unit
     case Seq(ps)
       if {
         val heads = ps.slice(0, ps.length - 1)
