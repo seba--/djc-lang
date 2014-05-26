@@ -23,7 +23,7 @@ class TestSemantics_nondeterm_grouped extends TestSemantics(nondeterm_4_grouped.
 class TestSemantics_nondeterm_parallel extends TestSemantics(nondeterm_5_parallel.Semantics)
 class TestSemantics_concurrent_thread extends TestSemantics(concurrent_6_thread.Semantics, false)
 
-abstract class TestSemantics[V <: {def toProg: Exp}](sem: AbstractSemantics[V], nondeterm: Boolean = true) extends FunSuite {
+abstract class TestSemantics[V](sem: AbstractSemantics[V], nondeterm: Boolean = true) extends FunSuite {
   val PRINT_SERVER = ServerImpl(Bag(Rule(Bag(Pattern('PRINT)), Par())))
   val CONST_SERVER = ServerImpl(Bag(Rule(Bag(Pattern('CONST)), Par())))
   val sigmap = Substitution('Print, PRINT_SERVER)
