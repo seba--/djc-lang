@@ -13,11 +13,24 @@ object TypedSyntax {
 
   case class Par(ps: Bag[Exp]) extends Exp {
     override def eraseType = Syntax.Par(ps map (_.eraseType))
+    override def toString =
+      if (ps.isEmpty)
+        "Par()"
+      else
+        s"Par(${ps.toString})"
   }
+  object Par { def apply(ps: Exp*) = new Par(Bag(ps: _*))}
 
-  object Par {
-    def apply(ps: Exp*) = new Par(Bag(ps: _*))
+  case class Seq(ps: List[Exp]) extends Exp {
+    override def eraseType = Syntax.Seq(ps map (_.eraseType))
+    override def toString =
+      if (ps.isEmpty)
+        "Seq()"
+      else
+        s"Seq(${ps.toString})"
   }
+  object Seq { def apply(ps : Exp*): Seq = new Seq(List(ps:_*)) }
+
 
   case class Send(rcv: Exp, args: List[Exp]) extends Exp {
     override def eraseType = Syntax.Send(rcv.eraseType, args.map(_.eraseType))
@@ -108,6 +121,8 @@ object TypedSyntax {
     def map(prog: Exp): Exp = prog match {
       case Par(ps) =>
         Par(ps map map)
+      case Seq(ps) =>
+        Seq(ps map map)
       case Send(p, args) =>
         Send(map(p), (args map map))
       case Var(x) =>
@@ -150,6 +165,8 @@ object TypedSyntax {
   trait Fold {
     def fold[T](init: T)(prog: Exp): T = prog match {
       case Par(ps) =>
+        ps.foldLeft(init)(fold(_)(_))
+      case Seq(ps) =>
         ps.foldLeft(init)(fold(_)(_))
       case Send(p, args) =>
         args.foldLeft(fold(init)(p))(fold(_)(_))
