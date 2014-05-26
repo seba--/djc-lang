@@ -14,6 +14,12 @@ object Checker {
       if ps.map(typeCheck(gamma, boundTv, _)) forall (_ === Unit) =>
       Unit
 
+    case Seq(ps)
+      if {
+        val heads = ps.slice(0, ps.length - 1)
+        heads.map(typeCheck(gamma, boundTv, _)) forall (_ === Unit)
+      } => typeCheck(gamma, boundTv, ps.last)
+
     case Send(rcv, args) =>
       (typeCheck(gamma, boundTv, rcv), args.map(typeCheck(gamma, boundTv, _))) match {
         case (TSvc(ts1), ts2) if ts1.corresponds(ts2)(_ === _) =>
