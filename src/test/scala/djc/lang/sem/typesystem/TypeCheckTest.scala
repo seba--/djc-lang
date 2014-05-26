@@ -53,6 +53,7 @@ class TypeCheckTest extends FunSuite {
     assert(cellFactoryServerType === typeCheck(Map(), Set(), cellFactoryServer))
   }
 
+  // TODO reinsert these tests, add type annotations
 //  test("typeCheck should fail") {
 //    val term = Def('x, TAbs('alpha, ServerImpl(Rule(Bag(Pattern('start, 'arg -> TVar('alpha), 'st -> TSvc(TVar('alpha)))),
 //      Def('y, TAbs('alpha, ServerImpl(Rule(Bag(Pattern('bla)), Send(ServiceRef(Var('this), 'bla))),
