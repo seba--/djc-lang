@@ -2,8 +2,8 @@ package djc.lang.sem.nondeterm_4_grouped
 
 
 import util.Bag
-import djc.lang.sem.FlatSubstitution.Subst
-import djc.lang.FlatSyntax._
+import djc.lang.sem.Substitution.Subst
+import djc.lang.Syntax._
 
 object Data {
   type Env = Map[Symbol, Value]

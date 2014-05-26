@@ -2,7 +2,7 @@ package djc.lang.sem.concurrent_6_thread
 
 import util.Bag
 
-import djc.lang.FlatSyntax._
+import djc.lang.Syntax._
 import Data._
 
 class ServerThread(val impl: ServerImpl, val env: Env) extends Thread {

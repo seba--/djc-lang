@@ -1,7 +1,7 @@
 package djc.lang.sem
 
 import util.Bag
-import djc.lang.FlatSyntax._
+import djc.lang.Syntax._
 
 trait AbstractSemantics[V] {
   type Val = V

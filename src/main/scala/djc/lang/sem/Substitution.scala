@@ -1,9 +1,11 @@
 package djc.lang.sem
 
 import util.Bag
-import djc.lang.FlatSyntax._
+import djc.lang.Syntax._
+import djc.lang.Fold
+import djc.lang.Mapper
 
-object FlatSubstitution {
+object Substitution {
   case class Subst(x: Symbol, repl: Prog) extends Mapper {
     lazy val replVars = FreeVars(repl)
 

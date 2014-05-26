@@ -3,9 +3,9 @@ package djc.lang.sem.nondeterm_1_subst
 import scala.language.postfixOps
 import util.Bag
 import djc.lang.sem.{SemanticException, Crossproduct, AbstractSemantics}
-import djc.lang.FlatSyntax._
+import djc.lang.Syntax._
 import Data._
-import djc.lang.sem.FlatSubstitution.Subst
+import djc.lang.sem.Substitution.Subst
 
 object Semantics extends AbstractSemantics[Value] {
   import Crossproduct._

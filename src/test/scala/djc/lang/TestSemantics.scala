@@ -2,10 +2,10 @@ package djc.lang
 
 import org.scalatest.FunSuite
 import util.Bag
-import FlatSyntax._
+import Syntax._
 
 import djc.lang.sem.AbstractSemantics
-import djc.lang.sem.FlatSubstitution.Subst
+import djc.lang.sem.Substitution.Subst
 
 import djc.lang.sem.nondeterm_1_subst
 import djc.lang.sem.nondeterm_2_env

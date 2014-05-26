@@ -1,9 +1,9 @@
 package djc.lang.sem.concurrent_6_thread
 
 
-import djc.lang.FlatSyntax._
+import djc.lang.Syntax._
 import util.Bag
-import djc.lang.sem.FlatSubstitution.Subst
+import djc.lang.sem.Substitution.Subst
 
 /**
  * Created by seba on 09/04/14.

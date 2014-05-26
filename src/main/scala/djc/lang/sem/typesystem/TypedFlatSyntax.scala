@@ -1,6 +1,6 @@
 package djc.lang.sem.typesystem
 
-import djc.lang.FlatSyntax
+import djc.lang.Syntax
 import util.Bag
 import scala.collection.immutable.ListMap
 
@@ -111,15 +111,15 @@ object TypedFlatSyntax {
   case class TypeCheckException(msg: String) extends RuntimeException(msg)
 
   abstract class Prog {
-    def toFlatSyntax: FlatSyntax.Prog
+    def toFlatSyntax: Syntax.Prog
   }
 
   case class Def(x: Symbol, s: Prog, p: Prog) extends Prog {
-    override def toFlatSyntax = FlatSyntax.Def(x, s.toFlatSyntax, p.toFlatSyntax)
+    override def toFlatSyntax = Syntax.Def(x, s.toFlatSyntax, p.toFlatSyntax)
   }
 
   case class Par(ps: Bag[Prog]) extends Prog {
-    override def toFlatSyntax = FlatSyntax.Par(ps map (_.toFlatSyntax))
+    override def toFlatSyntax = Syntax.Par(ps map (_.toFlatSyntax))
   }
 
   object Par {
@@ -127,7 +127,7 @@ object TypedFlatSyntax {
   }
 
   case class Send(rcv: Prog, args: List[Prog]) extends Prog {
-    override def toFlatSyntax = FlatSyntax.Send(rcv.toFlatSyntax, args.map(_.toFlatSyntax))
+    override def toFlatSyntax = Syntax.Send(rcv.toFlatSyntax, args.map(_.toFlatSyntax))
   }
 
   object Send {
@@ -135,15 +135,15 @@ object TypedFlatSyntax {
   }
 
   case class Var(x: Symbol) extends Prog {
-    override def toFlatSyntax = FlatSyntax.Var(x)
+    override def toFlatSyntax = Syntax.Var(x)
   }
 
   case class ServiceRef(srv: Prog, x: Symbol) extends Prog {
-    override def toFlatSyntax = FlatSyntax.ServiceRef(srv.toFlatSyntax, x)
+    override def toFlatSyntax = Syntax.ServiceRef(srv.toFlatSyntax, x)
   }
 
   case class ServerImpl(rules: Bag[Rule]) extends Prog {
-    override def toFlatSyntax = FlatSyntax.ServerImpl(rules map (_.toFlatSyntax))
+    override def toFlatSyntax = Syntax.ServerImpl(rules map (_.toFlatSyntax))
 
     lazy val signature = {
       import collection.mutable.{HashMap, MultiMap, Set}
@@ -177,7 +177,7 @@ object TypedFlatSyntax {
   }
 
   case class Rule(ps: Bag[Pattern], p: Prog) {
-    def toFlatSyntax = FlatSyntax.Rule(ps map (_.toFlatSyntax), p.toFlatSyntax)
+    def toFlatSyntax = Syntax.Rule(ps map (_.toFlatSyntax), p.toFlatSyntax)
 
     lazy val rcvars: ListMap[Symbol, Type] = {
       val m = ListMap[Symbol, Type]()
@@ -186,7 +186,7 @@ object TypedFlatSyntax {
   }
 
   case class Pattern(name: Symbol, params: ListMap[Symbol, Type]) {
-    def toFlatSyntax = FlatSyntax.Pattern(name, params.keys.toList)
+    def toFlatSyntax = Syntax.Pattern(name, params.keys.toList)
   }
 
   object Pattern {

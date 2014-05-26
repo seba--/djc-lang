@@ -1,6 +1,6 @@
 package djc.lang.sem.nondeterm_1_subst
 
-import djc.lang.FlatSyntax._
+import djc.lang.Syntax._
 import util.Bag
 
 object Data {

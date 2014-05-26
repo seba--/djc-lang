@@ -3,8 +3,8 @@ package djc.lang.sem.nondeterm_2_env
 import scala.Symbol
 import scala.language.postfixOps
 import util.Bag
-import djc.lang.FlatSyntax._
-import djc.lang.sem.FlatSubstitution.Subst
+import djc.lang.Syntax._
+import djc.lang.sem.Substitution.Subst
 
 object Data {
   type Env = Map[Symbol, Value]

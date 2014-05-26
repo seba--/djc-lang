@@ -2,7 +2,7 @@ package djc.lang.sem.nondeterm_2_env
 
 import djc.lang.sem.{Crossproduct, AbstractSemantics}
 import util.Bag
-import djc.lang.FlatSyntax._
+import djc.lang.Syntax._
 import Crossproduct._
 import Data._
 

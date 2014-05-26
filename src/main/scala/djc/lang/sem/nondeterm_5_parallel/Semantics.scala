@@ -3,7 +3,7 @@ package djc.lang.sem.nondeterm_5_parallel
 import scala.language.postfixOps
 import util.Bag
 import djc.lang.sem.{Crossproduct, AbstractSemantics}
-import djc.lang.FlatSyntax._
+import djc.lang.Syntax._
 import Data._
 
 object Semantics extends AbstractSemantics[(Value, Servers)] {
