@@ -49,8 +49,6 @@ object Semantics extends AbstractSemantics[Value] {
         }
       )
 
-    case ServerClosure(impl, env) =>
-      Set(ServerVal(impl, env))
   }
 
   def interpSends(sends: Bag[SendVal]): Res[Val] = {

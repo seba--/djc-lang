@@ -10,36 +10,23 @@ object Data {
   type Env = Map[Symbol, Value]
 
   abstract class Value {
-    def toProg: Exp
     def toNormalizedProg: Exp
   }
   case class UnitVal(sends: Bag[SendVal]) extends Value {
-    def toProg = Par(sends.map(_.toSend.asInstanceOf[Exp]))
-    def toNormalizedProg = Par(sends.map(_.toNormalizedProg.asInstanceOf[Exp]))
+    def toNormalizedProg = Par(Bag[Exp]() ++ sends.map(_.toNormalizedProg))
   }
   case class ServerVal(impl: ServerImpl, env : Env) extends Value {
-    def toProg = ServerClosure(impl, env)
-    def toNormalizedProg = env.foldLeft(impl) {
-      case (srv, (x, value)) => Substitution(x, value.toNormalizedProg)(srv).asInstanceOf[ServerImpl]
+    def toNormalizedProg = env.foldLeft[Exp](impl) {
+      case (srv, (x, value)) => Substitution(x, value.toNormalizedProg)(srv)
     }
   }
   case class ServiceVal(srv: ServerVal, x: Symbol) extends Value {
-    def toProg = ServiceRef(srv.toProg, x)
     def toNormalizedProg = ServiceRef(srv.toNormalizedProg, x)
   }
-
-  case class ServerClosure(srv: ServerImpl, env: Env) extends Exp {
-    def toValue = ServerVal(srv, env)
-    def normalize = env.foldLeft(srv) {
-      case (srv, (x, value)) => Substitution(x, value.toNormalizedProg)(srv).asInstanceOf[ServerImpl]
-    }
-  }
-
 
   case class Match(subst: Map[Symbol, Value], used: Bag[SendVal])
 
   case class SendVal(rcv: ServiceVal, args: List[Value]) {
-    def toSend = Send(rcv.toProg, args map (_.toProg))
     def toNormalizedProg = Send(rcv.toNormalizedProg, args map (_.toNormalizedProg))
   }
 }
