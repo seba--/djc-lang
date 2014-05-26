@@ -7,30 +7,24 @@ import djc.lang.Syntax._
 object Data {
   type Env = Map[Symbol, Value]
 
-  case class GroupedValue(v: Value, ss: Servers) {
-    def toProg = v match {
-      case UnitVal => Par(Bag[Exp]() ++ ss.values.flatten.map(_.toProg))
-    }
-  }
-
   abstract class Value {
-    def toProg: Exp
     def toNormalizedProg: Exp
+    def toNormalizedResolvedProg: Exp
   }
 
   case object UnitVal extends Value {
     def toNormalizedProg = Par()
-    def toProg = Par()
+    def toNormalizedResolvedProg = Par()
   }
 
   case class ServerVal(addr: ServerAddr) extends Value {
-    def toNormalizedProg = lookupAddr(addr).normalize
-    def toProg = addr
+    def toNormalizedProg = addr
+    def toNormalizedResolvedProg = lookupAddr(addr).normalize
   }
 
   case class ServiceVal(srv: ServerVal, x: Symbol) extends Value {
     def toNormalizedProg = ServiceRef(srv.toNormalizedProg, x)
-    def toProg = ServiceRef(srv.toProg, x)
+    def toNormalizedResolvedProg = ServiceRef(srv.toNormalizedResolvedProg, x)
   }
 
   case class ServerClosure(srv: ServerImpl, env: Env) {
@@ -40,15 +34,15 @@ object Data {
     }
     def addr = addr_
     def normalize = env.foldLeft(srv) {
-      case (srv1, (x, value)) => Substitution(x, value.toNormalizedProg)(srv1).asInstanceOf[ServerImpl]
+      case (srv1, (x, value)) => Substitution(x, value.toNormalizedResolvedProg)(srv1).asInstanceOf[ServerImpl]
     }
   }
 
   case class Match(subst: Map[Symbol, Value], used: Bag[SendVal])
 
   case class SendVal(rcv: ServiceVal, args: List[Value]) {
-    def toNormalizedProg = Send(rcv.toNormalizedProg, args map (_.toNormalizedProg))
-    def toProg = Send(rcv.toProg, args map (_.toProg))
+    def toProg = Send(rcv.toNormalizedProg, args map (_.toNormalizedProg))
+    def toNormalizedProg = Send(rcv.toNormalizedResolvedProg, args map (_.toNormalizedResolvedProg))
   }
 
   type ServerAddr = Var

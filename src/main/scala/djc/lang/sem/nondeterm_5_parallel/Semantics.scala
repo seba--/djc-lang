@@ -6,11 +6,11 @@ import djc.lang.sem.{Crossproduct, AbstractSemantics}
 import djc.lang.Syntax._
 import Data._
 
-object Semantics extends AbstractSemantics[GroupedValue] {
+object Semantics extends AbstractSemantics[(Value, Servers)] {
   import Crossproduct._
 
   def normalizeVal(v: Val) = v match {
-    case GroupedValue(UnitVal, servers) =>
+    case (UnitVal, servers) =>
       val sends = servers.values.toSet.foldLeft(Bag[SendVal]()) {
         case (b, b1) => b ++ b1
       }
@@ -20,29 +20,29 @@ object Semantics extends AbstractSemantics[GroupedValue] {
   override def interp(p: Exp) = {
     Router.routeTable = collection.mutable.Map()
     val res = interp(p, Map(), Map())
-    res filter {case GroupedValue(v, ss) => interp(v.toProg, Map(), ss).size == 1}
+    res filter {case (v, ss) => interp(v.toNormalizedProg, Map(), ss).size == 1}
   }
 
   def interp(p: Exp, env: Env, servers: Servers): Res[Val] = p match {
     case Var(y) if env.isDefinedAt(y) =>
-      Set(GroupedValue(env(y), emptyServers))
+      Set((env(y), emptyServers))
 
     case addr@ServerAddr(_) =>
-      Set(GroupedValue(ServerVal(addr), emptyServers))
+      Set((ServerVal(addr), emptyServers))
 
     case s@ServerImpl(rules) =>
       val raddr = Router.registerServer(ServerClosure(s, env))
       val addr = ServerAddr(raddr)
       val nuServers = Map(raddr -> Bag[SendVal]())
-      Set(GroupedValue(ServerVal(addr), nuServers))
+      Set((ServerVal(addr), nuServers))
 
     case ServiceRef(srv, x) =>
       nondeterministic[Val,Val](
       interp(srv, env, servers),
-      { case GroupedValue(sval@ServerVal(addr), nuServers) =>
+      { case (sval@ServerVal(addr), nuServers) =>
         //val ServerClosure(impl, _) = lookupAddr(addr)
         //   if impl.rules.exists(_.ps.exists(_.name == x)) => //TODO add this check back once we have good solution for primitive services
-        Set(GroupedValue(ServiceVal(sval, x), nuServers))
+        Set((ServiceVal(sval, x), nuServers))
 
         //   case ServerVal(impl, _) => throw SemanticException(s"service $x not defined in server $impl")
       }
@@ -50,16 +50,16 @@ object Semantics extends AbstractSemantics[GroupedValue] {
 
     case Par(ps) =>
       nondeterministic[Servers, Val](
-        crossProductMap(ps map (interp(_, env, servers) map {case GroupedValue(UnitVal, nuServers) => nuServers})),
+        crossProductMap(ps map (interp(_, env, servers) map {case (UnitVal, nuServers) => nuServers})),
         nuServers => interpSends(servers &&& nuServers))
 
     case Send(rcv, args) =>
       nondeterministic[Val,Val](
       interp(rcv, env, servers),
-      { case GroupedValue(svc@ServiceVal(srvVal, x), nuServers) =>
+      { case (svc@ServiceVal(srvVal, x), nuServers) =>
         val addr = ServerAddr.unapply(srvVal.addr).get
         val s = for(l <- crossProductList(args map (interp(_, env, servers)));
-                    (values, maps) = l.map{case GroupedValue(v,ss) => (v,ss)}.unzip)
+                    (values, maps) = l.map{case (v,ss) => (v,ss)}.unzip)
         yield (values, maps.foldLeft(emptyServers) { case (m, m1) => m &&& m1 })
 
         nondeterministic[(List[Value], Servers), Val](s,
@@ -76,14 +76,14 @@ object Semantics extends AbstractSemantics[GroupedValue] {
   def interpSends(servers: Servers): Res[Val] = {
     val canSend = selectServerSends(servers)
     if (canSend.isEmpty)
-      Set(GroupedValue(UnitVal, servers))
+      Set((UnitVal, servers))
     else
       nondeterministic[Bag[(ServerVal, Rule, Match)], Val](
         canSend,
         {matches =>
           val (newProgs, newServers) = fireRules(matches, servers)
           val progClosures = newProgs map (p => ExpClosure(p._1, p._2).asInstanceOf[Exp])
-          interp(Par(progClosures), Map(), newServers) + (GroupedValue(UnitVal, servers))
+          interp(Par(progClosures), Map(), newServers) + ((UnitVal, servers))
         })
   }
 
