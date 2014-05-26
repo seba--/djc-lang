@@ -54,6 +54,17 @@ object Semantics extends AbstractSemantics[(Value, Servers)] {
         crossProductMap(ps map (interp(_, env, servers) map {case (UnitVal, nuServers) => nuServers})),
         nuServers => interpSends(servers &&& nuServers))
 
+    case Seq(Nil) =>
+      Set((UnitVal, servers))
+    case Seq(p :: Nil) =>
+      interp(p, env, servers)
+    case Seq(p :: ps) =>
+      nondeterministic[Val, Val](
+        interp(p, env, servers),
+        {case (UnitVal, nuservers) => interp(Seq(ps), env, servers &&& nuservers)}
+      )
+
+
     case Send(rcv, args) =>
       nondeterministic[Val,Val](
       interp(rcv, env, servers),

@@ -23,6 +23,16 @@ object Semantics extends AbstractSemantics[Value] {
         crossProduct(ps map (interp(_, Bag()) map {case UnitVal(s) => s})),
         x => interpSends(sends ++ x))
 
+    case Seq(Nil) =>
+      Set(UnitVal(sends))
+    case Seq(p :: Nil) =>
+      interp(p, sends)
+    case Seq(p :: ps) =>
+      nondeterministic[Val, Val](
+        interp(p, sends),
+        {case UnitVal(sends) => interp(Seq(ps), sends)}
+      )
+
     case s@Send(rcv, args) =>
       nondeterministic[Val,Val](
         interp(rcv, sends),

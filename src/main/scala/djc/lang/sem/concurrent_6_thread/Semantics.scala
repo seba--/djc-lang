@@ -52,6 +52,17 @@ object Semantics extends AbstractSemantics[Value] { // all data is in the global
     case Par(ps) if (ps map (interp(_, env))).forall(_ == Set(UnitVal)) =>
       Set(UnitVal)
 
+    case Seq(Nil) =>
+      Set(UnitVal)
+    case Seq(p :: Nil) =>
+      interp(p, env)
+    case Seq(p :: ps) =>
+      nondeterministic[Val, Val](
+        interp(p, env),
+        {case UnitVal => interp(Seq(ps), env)}
+      )
+
+
     case Send(rcv, args) =>  //TODO check if right number of arguments
       nondeterministic[Val,Val](
       interp(rcv, env),
