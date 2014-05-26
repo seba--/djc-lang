@@ -13,11 +13,11 @@ object Data {
     def toNormalizedProg: Exp
   }
   case class UnitVal(sends: Bag[SendVal]) extends Value {
-    def toProg = Par(sends.map(_.toSend.asInstanceOf[Exp]))
-    def toNormalizedProg = Par(sends.map(_.toNormalizedProg.asInstanceOf[Exp]))
+    def toProg = Par(Bag[Exp]() ++ sends.map(_.toSend))
+    def toNormalizedProg = Par(Bag[Exp]() ++ sends.map(_.toNormalizedProg))
   }
   case class ServerVal(addr: ServerAddr) extends Value {
-    def toProg = lookupAddr(addr)
+    def toProg = addr
     def toNormalizedProg = lookupAddr(addr).normalize
   }
   case class ServiceVal(srv: ServerVal, x: Symbol) extends Value {

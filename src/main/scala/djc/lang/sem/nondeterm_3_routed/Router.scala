@@ -9,7 +9,7 @@ object Router {
 
   var addrNum = 0
   val addrPrefix = "Server@"
-  def nextAddr: Addr = {
+  private def nextAddr: Addr = {
     addrNum += 1
     val addr = addrPrefix + addrNum
     if (!routeTable.isDefinedAt(addr))

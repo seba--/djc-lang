@@ -13,6 +13,7 @@ class ServerThread(val impl: ServerImpl, val env: Env) extends Thread {
   var inbox = Bag[SendVal]()
   var newMessages = Bag[SendVal]()
   var terminate = false
+  var terminated = false
 
   def sendRequest(cl: SendVal) {
     synchronized {
@@ -34,6 +35,7 @@ class ServerThread(val impl: ServerImpl, val env: Env) extends Thread {
       else
         Thread.sleep(1)
     }
+    terminated = true
   }
 
   def normalizeVal: Bag[Send] = {
@@ -43,4 +45,31 @@ class ServerThread(val impl: ServerImpl, val env: Env) extends Thread {
     }
     res
   }
+  
+  def waitForTermination() = {
+    terminate = true
+    while (!terminated)
+      Thread.sleep(2)
+  }
+
+  override def hashCode =
+    if (terminated)
+      0
+    else
+      inbox.hashCode() * 31 + newMessages.hashCode()
+}
+
+object ServerThread {
+  def waitUntilStable(ss: Iterable[ServerThread]) {
+    var last = ssHash(ss)
+    while (true) {
+      Thread.sleep(50)
+      val hash = ssHash(ss)
+      if (hash == last)
+        return
+      last = hash
+    }
+  }
+
+  def ssHash(ss: Iterable[ServerThread]) = ss.foldLeft(0)((h, s) => h + s.hashCode)
 }

@@ -6,9 +6,13 @@ object Syntax {
 
   abstract class Exp
 
-  case class Def(x: Symbol, s: Exp, p: Exp) extends Exp
-
-  case class Par(ps: Bag[Exp]) extends Exp
+  case class Par(ps: Bag[Exp]) extends Exp {
+    override def toString =
+      if (ps.isEmpty)
+        "Par()"
+      else
+        s"Par(${ps.toString})"
+  }
   object Par { def apply(ps : Exp*): Par = new Par(Bag(ps:_*)) }
 
   case class Send(rcv: Exp, args: List[Exp]) extends Exp
@@ -42,8 +46,6 @@ object Syntax {
     def apply(prog: Exp): Exp = map(prog)
 
     def map(prog: Exp): Exp = prog match {
-      case Def(x, p1, p2) =>
-        Def(x, map(p1), map(p2))
       case Par(ps) =>
         Par(ps map map)
       case Send(p, args) =>
@@ -66,8 +68,6 @@ object Syntax {
 
   trait Fold {
     def fold[T](init: T)(prog: Exp): T = prog match {
-      case Def(x, p1, p2) =>
-        fold(fold(init)(p1))(p2)
       case Par(ps) =>
         ps.foldLeft(init)(fold(_)(_))
       case Send(p, args) =>

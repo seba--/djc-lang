@@ -12,15 +12,12 @@ object Semantics extends AbstractSemantics[Value] {
 
   def normalizeVal(v: Val) = v.asInstanceOf[UnitVal].sval map (_.toSend)
 
-  override def interp(p: Exp) = interp(p, Bag[SendVal]())
+  override def interp(p: Exp) = {
+    val res = interp(p, Bag())
+    res filter (v => interp(v.toProg, Bag()).size == 1)
+  }
 
   def interp(p: Exp, sends: Bag[SendVal]): Res[Val] = p match {
-    case Def(x, s, p1) =>
-      nondeterministic[Val,Val](
-        interp(s, sends),
-        value => interp(Substitution(x, value.toProg)(p1), sends)
-      )
-
     case Par(ps) =>
       nondeterministic[Bag[SendVal],Val](
         crossProduct(ps map (interp(_, Bag()) map {case UnitVal(s) => s})),

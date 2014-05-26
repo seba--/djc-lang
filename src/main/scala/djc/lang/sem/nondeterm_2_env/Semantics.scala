@@ -10,17 +10,14 @@ object Semantics extends AbstractSemantics[Value] {
 
   def normalizeVal(v: Val) = v.asInstanceOf[UnitVal].sends map (_.toNormalizedProg)
 
-  override def interp(p: Exp) = interp(p, Map(), Bag())
+  override def interp(p: Exp) = {
+    val res = interp(p, Map(), Bag())
+    res filter (v => interp(v.toNormalizedProg, Map(), Bag()).size == 1)
+  }
 
   def interp(p: Exp, env: Env, sends: Bag[SendVal]): Res[Val] = p match {
     case Var(y) if env.isDefinedAt(y) =>
       Set(env(y))
-
-    case Def(x, p1, p2) =>
-      nondeterministic[Val, Val](
-        interp(p1, env, sends),
-        result => interp(p2, env + (x -> result), sends)
-      )
 
     case s@ServerImpl(rules) =>
       Set(ServerVal(s, env))

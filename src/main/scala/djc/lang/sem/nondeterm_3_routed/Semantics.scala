@@ -12,18 +12,16 @@ object Semantics extends AbstractSemantics[Value] {
 
   override def interp(p: Exp) = {
     Router.routeTable = collection.mutable.Map()
-    interp(p, Map(), Bag())
+    val res = interp(p, Map(), Bag())
+    res filter (v => interp(v.toProg, Map(), Bag()).size == 1)
   }
 
   def interp(p: Exp, env: Env, sends: Bag[SendVal]): Res[Val] = p match {
     case Var(y) if env.isDefinedAt(y) =>
       Set(env(y))
 
-    case Def(x, p1, p2) =>
-      nondeterministic[Val, Val](
-        interp(p1, env, sends),
-        result => interp(p2, env + (x -> result), sends)
-      )
+    case addr@ServerAddr(_) =>
+      Set(ServerVal(addr))
 
     case s@ServerImpl(rules) =>
       val addr = ServerAddr(Router.registerServer(ServerClosure(s, env)))

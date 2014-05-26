@@ -12,11 +12,13 @@ object Data {
   type Env = Map[Symbol, Value]
 
   abstract class Value {
+    def toProg: Exp
     def toNormalizedProg: Exp
   }
 
   case object UnitVal extends Value {
     def toNormalizedProg = Par()
+    def toProg = Par()
   }
 
   case class ServerVal(addr: ServerAddr) extends Value {
@@ -27,10 +29,12 @@ object Data {
         case (srv, (x, value)) => Substitution(x, value.toNormalizedProg)(srv).asInstanceOf[ServerImpl]
       }
     }
+    def toProg = addr
   }
 
   case class ServiceVal(srv: ServerVal, x: Symbol) extends Value {
     def toNormalizedProg = ServiceRef(srv.toNormalizedProg, x)
+    def toProg = ServiceRef(srv.toProg, x)
   }
 
   case class Match(subst: Map[Symbol, Value], used: Bag[SendVal])

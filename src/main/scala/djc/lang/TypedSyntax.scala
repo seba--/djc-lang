@@ -11,10 +11,6 @@ object TypedSyntax {
     def eraseType: Syntax.Exp
   }
 
-  case class Def(x: Symbol, s: Exp, p: Exp) extends Exp {
-    override def eraseType = Syntax.Def(x, s.eraseType, p.eraseType)
-  }
-
   case class Par(ps: Bag[Exp]) extends Exp {
     override def eraseType = Syntax.Par(ps map (_.eraseType))
   }
@@ -110,8 +106,6 @@ object TypedSyntax {
     def apply(tpe: Type): Type = mapType(tpe)
 
     def map(prog: Exp): Exp = prog match {
-      case Def(x, p1, p2) =>
-        Def(x, map(p1), map(p2))
       case Par(ps) =>
         Par(ps map map)
       case Send(p, args) =>
@@ -155,8 +149,6 @@ object TypedSyntax {
 
   trait Fold {
     def fold[T](init: T)(prog: Exp): T = prog match {
-      case Def(x, p1, p2) =>
-        fold(fold(init)(p1))(p2)
       case Par(ps) =>
         ps.foldLeft(init)(fold(_)(_))
       case Send(p, args) =>

@@ -10,10 +10,6 @@ object Checker {
   case class TypeCheckException(msg: String) extends RuntimeException(msg)
 
   def typeCheck(gamma: Context, boundTv: Set[Symbol], p: Exp): Type = p match {
-    case Def(x, s, p2) =>
-      val t = typeCheck(gamma, boundTv, s)
-      typeCheck(gamma + (x -> t), boundTv, p2)
-
     case Par(ps)
       if ps.map(typeCheck(gamma, boundTv, _)) forall (_ === Unit) =>
       Unit

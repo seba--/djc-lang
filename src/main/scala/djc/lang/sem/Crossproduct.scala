@@ -49,7 +49,7 @@ object Crossproduct {
 
   def crossProductMap[K,V](tss: Bag[Set[Map[K,Bag[V]]]]): Set[Map[K,Bag[V]]] =
     if (tss.isEmpty)
-      Set()
+      Set(Map())
     else if (tss.tail.isEmpty)
       tss.head
     else {

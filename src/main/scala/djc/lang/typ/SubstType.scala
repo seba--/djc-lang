@@ -48,21 +48,14 @@ case class SubstProg(x: Symbol, repl: Exp) extends Mapper {
   lazy val replTVars = FreeTypeVars(repl)
 
   override def map(prog: Exp): Exp = prog match {
-    case Def(x2, p1, p2) =>
-      val captureAvoiding = !replVars.contains(x2)
-      lazy val x2fresh = gensym(x2, replVars)
-      lazy val p2fresh = SubstProg(x2, Var(x2fresh))(p2)
-      val (x2res, p2res) = if (captureAvoiding) (x2, p2) else (x2fresh, p2fresh)
-
-      if (x == 'this)
-        Def(x2res, p1, p2res)
-      else if (x == x2)
-        Def(x, map(p1), p2)
-      else
-        Def(x2res, map(p1), map(p2res))
-
     case Var(y) if x == y =>
       repl
+
+    case ServerImpl(rs) =>
+      if (x == 'this)
+        ServerImpl(rs)
+      else
+        ServerImpl(rs map mapRule)
 
     case TAbs(alpha, p1) =>
       val captureAvoiding = !replTVars(alpha)
@@ -110,10 +103,10 @@ object FreeVars extends Fold {
   def apply(prog: Exp): Set[Symbol] = fold(Set[Symbol]())(prog)
 
   def fold(init: Set[Symbol])(prog: Exp): Set[Symbol] = prog match {
-    case Def(x, p1, p2) =>
-      fold(fold(init)(p1) - 'this)(p2) - x
     case Var(x) =>
       init + x
+    case ServerImpl(rs) =>
+      rs.foldLeft(init)(foldRule(_)(_)) - 'this
     case _ => super.fold(init)(prog)
   }
 

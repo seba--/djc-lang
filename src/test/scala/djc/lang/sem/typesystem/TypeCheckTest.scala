@@ -6,8 +6,9 @@ import util.Bag
 import djc.lang.typ.Types._
 import djc.lang.typ.Checker._
 import djc.lang.TypedSyntax._
+import djc.lang.TypedSyntaxDerived._
 
-
+/*
 class TypeCheckTest extends FunSuite {
 
   val gamma: Context = Map('n6 -> TBase('Int), 'n7 -> TBase('Int), 'echo -> TSvc(TBase('Int)))
@@ -69,3 +70,4 @@ class TypeCheckTest extends FunSuite {
 
 
 }
+*/
