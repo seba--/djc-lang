@@ -4,7 +4,6 @@ import scala.language.postfixOps
 import util.Bag
 import djc.lang.sem.{SemanticException, Crossproduct, AbstractSemantics}
 import djc.lang.FlatSyntax._
-import djc.lang.Syntax
 import Data._
 import djc.lang.sem.FlatSubstitution.Subst
 
@@ -14,7 +13,6 @@ object Semantics extends AbstractSemantics[Value] {
   def normalizeVal(v: Val) = v.asInstanceOf[UnitVal].sval map (_.toSend)
 
   override def interp(p: Prog) = interp(p, Bag[SendVal]())
-  def interp(p: Syntax.Prog): Res[Val] = interp(p.toFlatSyntax, Bag[SendVal]())
 
   def interp(p: Prog, sends: Bag[SendVal]): Res[Val] = p match {
     case Def(x, s, p1) =>
