@@ -45,4 +45,15 @@ object Integer {
     }
   }
 
+
+
+  implicit def infixExpIntegerVar(e: Symbol) = InfixExp(Var(e))
+  implicit def infixExpInteger(e: Exp) = InfixExp(e)
+  case class InfixExp(e1: Exp) {
+    def +(e2: Exp) = BaseCall(Plus, e1, e2)
+    def -(e2: Exp) = BaseCall(Sub, e1, e2)
+    def /(e2: Exp) = BaseCall(Div, e1, e2)
+    def *(e2: Exp) = BaseCall(Mul, e1, e2)
+  }
+
 }

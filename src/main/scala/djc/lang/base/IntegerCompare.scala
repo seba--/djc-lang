@@ -41,4 +41,14 @@ object IntegerCompare {
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
     }
   }
+
+  implicit def infixExpIntegerCompareVar(e: Symbol) = InfixExp(Var(e))
+  implicit def infixExpIntegerCompare(e: Exp) = InfixExp(e)
+  case class InfixExp(e1: Exp) {
+    def ===(e2: Exp) = BaseCall(Eq, e1, e2)
+    def <(e2: Exp) = BaseCall(Lt, e1, e2)
+    def <==(e2: Exp) = BaseCall(Le, e1, e2)
+    def >(e2: Exp) = BaseCall(Gt, e1, e2)
+    def ==>(e2: Exp) = BaseCall(Ge, e1, e2)
+  }
 }

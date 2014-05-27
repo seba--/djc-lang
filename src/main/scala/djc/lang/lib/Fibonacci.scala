@@ -30,43 +30,27 @@ object Fibonacci {
     else
       fibCont(n-1, v1 => fibCont(n-2, v2 => k(v1 + v2)))
 
-  implicit def varSymbol(s: Symbol) = Var(s)
-  implicit def varSymbolInfixExp(s: Symbol) = InfixExp(Var(s))
-  implicit def varSymbolInfixPattern(s: Symbol) = InfixPattern(s)
-  implicit def infixExp(e: Exp) = InfixExp(e)
-  case class InfixExp(e1: Exp) {
-    def <=(e2: Exp) = BaseCall(Le, e1, e2)
-    def +(e2: Exp) = BaseCall(Plus, e1, e2)
-    def -(e2: Exp) = BaseCall(Sub, e1, e2)
-    def ::(s: Symbol) = ServiceRef(e1, s)
-    def !!(es: Exp*) = Send(e1, List(es:_*))
-  }
-  case class InfixPattern(s: Symbol) {
-    def ?(ps: (Symbol, Type)*) = Pattern(s, ListMap(ps:_*))
-  }
-
-  implicit def ?(ts: Type*) = TSvc(List(ts:_*))
-
+  val fibType = TFun(TInteger, TInteger)
   val fib =
     ServerImpl(Rule(
-        Bag(Pattern('fibk, 'n -> TBase('Int), 'k -> TSvc(TBase('Int)))),
+        Bag(Pattern('fib, 'n -> TBase('Int), 'k -> TSvc(TBase('Int)))),
         Ifc(
-          'n <= 1,
+          'n <== 1,
           'k!!(1),
-          ('this::'fibk)!!(
+          ('this~>'fib)!!(
             'n - 1,
             Def('K1, TSrv('k1 -> ?(TBase('Int))),
               ServerImpl(Rule(
                 Bag('k1?('v1->TBase('Int))),
-                ('this::'fibk)!!( // TODO 'this is wrong
+                ('this~>'fib)!!( // TODO 'this is wrong
                   'n - 2,
                   Def('K2, TSrv('k2 -> ?(TBase('Int))),
                     ServerImpl(Rule(
                       Bag('k2?('v2->TBase('Int))),
                       'k!!('v1+'v2))),
-                    'K2::'k2)))),
-              'K1::'k1)
-          ))))
+                    'K2~>'k2)))),
+              'K1~>'k1)
+          ))))~>'fib
 
 
 }

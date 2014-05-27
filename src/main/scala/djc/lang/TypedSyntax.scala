@@ -123,6 +123,21 @@ object TypedSyntax {
 
 
 
+  implicit def varSymbol(s: Symbol) = Var(s)
+  implicit def varSymbolInfixExp(s: Symbol) = InfixExp(Var(s))
+  implicit def varSymbolInfixPattern(s: Symbol) = InfixPattern(s)
+  implicit def infixExp(e: Exp) = InfixExp(e)
+  case class InfixExp(e1: Exp) {
+    def ~>(s: Symbol) = ServiceRef(e1, s)
+    def !!(es: Exp*) = Send(e1, List(es:_*))
+  }
+  case class InfixPattern(s: Symbol) {
+    def ?(ps: (Symbol, Type)*) = Pattern(s, ListMap(ps:_*))
+  }
+
+  implicit def ?(ts: Type*) = TSvc(List(ts:_*))
+
+
 
 
 
@@ -150,6 +165,8 @@ object TypedSyntax {
         TApp(map(p1), mapType(t))
       case TAbs(alpha, bound1, p1) =>
         TAbs(alpha, bound1.map(mapType(_)), map(p1))
+      case BaseCall(b, ps) =>
+        BaseCall(b, ps map map)
     }
 
     def mapType(tpe: Type): Type = tpe match {
@@ -195,6 +212,8 @@ object TypedSyntax {
         fold(foldType(init)(t))(p1)
       case TAbs(alpha, bound1, p1) =>
         fold(bound1.map(foldType(init)(_)).getOrElse(init))(p1)
+      case BaseCall(b, ps) =>
+        ps.foldLeft(init)(fold(_)(_))
     }
 
     def foldType[T](init: T)(tpe: Type): T = tpe match {

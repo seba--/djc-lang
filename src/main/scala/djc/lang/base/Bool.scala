@@ -55,4 +55,13 @@ object Bool {
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
     }
   }
+
+
+  implicit def infixExpBoolVar(e: Symbol) = InfixExp(Var(e))
+  implicit def infixExpBool(e: Exp) = InfixExp(e)
+  case class InfixExp(e1: Exp) {
+    def &&(e2: Exp) = BaseCall(And, e1, e2)
+    def ||(e2: Exp) = BaseCall(Or, e1, e2)
+  }
+  implicit def !(e: Exp) = BaseCall(Not, e)
 }

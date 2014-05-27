@@ -12,8 +12,8 @@ object TypedSyntaxDerived {
   def TFun(t: Type, u: Type) = TSvc(t, TSvc(u))
 
   def Def(x: Symbol, xt: Type, s: Exp, p: Exp): Exp = {
-    val srv = ServerImpl(Rule(Bag(Pattern('defined, (x, xt))), p))
-    val svc = ServiceRef(srv, 'defined)
+    val srv = ServerImpl(Rule(Bag(Pattern('def, (x, xt))), p))
+    val svc = ServiceRef(srv, 'def)
     Send(svc, s)
   }
 
@@ -43,8 +43,8 @@ object TypedSyntaxDerived {
       ServiceRef(Var('Thunk), 'force))
 
   def Ifc(c: Exp, t: Exp, e: Exp) =
-    BaseCall(djc.lang.base.Bool.If,
+    Send(BaseCall(djc.lang.base.Bool.If,
       c,
       Thunk(t),
-      Thunk(e))
+      Thunk(e)))
 }

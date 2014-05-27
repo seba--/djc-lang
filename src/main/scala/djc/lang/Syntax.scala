@@ -41,7 +41,9 @@ object Syntax {
 
 
 
-
+//  case class WrappedNonBaseValue[T <: {def toProg: Exp}](t: T) extends BaseValue {
+//    def toExp = t.toProg
+//  }
   abstract class BaseValue {
     def toExp: Exp
   }
@@ -75,6 +77,8 @@ object Syntax {
         ServiceRef(map(p1), x)
       case ServerImpl(rs) =>
         ServerImpl(rs map mapRule)
+      case BaseCall(b, es) =>
+        BaseCall(b, es map map)
     }
 
     def mapRule(rule: Rule): Rule = {
@@ -99,6 +103,8 @@ object Syntax {
         fold(init)(p1)
       case ServerImpl(rs) =>
         rs.foldLeft(init)(foldRule(_)(_))
+      case BaseCall(b, es) =>
+        es.foldLeft(init)(fold(_)(_))
     }
 
     def foldRule[T](init: T)(rule: Rule): T = {
