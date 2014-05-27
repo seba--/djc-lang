@@ -18,6 +18,12 @@ object Semantics extends AbstractSemantics[Value] {
   }
 
   def interp(p: Exp, sends: Bag[SendVal]): Res[Val] = p match {
+    case BaseCall(b, es) =>
+      nondeterministic[List[BaseValue], Val](
+        crossProductList(es map (interp(_, Bag()) map {case BaseVal(v) => v})),
+        vs => Set(BaseVal(b.reduce(vs)))
+      )
+
     case Par(ps) =>
       nondeterministic[Bag[SendVal],Val](
         crossProduct(ps map (interp(_, Bag()) map {case UnitVal(s) => s})),

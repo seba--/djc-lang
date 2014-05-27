@@ -42,6 +42,14 @@ object Syntax {
 
 
 
+  abstract class BaseValue {
+    def toExp: Exp
+  }
+  abstract class BaseOp {
+    def reduce(vs: List[BaseValue]): BaseValue
+  }
+  case class BaseCall(b: BaseOp, es: List[Exp]) extends Exp
+
 
 
 

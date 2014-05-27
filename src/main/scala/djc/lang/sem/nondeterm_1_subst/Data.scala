@@ -7,6 +7,9 @@ object Data {
   abstract class Value {
     def toProg: Exp
   }
+  case class BaseVal(v: BaseValue) extends Value {
+    def toProg = v.toExp
+  }
   case class UnitVal(sval: Bag[SendVal]) extends Value {
     def toProg = Par(sval.map(_.toSend.asInstanceOf[Exp]))
   }

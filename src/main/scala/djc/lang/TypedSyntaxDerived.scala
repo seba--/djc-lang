@@ -33,4 +33,18 @@ object TypedSyntaxDerived {
 
   def App(f: Exp, arg: Exp, cont: Exp): Exp =
     Send(f, arg, cont)
+
+
+  def Thunk(e: Exp) =
+    Def('Thunk, TSrv('force -> TSrv()),
+      ServerImpl(Rule(
+        Bag(Pattern('force)),
+        e)),
+      ServiceRef(Var('Thunk), 'force))
+
+  def Ifc(c: Exp, t: Exp, e: Exp) =
+    BaseCall(djc.lang.base.Bool.If,
+      c,
+      Thunk(t),
+      Thunk(e))
 }
