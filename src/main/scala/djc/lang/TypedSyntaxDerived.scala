@@ -7,16 +7,30 @@ import djc.lang.typ.Checker._
 
 object TypedSyntaxDerived {
 
-  object Def {
-    def apply(x: Symbol, xt: Type, s: Exp, p: Exp): Exp = {
-      val srv = ServerImpl(Rule(Bag(Pattern('defined, (x, xt))), p))
-      val svc = ServiceRef(srv, 'defined)
-      Send(svc, s)
-    }
+  // undelimited CPS function type:
+  //   t * (u -> Unit) -> Unit
+  def TFun(t: Type, u: Type) = TSvc(t, TSvc(u))
 
-    def apply(x: Symbol, s: Exp, p: Exp, gamma: Context, boundTv: Set[Symbol]): Exp = {
-      val xt = typeCheck(gamma, boundTv, s)
-      apply(x, xt, s, p)
-    }
+  def Def(x: Symbol, xt: Type, s: Exp, p: Exp): Exp = {
+    val srv = ServerImpl(Rule(Bag(Pattern('defined, (x, xt))), p))
+    val svc = ServiceRef(srv, 'defined)
+    Send(svc, s)
   }
+
+  def Def(x: Symbol, s: Exp, p: Exp, gamma: Context, boundTv: Set[Symbol]): Exp = {
+    val xt = typeCheck(gamma, boundTv, s)
+    Def(x, xt, s, p)
+  }
+
+
+  def Lambda(x: Symbol, xt: Type, e: Exp, resT: Type): Exp =
+    Def('App, TSrv('app -> TSvc(xt, TSvc(resT))),
+      ServerImpl(
+        Rule(
+          Bag(Pattern('app, x -> xt, 'cont -> TSvc(resT))),
+          Send(Var('cont), e))),
+      ServiceRef(Var('App), 'app))
+
+  def App(f: Exp, arg: Exp, cont: Exp): Exp =
+    Send(f, arg, cont)
 }
