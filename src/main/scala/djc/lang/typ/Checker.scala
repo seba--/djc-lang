@@ -10,6 +10,14 @@ object Checker {
   case class TypeCheckException(msg: String) extends RuntimeException(msg)
 
   def typeCheck(gamma: Context, boundTv: Set[Symbol], p: Exp): Type = p match {
+    case BaseCall(b, es) => {
+      val ts = es map (typeCheck(gamma, boundTv, _))
+      if (ts.corresponds(b.ts)(_ === _))
+        b.res
+      else
+        throw TypeCheckException(s"Arguments of base call mismatch. Was: $ts, Expected: ${b.ts}")
+    }
+
     case Par(ps)
       if ps.map(typeCheck(gamma, boundTv, _)) forall (_ === Unit) =>
       Unit
