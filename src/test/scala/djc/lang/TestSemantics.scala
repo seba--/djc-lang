@@ -18,10 +18,10 @@ import djc.lang.sem.concurrent_6_thread
 
 class TestSemantics_nondeterm_subst extends TestSemantics(nondeterm_1_subst.Semantics())
 class TestSemantics_nondeterm_env extends TestSemantics(nondeterm_2_env.Semantics())
-class TestSemantics_nondeterm_routed extends TestSemantics(nondeterm_3_routed.Semantics())
-class TestSemantics_nondeterm_grouped extends TestSemantics(nondeterm_4_grouped.Semantics())
-class TestSemantics_nondeterm_parallel extends TestSemantics(nondeterm_5_parallel.Semantics())
-class TestSemantics_concurrent_thread extends TestSemantics(concurrent_6_thread.Semantics(), false)
+class TestSemantics_nondeterm_routed extends TestSemantics(new nondeterm_3_routed.Semantics().newInstance())
+class TestSemantics_nondeterm_grouped extends TestSemantics(new nondeterm_4_grouped.Semantics().newInstance())
+class TestSemantics_nondeterm_parallel extends TestSemantics(new nondeterm_5_parallel.Semantics().newInstance())
+class TestSemantics_concurrent_thread extends TestSemantics(new concurrent_6_thread.Semantics().newInstance(), false)
 
 abstract class TestSemantics[V](sem: AbstractSemantics[V], nondeterm: Boolean = true) extends FunSuite {
   val PRINT_SERVER = ServerImpl(Bag(Rule(Bag(Pattern('PRINT)), Par())))

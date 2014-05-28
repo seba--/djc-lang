@@ -22,6 +22,9 @@ object Data {
     def args: List[Value]
     def toNormalizedResolvedProg: Send
   }
+
+  type Servers = Map[Router.Addr, ServerThread]
+  val emptyServers: Servers = Map()
 }
 import Data._
 
@@ -54,9 +57,6 @@ class Data(router: Router) {
   case class SendVal(rcv: ServiceVal, args: List[Value]) extends ISendVal {
     def toNormalizedResolvedProg = Send(rcv.toNormalizedResolvedProg, args map (_.toNormalizedResolvedProg))
   }
-
-  type Servers = Map[Router.Addr, ServerThread]
-  val emptyServers: Servers = Map()
 
   case class ExpClosure(p: Exp, env: Env) extends Exp
 

@@ -7,7 +7,7 @@ import Data._
 
 import Router._
 
-class ServerThread(sem: Semantics.Inner, val impl: ServerImpl, val env: Env) extends Thread {
+class ServerThread(sem: SemanticsInner, val impl: ServerImpl, val env: Env) extends Thread {
 
   var addr: ServerAddr = null
 

@@ -18,10 +18,10 @@ import djc.lang.sem.concurrent_6_thread
 
 class TestLambda1 extends TestLambda(nondeterm_1_subst.Semantics())
 class TestLambda2 extends TestLambda(nondeterm_2_env.Semantics())
-class TestLambda3 extends TestLambda(nondeterm_3_routed.Semantics())
-class TestLambda4 extends TestLambda(nondeterm_4_grouped.Semantics())
-class TestLambda5 extends TestLambda(nondeterm_5_parallel.Semantics())
-class TestLambda6 extends TestLambda(concurrent_6_thread.Semantics(), false)
+class TestLambda3 extends TestLambda(new nondeterm_3_routed.Semantics().newInstance())
+class TestLambda4 extends TestLambda(new nondeterm_4_grouped.Semantics().newInstance())
+//class TestLambda5 extends TestLambda(new nondeterm_5_parallel.Semantics().newInstance())
+class TestLambda6 extends TestLambda(new concurrent_6_thread.Semantics().newInstance(), false)
 
 
 class TestLambda[V](sem: AbstractSemantics[V], nondeterm: Boolean = true) extends AbstractTest(sem, nondeterm) {

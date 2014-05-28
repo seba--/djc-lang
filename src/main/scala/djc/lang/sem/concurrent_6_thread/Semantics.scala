@@ -14,16 +14,19 @@ import djc.lang.sem.Crossproduct._
 /**
  * Created by seba on 09/04/14.
  */
-object Semantics {
+
+trait SemanticsInner {
+  def interpSends(server: ServerThread)
+}
+
+class Semantics {
   val router = new Router
   val data = new Data(router)
   import data._
 
-  def apply() = new Inner
+  def newInstance() = new Inner
 
-  class Inner extends AbstractSemantics[Value] {
-
-    val data = Semantics.data
+  class Inner extends AbstractSemantics[Value] with SemanticsInner {
 
     // all data is in the global state
     def normalizeVal(v: Val) = ((Bag() ++ router.routeTable.values) map (_.normalizeVal)).flatten

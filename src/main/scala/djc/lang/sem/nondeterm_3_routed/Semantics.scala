@@ -8,12 +8,12 @@ import Data._
 import Router._
 
 
-object Semantics {
+class Semantics {
   val router = new Router
   val data = new Data(router)
   import data._
 
-  def apply() = new Inner
+  def newInstance() = new Inner
 
   class Inner extends AbstractSemantics[Value] {
 

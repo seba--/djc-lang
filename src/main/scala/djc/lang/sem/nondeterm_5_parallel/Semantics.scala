@@ -8,12 +8,12 @@ import Data._
 
 import Router._
 
-object Semantics {
+class Semantics {
   val router= new Router
   val data = new Data(router)
   import data._
 
-  def apply() = new Inner
+  def newInstance() = new Inner
 
   class Inner extends AbstractSemantics[(Value, Servers)] {
 
@@ -21,7 +21,7 @@ object Semantics {
 
     def normalizeVal(v: Val) = v match {
       case (UnitVal, servers) =>
-        val sends = servers.values.toSet.foldLeft(Bag[SendVal]()) {
+        val sends = servers.values.toSet.foldLeft(Bag[ISendVal]()) {
           case (b, b1) => b ++ b1
         }
         sends.map(sval => sval.toNormalizedResolvedProg)
@@ -44,7 +44,7 @@ object Semantics {
       case s@ServerImpl(rules) =>
         val raddr = router.registerServer(ServerClosure(s, env))
         val addr = ServerAddr(raddr)
-        val nuServers = Map(raddr -> Bag[SendVal]())
+        val nuServers = Map(raddr -> Bag[ISendVal]())
         Set((ServerVal(addr), nuServers))
 
       case ServiceRef(srv, x) =>
@@ -107,7 +107,7 @@ object Semantics {
       if (canSend.isEmpty)
         Set((UnitVal, servers))
       else
-        nondeterministic[Bag[(ServerVal, Rule, Match)], Val](
+        nondeterministic[Bag[(IServerVal, Rule, Match)], Val](
         canSend, {
           matches =>
             val (newProgs, newServers) = fireRules(matches, servers)
@@ -116,7 +116,7 @@ object Semantics {
         })
     }
 
-    def selectServerSends(servers: Servers): Res[Bag[(ServerVal, Rule, Match)]] = {
+    def selectServerSends(servers: Servers): Res[Bag[(IServerVal, Rule, Match)]] = {
       val bag = (Bag() ++ servers.values).map(selectSends(_)).filter(!_.isEmpty)
       if (bag.isEmpty)
         Set()
@@ -125,14 +125,14 @@ object Semantics {
     }
 
 
-    def selectSends(sends: Bag[SendVal]): Res[(ServerVal, Rule, Match)] =
-      nondeterministic[(ServerVal, Rule), (ServerVal, Rule, Match)](
+    def selectSends(sends: Bag[ISendVal]): Res[(IServerVal, Rule, Match)] =
+      nondeterministic[(IServerVal, Rule), (IServerVal, Rule, Match)](
       (sends map collectRules).flatten, {
         case (srvVal, rule) => matchRule(srvVal, rule.ps, sends) map (x => (srvVal, rule, x))
       }
       )
 
-    def matchRule(server: ServerVal, pats: Bag[Pattern], sends: Bag[SendVal]): Res[Match] =
+    def matchRule(server: IServerVal, pats: Bag[Pattern], sends: Bag[ISendVal]): Res[Match] =
       if (pats.isEmpty)
         Set(Match(Map(), Bag()))
       else {
@@ -142,7 +142,7 @@ object Semantics {
           case SendVal(ServiceVal(`server`, `name`), args) => params.size == args.size
           case _ => false
         })
-        nondeterministic[SendVal, Match](
+        nondeterministic[ISendVal, Match](
           matchingSends,
           s => matchRule(server, pats.tail, sends - s) map (
             p => Match(p.subst ++ (params zip s.args), p.used + s)
@@ -150,7 +150,7 @@ object Semantics {
         )
       }
 
-    def fireRules(rules: Bag[(ServerVal, Rule, Match)], oldServers: Servers): (Bag[(Exp, Env)], Servers) = {
+    def fireRules(rules: Bag[(IServerVal, Rule, Match)], oldServers: Servers): (Bag[(Exp, Env)], Servers) = {
       var newServers = oldServers
       val newProgs = rules map {
         case (srv, rule, mtch) => {
@@ -164,7 +164,7 @@ object Semantics {
       (Bag() ++ newProgs, newServers)
     }
 
-    def fireRule(server: ServerVal, rule: Rule, ma: Match, orig: Servers): (Exp, Env, Servers) = {
+    def fireRule(server: IServerVal, rule: Rule, ma: Match, orig: Servers): (Exp, Env, Servers) = {
       val ServerClosure(_, env0) = router.lookupAddr(server.addr)
       val env = env0 ++ ma.subst + ('this -> server)
 
@@ -176,7 +176,7 @@ object Semantics {
       (rule.p, env, rest)
     }
 
-    def collectRules(s: SendVal): Bag[(ServerVal, Rule)] = {
+    def collectRules(s: ISendVal): Bag[(IServerVal, Rule)] = {
       val ServerClosure(impl, _) = router.lookupAddr(s.rcv.srv.addr)
       impl.rules map ((s.rcv.srv, _))
     }
