@@ -31,7 +31,9 @@ object Syntax {
 
   case class ServiceRef(srv: Exp, x: Symbol) extends Exp
 
-  case class ServerImpl(rules: Bag[Rule]) extends Exp
+  case class ServerImpl(rules: Bag[Rule]) extends Exp {
+    lazy val services = rules flatMap (r => r.ps map (p => p.name))
+  }
   object ServerImpl { def apply(rules: Rule*): ServerImpl = new ServerImpl(Bag(rules:_*)) }
 
   case class Rule(ps: Bag[Pattern], p: Exp)

@@ -21,6 +21,15 @@ object TypedSyntaxDerived {
     Def(x, xt, s, p)
   }
 
+  def LambdaServer(x: Symbol, xt: Type, e: Exp, resT: TSrv, init: Exp=Par()): Exp =
+    ServiceRef(
+      ServerImpl(
+        Rule(
+          Bag(Pattern('app, x -> xt, 'result-> ?(resT))),
+          Def('SERVER, resT, e,
+            Par(init!!'SERVER, 'result!!'SERVER)))),
+      'app)
+
 
   def Lambda(x: Symbol, xt: Type, e: Exp, resT: Type): Exp =
     ServiceRef(
@@ -29,6 +38,8 @@ object TypedSyntaxDerived {
           Bag(Pattern('app, x -> xt, 'result-> ?(resT))),
           'result!!e)),
       'app)
+
+
 
   def App(f: Exp, arg: Exp, cont: Exp): Exp =
     Send(f, arg, cont)

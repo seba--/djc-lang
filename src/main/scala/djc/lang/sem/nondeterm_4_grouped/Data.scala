@@ -5,24 +5,14 @@ import util.Bag
 import djc.lang.sem.Substitution
 import djc.lang.Syntax._
 
+import Router._
+
 object Data {
   type Env = Map[Symbol, Value]
 
   abstract class Value {
     def toNormalizedProg: Exp
     def toNormalizedResolvedProg: Exp
-  }
-  case object UnitVal extends Value {
-    def toNormalizedProg = Par()
-    def toNormalizedResolvedProg = Par()
-  }
-  case class ServerVal(addr: ServerAddr) extends Value {
-    def toNormalizedProg = addr
-    def toNormalizedResolvedProg = lookupAddr(addr).normalize
-  }
-  case class ServiceVal(srv: ServerVal, x: Symbol) extends Value {
-    def toNormalizedProg = ServiceRef(srv.toNormalizedProg, x)
-    def toNormalizedResolvedProg = ServiceRef(srv.toNormalizedResolvedProg, x)
   }
 
   case class ServerClosure(srv: ServerImpl, env: Env) {
@@ -33,6 +23,24 @@ object Data {
       case (srv1, (x, value)) => Substitution(x, value.toNormalizedResolvedProg)(srv1).asInstanceOf[ServerImpl]
     }
   }
+}
+import Data._
+
+class Data(router: Router) {
+
+  case object UnitVal extends Value {
+    def toNormalizedProg = Par()
+    def toNormalizedResolvedProg = Par()
+  }
+  case class ServerVal(addr: ServerAddr) extends Value {
+    def toNormalizedProg = addr
+    def toNormalizedResolvedProg = router.lookupAddr(addr).normalize
+  }
+  case class ServiceVal(srv: ServerVal, x: Symbol) extends Value {
+    def toNormalizedProg = ServiceRef(srv.toNormalizedProg, x)
+    def toNormalizedResolvedProg = ServiceRef(srv.toNormalizedResolvedProg, x)
+  }
+
 
   case class Match(subst: Map[Symbol, Value], used: Bag[SendVal])
 
@@ -40,25 +48,8 @@ object Data {
     def toNormalizedResolvedProg = Send(rcv.toNormalizedResolvedProg, args map (_.toNormalizedResolvedProg))
   }
 
-  type ServerAddr = Var
-  object ServerAddr {
-    val prefix = "ADDR:"
-    def apply(addr: Router.Addr) = new ServerAddr(Symbol(prefix + addr))
-    def unapply(s: Var): Option[Router.Addr] = getAddr(s.x.name)
-
-    def getAddr(name: String): Option[Router.Addr] =
-      if (name.startsWith(prefix))
-        Some(name.substring(prefix.length))
-      else
-        None
-  }
-  def lookupAddr(a: ServerAddr): ServerClosure = a match {
-    case ServerAddr(addr) => Router.lookupAddr(addr)
-    case _ => throw new IllegalArgumentException(s"Not a server address: $a")
-  }
-
-
   type Servers = Map[Router.Addr, Bag[SendVal]]
+
   val emptyServers: Servers = Map()
   def sendToServer(servers: Servers, addr: Router.Addr, sv: SendVal): Servers = {
     servers + (addr -> (servers.getOrElse(addr, Bag()) + sv))

@@ -28,12 +28,16 @@ object Fibonacci {
     if (n <= 1)
       k(1)
     else
-      fibCont(n-1, v1 => fibCont(n-2, v2 => k(v1 + v2)))
+      fibCont(n-1,
+        v1 =>
+          fibCont(n-2,
+            v2 =>
+              k(v1 + v2)))
 
   val fibType = TFun(TInteger, TInteger)
   val fib =
-    ServerImpl(Rule(
-        Bag(Pattern('fib, 'n -> TBase('Int), 'k -> TSvc(TBase('Int)))),
+    ServiceRef(ServerImpl(Rule(
+        Bag('fib?('n -> TBase('Int), 'k -> ?(TBase('Int)))),
         Ifc(
           'n <== 1,
           'k!!(1),
@@ -50,7 +54,6 @@ object Fibonacci {
                       'k!!('v1+'v2))),
                     'k2)))),
               'k1)
-          ))))~>'fib
-
-
+          )))),
+      'fib)
 }

@@ -5,17 +5,19 @@ import util.Bag
 import djc.lang.Syntax._
 import Data._
 
-class ServerThread(val impl: ServerImpl, val env: Env) extends Thread {
+import Router._
+
+class ServerThread(sem: Semantics.Inner, val impl: ServerImpl, val env: Env) extends Thread {
 
   var addr: ServerAddr = null
 
   var dirty = false
-  var inbox = Bag[SendVal]()
-  var newMessages = Bag[SendVal]()
+  var inbox = Bag[ISendVal]()
+  var newMessages = Bag[ISendVal]()
   var terminate = false
   var terminated = false
 
-  def sendRequest(cl: SendVal) {
+  def sendRequest(cl: ISendVal) {
     synchronized {
       newMessages += cl
       dirty = true
@@ -30,7 +32,7 @@ class ServerThread(val impl: ServerImpl, val env: Env) extends Thread {
           newMessages = Bag()
           dirty = false
         }
-        Semantics.interpSends(this)
+        sem.interpSends(this)
       }
       else
         Thread.sleep(1)

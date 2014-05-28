@@ -3,7 +3,7 @@ package djc.lang.sem.nondeterm_3_routed
 import util.Bag
 import djc.lang.Syntax._
 import djc.lang.sem.Substitution
-
+import Router._
 
 object Data {
   type Env = Map[Symbol, Value]
@@ -12,26 +12,31 @@ object Data {
     def toNormalizedProg: Exp
     def toNormalizedResolvedProg: Exp
   }
-  case class UnitVal(sends: Bag[SendVal]) extends Value {
-    def toNormalizedProg = Par(Bag[Exp]() ++ sends.map(_.toNormalizedProg))
-    def toNormalizedResolvedProg = Par(Bag[Exp]() ++ sends.map(_.toNormalizedResolvedProg))
-  }
-  case class ServerVal(addr: ServerAddr) extends Value {
-    def toNormalizedProg = addr
-    def toNormalizedResolvedProg = lookupAddr(addr).normalize
-  }
-  case class ServiceVal(srv: ServerVal, x: Symbol) extends Value {
-    def toNormalizedProg = ServiceRef(srv.toNormalizedProg, x)
-    def toNormalizedResolvedProg = ServiceRef(srv.toNormalizedResolvedProg, x)
-  }
 
-  case class ServerClosure(srv: ServerImpl, env: Env) extends Exp {
+  case class ServerClosure(srv: ServerImpl, env: Env) {
     private[this] var addr_ : ServerAddr = null
     def addr_=(a: Router.Addr) = { addr_ = ServerAddr(a) }
     def addr = addr_
     def normalize = env.foldLeft(srv) {
       case (srv1, (x, value)) => Substitution(x, value.toNormalizedResolvedProg)(srv1).asInstanceOf[ServerImpl]
     }
+  }
+}
+import Data._
+
+class Data(router: Router) {
+
+  case class UnitVal(sends: Bag[SendVal]) extends Value {
+    def toNormalizedProg = Par(Bag[Exp]() ++ sends.map(_.toNormalizedProg))
+    def toNormalizedResolvedProg = Par(Bag[Exp]() ++ sends.map(_.toNormalizedResolvedProg))
+  }
+  case class ServerVal(addr: ServerAddr) extends Value {
+    def toNormalizedProg = addr
+    def toNormalizedResolvedProg = router.lookupAddr(addr).normalize
+  }
+  case class ServiceVal(srv: ServerVal, x: Symbol) extends Value {
+    def toNormalizedProg = ServiceRef(srv.toNormalizedProg, x)
+    def toNormalizedResolvedProg = ServiceRef(srv.toNormalizedResolvedProg, x)
   }
 
   case class Match(subst: Map[Symbol, Value], used: Bag[SendVal])
@@ -40,22 +45,4 @@ object Data {
     def toNormalizedProg = Send(rcv.toNormalizedProg, args map (_.toNormalizedProg))
     def toNormalizedResolvedProg = Send(rcv.toNormalizedResolvedProg, args map (_.toNormalizedResolvedProg))
   }
-
-  type ServerAddr = Var
-  object ServerAddr {
-    val prefix = "ADDR:"
-    def apply(addr: Router.Addr) = new ServerAddr(Symbol(prefix + addr))
-    def unapply(s: Var): Option[Router.Addr] = getAddr(s.x.name)
-
-    def getAddr(name: String): Option[Router.Addr] =
-      if (name.startsWith(prefix))
-        Some(name.substring(prefix.length))
-      else
-        None
-  }
-  def lookupAddr(a: ServerAddr): ServerClosure = a match {
-    case ServerAddr(addr) => Router.lookupAddr(addr)
-    case _ => throw new IllegalArgumentException(s"Not a server address: $a")
-  }
-
 }

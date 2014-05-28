@@ -19,15 +19,15 @@ class TypeCheckTest extends FunSuite {
   val cellServer =
     ServerImpl(
       Rule(Bag(
-          Pattern('get, 'k -> TSvc(TVar('V))),
-          Pattern('s, 'v -> TVar('V))),
+          'get?('k -> ?(TVar('V))),
+          's?('v -> TVar('V))),
         Par(
-          Send(Var('k), Var('v)),
-          Send(Var('s), Var('v)))),
+          Send('k, 'v),
+          Send('this~>'s, 'v))),
       Rule(Bag(
           Pattern('set, 'u -> TVar('V)),
           Pattern('s, 'v -> TVar('V))),
-        Send(Var('s), Var('u))))
+        Send('this~>'s, 'u)))
 
   val cellFactoryServerType = TUniv('V, TSrv('mkCell -> TSvc(TVar('V), TSvc(cellTypePrivate(TVar('V)))))) // should return cellTypePublic
   val cellFactoryServer =

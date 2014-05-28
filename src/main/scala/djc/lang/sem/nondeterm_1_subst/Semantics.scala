@@ -10,6 +10,8 @@ import djc.lang.sem.Substitution
 object Semantics extends AbstractSemantics[Value] {
   import Crossproduct._
 
+  def apply() = this
+
   def normalizeVal(v: Val) = v.asInstanceOf[UnitVal].sval map (_.toSend)
 
   override def interp(p: Exp) = {
@@ -101,12 +103,8 @@ object Semantics extends AbstractSemantics[Value] {
     }
 
   def fireRule(server: ServerVal, rule: Rule, ma: Match, orig: Bag[SendVal]): (Exp, Bag[SendVal]) = {
-//    var p = Substitution('this, server.toProg)(rule.p)
-    var p = rule.p
-    val thisServices = server.impl.rules flatMap (r => r.ps map (p => ServiceVal(server, p.name)))
-    val thisServiceSubst = Map() ++ (thisServices map {case v@ServiceVal(s, n) => (n, v)})
-
-    for ((x, v) <- ma.subst ++ thisServiceSubst)
+    var p = Substitution('this, server.toProg)(rule.p)
+    for ((x, v) <- ma.subst)
       p = Substitution(x, v.toProg)(p)
     val rest = orig diff ma.used
     (p, rest)

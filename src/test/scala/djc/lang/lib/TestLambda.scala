@@ -16,12 +16,12 @@ import djc.lang.sem.nondeterm_4_grouped
 import djc.lang.sem.nondeterm_5_parallel
 import djc.lang.sem.concurrent_6_thread
 
-class TestLambda1 extends TestLambda(nondeterm_1_subst.Semantics)
-//class TestLambda2 extends TestLambda(nondeterm_2_env.Semantics)
-//class TestLambda3 extends TestLambda(nondeterm_3_routed.Semantics)
-//class TestLambda4 extends TestLambda(nondeterm_4_grouped.Semantics)
-//class TestLambda5 extends TestLambda(nondeterm_5_parallel.Semantics)
-//class TestLambda6 extends TestLambda(concurrent_6_thread.Semantics, false)
+class TestLambda1 extends TestLambda(nondeterm_1_subst.Semantics())
+class TestLambda2 extends TestLambda(nondeterm_2_env.Semantics())
+class TestLambda3 extends TestLambda(nondeterm_3_routed.Semantics())
+class TestLambda4 extends TestLambda(nondeterm_4_grouped.Semantics())
+class TestLambda5 extends TestLambda(nondeterm_5_parallel.Semantics())
+class TestLambda6 extends TestLambda(concurrent_6_thread.Semantics(), false)
 
 
 class TestLambda[V](sem: AbstractSemantics[V], nondeterm: Boolean = true) extends AbstractTest(sem, nondeterm) {
@@ -53,7 +53,7 @@ class TestLambda[V](sem: AbstractSemantics[V], nondeterm: Boolean = true) extend
   val fooPrintService = ServiceRef(
     ServerImpl(Rule(
       Bag(Pattern('foo)),
-      Send(PRINT_SERVER(?())~>'PRINT, 'foo))),
+      Send(PRINT_SERVER(?())~>'PRINT, ServiceRef('this, 'foo)))),
     'foo)
   val app2 = App(lam1, fooPrintService, resultService)
   testType("app2", app2, Unit)

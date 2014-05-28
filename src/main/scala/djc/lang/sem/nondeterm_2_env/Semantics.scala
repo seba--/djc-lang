@@ -8,6 +8,8 @@ import Data._
 
 object Semantics extends AbstractSemantics[Value] {
 
+  def apply() = this
+
   def normalizeVal(v: Val) = v.asInstanceOf[UnitVal].sends map (_.toNormalizedProg)
 
   override def interp(p: Exp) = {
