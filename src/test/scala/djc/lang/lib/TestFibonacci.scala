@@ -17,7 +17,7 @@ import djc.lang.sem.nondeterm_5_parallel
 import djc.lang.sem.concurrent_6_thread
 
 
-//class TestFibonacci1 extends TestFibonacci(nondeterm_1_subst.Semantics)
+class TestFibonacci1 extends TestFibonacci(nondeterm_1_subst.Semantics)
 //class TestFibonacci2 extends TestFibonacci(nondeterm_2_env.Semantics)
 //class TestFibonacci3 extends TestFibonacci(nondeterm_3_routed.Semantics)
 //class TestFibonacci4 extends TestFibonacci(nondeterm_4_grouped.Semantics)

@@ -38,22 +38,23 @@ object Fibonacci {
   val fib =
     ServiceRef(ServerImpl(Rule(
         Bag('fib?('n -> TBase('Int), 'k -> ?(TBase('Int)))),
-        Ifc(
-          'n <== 1,
-          'k!!(1),
-          'fib!!(
-            'n - 1,
-            ServiceRef(
-              ServerImpl(Rule(
-                Bag('k1?('v1->TBase('Int))),
-                'fib!!(
-                  'n - 2,
-                  ServiceRef(
-                    ServerImpl(Rule(
-                      Bag('k2?('v2->TBase('Int))),
-                      'k!!('v1+'v2))),
-                    'k2)))),
-              'k1)
-          )))),
+        Def('FIB, fibType, 'this~>'fib,
+          Ifc(
+            'n <== 1,
+            'k!!(1),
+            'FIB!!(
+              'n - 1,
+              ServiceRef(
+                ServerImpl(Rule(
+                  Bag('k1?('v1->TBase('Int))),
+                  'FIB!!(
+                    'n - 2,
+                    ServiceRef(
+                      ServerImpl(Rule(
+                        Bag('k2?('v2->TBase('Int))),
+                        'k!!('v1+'v2))),
+                      'k2)))),
+                'k1)
+            ))))),
       'fib)
 }
