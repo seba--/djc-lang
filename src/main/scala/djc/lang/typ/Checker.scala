@@ -36,8 +36,8 @@ object Checker {
         case x => throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\nboundTv: $boundTv\nwith $x")
       }
 
-    case Var(x) if gamma.contains(x) =>
-      gamma(x)
+    case Var(x) =>
+      gamma.getOrElse(x, throw TypeCheckException(s"Unbound variable $x"))
 
     case ServiceRef(srv, x) =>
       typeCheck(gamma, boundTv, srv) match {

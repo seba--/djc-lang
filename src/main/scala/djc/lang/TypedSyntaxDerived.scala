@@ -12,9 +12,8 @@ object TypedSyntaxDerived {
   def TFun(t: Type, u: Type) = TSvc(t, TSvc(u))
 
   def Def(x: Symbol, xt: Type, s: Exp, p: Exp): Exp = {
-    val srv = ServerImpl(Rule(Bag(Pattern('def, (x, xt))), p))
-    val svc = ServiceRef(srv, 'def)
-    Send(svc, s)
+    val srv = ServerImpl(Rule(Bag(Pattern('def, x -> xt)), p))
+    Send(srv~>'def, s)
   }
 
   def Def(x: Symbol, s: Exp, p: Exp, gamma: Context, boundTv: Set[Symbol]): Exp = {
