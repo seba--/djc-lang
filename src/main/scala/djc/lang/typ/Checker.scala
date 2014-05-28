@@ -46,14 +46,15 @@ object Checker {
         case x => throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\nboundTv: $boundTv\nwith $x")
       }
 
-    case srv@ServerImpl(rules)
-      if (rules.map {
-        r =>
-          typeCheck(gamma ++ r.rcvars + ('this -> srv.signature), boundTv, r.p)
-      } forall (_ === Unit))
-        && (FreeTypeVars(srv.signature) subsetOf boundTv) =>
+    case srv@ServerImpl(rules) => {
+      val ruleTypes = rules map (typecheckRule(gamma, boundTv, _, srv.signature))
+
+      if (!(FreeTypeVars(srv.signature) subsetOf boundTv))
+        throw TypeCheckException(s"Illegal free type variables: ${FreeTypeVars(srv.signature) -- boundTv}")
 
       srv.signature
+    }
+
 
     case TApp(p2, t) if FreeTypeVars(t) subsetOf boundTv =>
       typeCheck(gamma, boundTv, p2) match {
@@ -72,7 +73,20 @@ object Checker {
 
       TUniv(alphares, bound1, t)
 
+    case TCast(e, t) => {
+      typeCheck(gamma, boundTv, e)
+      t
+    }
+
     case _ =>
       throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\nboundTv: $boundTv")
+  }
+
+
+  def typecheckRule(gamma: Context, boundTv: Set[Symbol], r: Rule, srvSignature: Type): Type = {
+    val t = typeCheck(gamma ++ r.rcvars + ('this -> srvSignature), boundTv, r.p)
+    if (!(t === Unit))
+      throw TypeCheckException(s"Illegal rule type in rule $r, expected: Unit, was: $t")
+    t
   }
 }

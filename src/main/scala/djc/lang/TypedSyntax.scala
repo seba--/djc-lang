@@ -86,6 +86,10 @@ object TypedSyntax {
     def apply(alpha: Symbol, bound: Type, p: Exp): TAbs = TAbs(alpha, Some(bound), p)
   }
 
+  case class TCast(e: Exp, t: Type) extends Exp {
+    override def eraseType = e.eraseType
+  }
+
   case class Rule(ps: Bag[Pattern], p: Exp) {
     def eraseType = Syntax.Rule(ps map (_.eraseType), p.eraseType)
 
@@ -93,6 +97,8 @@ object TypedSyntax {
       val m = ListMap[Symbol, Type]()
       ps.foldLeft(m)(_ ++ _.params)
     }
+
+    override def toString = s"Rule($ps  =>  $p)"
   }
 
   case class Pattern(name: Symbol, params: ListMap[Symbol, Type]) {

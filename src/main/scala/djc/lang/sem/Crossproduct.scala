@@ -9,7 +9,7 @@ object Crossproduct {
 
   def crossProduct[T](tss: Bag[Set[Bag[T]]]): Set[Bag[T]] =
     if (tss.isEmpty)
-      throw new IllegalArgumentException("Cross product requires non-empty input list")
+      Set(Bag())
     else if (tss.tail.isEmpty)
       tss.head
     else {

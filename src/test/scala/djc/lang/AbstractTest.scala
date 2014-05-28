@@ -11,7 +11,7 @@ import djc.lang.typ.Types._
 
 
 abstract class AbstractTest[V](sem: AbstractSemantics[V], nondeterm: Boolean = true) extends FunSuite {
-  val PRINT_SERVER = ServerImpl(Bag(Rule(Bag(Pattern('PRINT)), Par())))
+  val PRINT_SERVER = TAbs('V, TCast(ServerImpl(Bag(Rule(Bag(Pattern('PRINT)), Par()))), TSrv('PRINT -> ?(TVar('V)))))
   val CONST_SERVER = ServerImpl(Bag(Rule(Bag(Pattern('CONST)), Par())))
   val sigmap = Substitution('Print, PRINT_SERVER.eraseType)
   val sigmac = Substitution('Const, CONST_SERVER.eraseType)

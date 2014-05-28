@@ -24,23 +24,30 @@ object TypedSyntaxDerived {
 
 
   def Lambda(x: Symbol, xt: Type, e: Exp, resT: Type): Exp =
-    Def('App, TSrv('app -> TSvc(xt, TSvc(resT))),
+    ServiceRef(
       ServerImpl(
         Rule(
-          Bag(Pattern('app, x -> xt, 'cont -> TSvc(resT))),
-          Send(Var('cont), e))),
-      ServiceRef(Var('App), 'app))
+          Bag(Pattern('app, x -> xt, 'result-> ?(resT))),
+          'result!!e)),
+      'app)
 
   def App(f: Exp, arg: Exp, cont: Exp): Exp =
     Send(f, arg, cont)
 
 
-  def Thunk(e: Exp) =
+  def ThunkWrong(e: Exp) =
     Def('Thunk, TSrv('force -> TSrv()),
       ServerImpl(Rule(
         Bag(Pattern('force)),
         e)),
       ServiceRef(Var('Thunk), 'force))
+
+  def Thunk(e: Exp) =
+    ServiceRef(
+      ServerImpl(Rule(
+        Bag(Pattern('force)),
+        e)),
+      'force)
 
   def Ifc(c: Exp, t: Exp, e: Exp) =
     Send(BaseCall(djc.lang.base.Bool.If,

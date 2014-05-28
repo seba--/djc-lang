@@ -2,6 +2,7 @@ package djc.lang.lib
 
 import util.Bag
 import djc.lang.TypedSyntax._
+import djc.lang.TypedSyntaxDerived._
 
 import djc.lang.sem.AbstractSemantics
 import djc.lang.base.Integer._
@@ -26,7 +27,7 @@ class TestFibonacci1 extends TestFibonacci(nondeterm_1_subst.Semantics)
 
 class TestFibonacci[V](sem: AbstractSemantics[V], nondeterm: Boolean = true) extends AbstractTest(sem, nondeterm) {
 
-  testType("fib", Fibonacci.fib, Fibonacci.fibType)
+//  testType("fib", Fibonacci.fib, Fibonacci.fibType)
 
 
 //  val fib0 = Send(Fibonacci.fib, 0, PRINT_SERVER ~> 'PRINT)
