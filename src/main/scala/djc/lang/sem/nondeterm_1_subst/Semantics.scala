@@ -101,8 +101,12 @@ object Semantics extends AbstractSemantics[Value] {
     }
 
   def fireRule(server: ServerVal, rule: Rule, ma: Match, orig: Bag[SendVal]): (Exp, Bag[SendVal]) = {
-    var p = Substitution('this, server.toProg)(rule.p)
-    for ((x, v) <- ma.subst)
+//    var p = Substitution('this, server.toProg)(rule.p)
+    var p = rule.p
+    val thisServices = server.impl.rules flatMap (r => r.ps map (p => ServiceVal(server, p.name)))
+    val thisServiceSubst = Map() ++ (thisServices map {case v@ServiceVal(s, n) => (n, v)})
+
+    for ((x, v) <- ma.subst ++ thisServiceSubst)
       p = Substitution(x, v.toProg)(p)
     val rest = orig diff ma.used
     (p, rest)

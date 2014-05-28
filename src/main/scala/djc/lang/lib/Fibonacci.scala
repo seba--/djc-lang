@@ -37,19 +37,19 @@ object Fibonacci {
         Ifc(
           'n <== 1,
           'k!!(1),
-          ('this~>'fib)!!(
+          'fib!!(
             'n - 1,
-            Def('K1, TSrv('k1 -> ?(TBase('Int))),
+            ServiceRef(
               ServerImpl(Rule(
                 Bag('k1?('v1->TBase('Int))),
-                ('this~>'fib)!!( // TODO 'this is wrong
+                'fib!!(
                   'n - 2,
-                  Def('K2, TSrv('k2 -> ?(TBase('Int))),
+                  ServiceRef(
                     ServerImpl(Rule(
                       Bag('k2?('v2->TBase('Int))),
                       'k!!('v1+'v2))),
-                    'K2~>'k2)))),
-              'K1~>'k1)
+                    'k2)))),
+              'k1)
           ))))~>'fib
 
 

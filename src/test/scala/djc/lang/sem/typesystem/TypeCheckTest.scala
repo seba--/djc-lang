@@ -23,11 +23,11 @@ class TypeCheckTest extends FunSuite {
           Pattern('s, 'v -> TVar('V))),
         Par(
           Send(Var('k), Var('v)),
-          Send(ServiceRef(Var('this), 's), Var('v)))),
+          Send(Var('s), Var('v)))),
       Rule(Bag(
           Pattern('set, 'u -> TVar('V)),
           Pattern('s, 'v -> TVar('V))),
-        Send(ServiceRef(Var('this), 's), Var('u))))
+        Send(Var('s), Var('u))))
 
   val cellFactoryServerType = TUniv('V, TSrv('mkCell -> TSvc(TVar('V), TSvc(cellTypePrivate(TVar('V)))))) // should return cellTypePublic
   val cellFactoryServer =

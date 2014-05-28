@@ -53,11 +53,11 @@ class TestLambda[V](sem: AbstractSemantics[V], nondeterm: Boolean = true) extend
   val fooPrintService = ServiceRef(
     ServerImpl(Rule(
       Bag(Pattern('foo)),
-      Send(TApp(PRINT_SERVER, ?())~>'PRINT, 'this~>'foo))),
+      Send(PRINT_SERVER(?())~>'PRINT, 'foo))),
     'foo)
   val app2 = App(lam1, fooPrintService, resultService)
   testType("app2", app2, Unit)
-  testInterp("app2", app2, Set(Bag(TApp(PRINT_SERVER, ?())~>'PRINT !! (fooPrintService))))
+  testInterp("app2", app2, Set(Bag(PRINT_SERVER(?())~>'PRINT !! (fooPrintService))))
 
 
   //  val fib0 = Send(Fibonacci.fib, 0, PRINT_SERVER ~> 'PRINT)

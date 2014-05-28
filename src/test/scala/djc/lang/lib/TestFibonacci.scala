@@ -27,10 +27,11 @@ class TestFibonacci1 extends TestFibonacci(nondeterm_1_subst.Semantics)
 
 class TestFibonacci[V](sem: AbstractSemantics[V], nondeterm: Boolean = true) extends AbstractTest(sem, nondeterm) {
 
-//  testType("fib", Fibonacci.fib, Fibonacci.fibType)
+  testType("fib", Fibonacci.fib, Fibonacci.fibType)
 
+  val fib0 = Send(Fibonacci.fib, 0, PRINT_SERVER(?(TInteger)) ~> 'PRINT)
+  testType("fib0", fib0, Fibonacci.fibType)
 
-//  val fib0 = Send(Fibonacci.fib, 0, PRINT_SERVER ~> 'PRINT)
 //
 //  testInterp("fib0", fib0,
 //    Set(Bag(Send(PRINT_SERVER ~> 'PRINT, 1)))

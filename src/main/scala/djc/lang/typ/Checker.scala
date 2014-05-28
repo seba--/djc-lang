@@ -83,8 +83,8 @@ object Checker {
   }
 
 
-  def typecheckRule(gamma: Context, boundTv: Set[Symbol], r: Rule, srvSignature: Type): Type = {
-    val t = typeCheck(gamma ++ r.rcvars + ('this -> srvSignature), boundTv, r.p)
+  def typecheckRule(gamma: Context, boundTv: Set[Symbol], r: Rule, srvSignature: TSrv): Type = {
+    val t = typeCheck(gamma ++ srvSignature.svcs ++ r.rcvars, boundTv, r.p)
     if (!(t === Unit))
       throw TypeCheckException(s"Illegal rule type in rule $r, expected: Unit, was: $t")
     t
