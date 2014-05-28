@@ -29,12 +29,16 @@ object Checker {
         heads.map(typeCheck(gamma, boundTv, _)) forall (_ === Unit)
       } => typeCheck(gamma, boundTv, ps.last)
 
-    case Send(rcv, args) =>
-      (typeCheck(gamma, boundTv, rcv), args.map(typeCheck(gamma, boundTv, _))) match {
-        case (TSvc(ts1), ts2) if ts1.corresponds(ts2)(_ === _) =>
-          Unit
-        case x => throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\nboundTv: $boundTv\nwith $x")
+    case Send(rcv, args) => {
+      val trcv: TSvc = typeCheck(gamma, boundTv, rcv) match {
+        case t: TSvc => t
+        case t => throw TypeCheckException(s"Illegal receiver type. Expected: TSvc(_), was: $t")
       }
+      val targs = args.map(typeCheck(gamma, boundTv, _))
+      if (!trcv.params.corresponds(targs)(_===_))
+        throw TypeCheckException(s"Send arguments have wrong types for receiver \n  $rcv.\nArguments: $args\nExpected: ${trcv.params}\nWas: $targs")
+      Unit
+    }
 
     case Var(x) =>
       gamma.getOrElse(x, throw TypeCheckException(s"Unbound variable $x"))

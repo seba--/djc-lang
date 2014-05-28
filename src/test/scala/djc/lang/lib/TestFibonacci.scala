@@ -29,13 +29,14 @@ class TestFibonacci[V](sem: AbstractSemantics[V], nondeterm: Boolean = true) ext
 
   testType("fib", Fibonacci.fib, Fibonacci.fibType)
 
-  val fib0 = Send(Fibonacci.fib, 0, PRINT_SERVER(?(TInteger)) ~> 'PRINT)
-  testType("fib0", fib0, Fibonacci.fibType)
+  def testFib(n: Int) {
+    val fibCall = Send(Fibonacci.fib, n, PRINT_SERVER(TInteger) ~> 'PRINT)
+    testType(s"fib_$n", fibCall, Unit)
+    testInterp(s"fib_$n", fibCall, Set(Bag(PRINT(Fibonacci.fibAcc(n, 0)))))
+  }
 
-//
-//  testInterp("fib0", fib0,
-//    Set(Bag(Send(PRINT_SERVER ~> 'PRINT, 1)))
-//  )
+  for (i <- 0 to 3)
+    testFib(i)
 
 
 }

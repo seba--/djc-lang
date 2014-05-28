@@ -17,6 +17,8 @@ abstract class AbstractTest[V](sem: AbstractSemantics[V], nondeterm: Boolean = t
   val sigmap = Substitution('Print, _PRINT_SERVER.eraseType)
   val sigmac = Substitution('Const, CONST_SERVER.eraseType)
 
+  def PRINT(e: Exp) = PRINT_SERVER(?())~>'PRINT !! (e)
+
   def withPrintServer(p: Exp) = Def('Print, TSrv('PRINT -> TSvc()), _PRINT_SERVER, p)
   def withConstServer(p: Exp) = Def('Const, TSrv('CONST -> TSvc()), CONST_SERVER, p)
 
