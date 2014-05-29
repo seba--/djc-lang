@@ -2,15 +2,25 @@ package djc.lang.sem.nondeterm_1_subst
 
 import scala.language.postfixOps
 import util.Bag
-import djc.lang.sem.{SemanticException, Crossproduct, AbstractSemantics}
+import djc.lang.sem._
 import djc.lang.Syntax._
 import Data._
+import djc.lang.sem.SemanticException
 import djc.lang.sem.Substitution
+import djc.lang.sem.nondeterm_1_subst.Data.Match
+import djc.lang.sem.nondeterm_1_subst.Data.UnitVal
+import djc.lang.Syntax.BaseCall
+import djc.lang.sem.nondeterm_1_subst.Data.SendVal
+import djc.lang.Syntax.Var
+import djc.lang.sem.nondeterm_1_subst.Data.ServiceVal
+import djc.lang.sem.nondeterm_1_subst.Data.ServerVal
+import djc.lang.Syntax.ServiceRef
+import djc.lang.Syntax.Rule
 
-object Semantics extends AbstractSemantics[Value] {
+object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] {
   import Crossproduct._
 
-  def apply() = this
+  def newInstance() = this
 
   def normalizeVal(v: Val) = v.asInstanceOf[UnitVal].sval map (_.toSend)
 

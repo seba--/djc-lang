@@ -1,14 +1,14 @@
 package djc.lang.sem.nondeterm_2_env
 
-import djc.lang.sem.{Crossproduct, AbstractSemantics}
+import djc.lang.sem.{ISemanticsFactory, Crossproduct, AbstractSemantics}
 import util.Bag
 import djc.lang.Syntax._
 import Crossproduct._
 import Data._
 
-object Semantics extends AbstractSemantics[Value] {
+object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] {
 
-  def apply() = this
+  def newInstance() = this
 
   def normalizeVal(v: Val) = v.asInstanceOf[UnitVal].sends map (_.toNormalizedProg)
 

@@ -5,69 +5,38 @@ import util.Bag
 import Syntax._
 import SyntaxDerived._
 
-import djc.lang.sem.AbstractSemantics
+import djc.lang.sem._
 import djc.lang.sem.Substitution
 
-import djc.lang.sem.nondeterm_1_subst
-import djc.lang.sem.nondeterm_2_env
-import djc.lang.sem.nondeterm_3_routed
-import djc.lang.sem.nondeterm_4_grouped
-import djc.lang.sem.nondeterm_5_parallel
-import djc.lang.sem.concurrent_6_thread
 
+class TestSemantics_nondeterm_subst extends TestSemantics(nondeterm_1_subst.Semantics)
+class TestSemantics_nondeterm_env extends TestSemantics(nondeterm_2_env.Semantics)
+class TestSemantics_nondeterm_routed extends TestSemantics(nondeterm_3_routed.SemanticsFactory)
+class TestSemantics_nondeterm_grouped extends TestSemantics(nondeterm_4_grouped.SemanticsFactory)
+class TestSemantics_nondeterm_parallel extends TestSemantics(nondeterm_5_parallel.SemanticsFactory)
+class TestSemantics_concurrent_thread extends TestSemantics(concurrent_6_thread.SemanticsFactory, false)
 
-class TestSemantics_nondeterm_subst extends TestSemantics(nondeterm_1_subst.Semantics())
-class TestSemantics_nondeterm_env extends TestSemantics(nondeterm_2_env.Semantics())
-class TestSemantics_nondeterm_routed extends TestSemantics(new nondeterm_3_routed.Semantics().newInstance())
-class TestSemantics_nondeterm_grouped extends TestSemantics(new nondeterm_4_grouped.Semantics().newInstance())
-class TestSemantics_nondeterm_parallel extends TestSemantics(new nondeterm_5_parallel.Semantics().newInstance())
-//class TestSemantics_concurrent_thread extends TestSemantics(new concurrent_6_thread.Semantics().newInstance(), false)
-
-abstract class TestSemantics[V](sem: AbstractSemantics[V], nondeterm: Boolean = true) extends FunSuite {
-  val PRINT_SERVER = ServerImpl(Bag(Rule(Bag(Pattern('PRINT)), Par())))
-  val CONST_SERVER = ServerImpl(Bag(Rule(Bag(Pattern('CONST)), Par())))
-  val sigmap = Substitution('Print, PRINT_SERVER)
-  val sigmac = Substitution('Const, CONST_SERVER)
-
-  def withPrintServer(p: Exp) = Def('Print, PRINT_SERVER, p)
-  def withConstServer(p: Exp) = Def('Const, CONST_SERVER, p)
-
-  def testInterp(s: String, p: Exp, expected: sem.Res[Bag[Send]]): Unit =
-    test(s) {
-//      if (p == p4) {
-        val res = sem.interp(withPrintServer(withConstServer(p)))
-        val norm = res map (sem.normalizeVal(_))
-        if (nondeterm)
-          assert(norm == expected) //, s"Was $norm, expected $expected")
-        else {
-          assert(!norm.isEmpty, s"No result found, expected one of $expected")
-          assert(norm.size == 1, s"Too many results found $norm, expected one of $expected")
-          assert(expected.contains(norm.head), s"Was $norm, expected one of $expected")
-        }
-//      }
-    }
-
-
+abstract class TestSemantics[V](sem: ISemanticsFactory[V], nondeterm: Boolean = true) extends AbstractTest(sem, nondeterm) {
   // single message send
   val s1 = ServerImpl(
     Bag(Rule(
       Bag(Pattern('m1, 'x)),
-      Send(ServiceRef(Var('Print), 'foo), Var('x)))))
+      Send(ServiceRef(PRINT_SERVER_NO, 'foo), Var('x)))))
 
   val s1norm = sigmap(s1)
 
-  val p1 = Def('s1, s1, Send(ServiceRef(Var('s1), 'm1), ServiceRef(CONST_SERVER, 'bar)))
+  val p1 = Def('s1, s1, Send(ServiceRef(Var('s1), 'm1), ServiceRef(CONST_SERVER_NO, 'bar)))
 
-  testInterp("p1",
+  testInterpUntyped("p1",
     p1,
-    Set(Bag(Send(ServiceRef(PRINT_SERVER, 'foo), ServiceRef(CONST_SERVER, 'bar)))))
+    Set(Bag(Send(ServiceRef(PRINT_SERVER_NO, 'foo), ServiceRef(CONST_SERVER_NO, 'bar)))))
 
 
   // send message to self
   val s2 = ServerImpl(Bag(
     Rule(
       Bag(Pattern('m1, 'x)),
-      Send(ServiceRef(Var('Print), 'foo), Var('x))),
+      Send(ServiceRef(PRINT_SERVER_NO, 'foo), Var('x))),
     Rule(
       Bag(Pattern('m2, 'x)),
       Send(ServiceRef(Var('this),'m1), Var('x)))
@@ -75,11 +44,11 @@ abstract class TestSemantics[V](sem: AbstractSemantics[V], nondeterm: Boolean = 
 
   val s2norm = sigmap(s2)
 
-  val p2 = Def('s2, s2, Send(ServiceRef(Var('s2), 'm2), ServiceRef(CONST_SERVER, 'bar)))
+  val p2 = Def('s2, s2, Send(ServiceRef(Var('s2), 'm2), ServiceRef(CONST_SERVER_NO, 'bar)))
 
-  testInterp("p2",
+  testInterpUntyped("p2",
     p2,
-    Set(Bag(Send(ServiceRef(PRINT_SERVER, 'foo), ServiceRef(CONST_SERVER, 'bar)))
+    Set(Bag(Send(ServiceRef(PRINT_SERVER_NO, 'foo), ServiceRef(CONST_SERVER_NO, 'bar)))
     )
   )
 
@@ -92,12 +61,12 @@ abstract class TestSemantics[V](sem: AbstractSemantics[V], nondeterm: Boolean = 
 
   val s3norm = Substitution('s1, s1norm)(s3)
 
-  val p3 = Def('s1, s1, Def('s3, s3, Send(ServiceRef(Var('s3), 'm2), ServiceRef(CONST_SERVER, 'bar))))
+  val p3 = Def('s1, s1, Def('s3, s3, Send(ServiceRef(Var('s3), 'm2), ServiceRef(CONST_SERVER_NO, 'bar))))
 
-  testInterp("p3",
+  testInterpUntyped("p3",
     p3,
-    Set(Bag(Send(ServiceRef(PRINT_SERVER, 'foo), ServiceRef(CONST_SERVER, 'bar))),
-        Bag(Send(ServiceRef(PRINT_SERVER, 'foo), ServiceRef(CONST_SERVER, 'bar)))
+    Set(Bag(Send(ServiceRef(PRINT_SERVER_NO, 'foo), ServiceRef(CONST_SERVER_NO, 'bar))),
+        Bag(Send(ServiceRef(PRINT_SERVER_NO, 'foo), ServiceRef(CONST_SERVER_NO, 'bar)))
     ))
 
 
@@ -105,18 +74,18 @@ abstract class TestSemantics[V](sem: AbstractSemantics[V], nondeterm: Boolean = 
   val s4 = ServerImpl(
     Rule(
       Bag(Pattern('m1, 'x), Pattern('m2, 'y)),
-      Send(ServiceRef(Var('Print), 'foo), Var('x), Var('y))))
+      Send(ServiceRef(PRINT_SERVER_NO, 'foo), Var('x), Var('y))))
 
   val s4norm = sigmap(s4)
 
   val p4 = Def('s4, s4, Par(
-    Send(ServiceRef(Var('s4), 'm1), ServiceRef(Var('Const), 'bar)),
-    Send(ServiceRef(Var('s4), 'm2), ServiceRef(Var('Const), 'baz))
+    Send(ServiceRef(Var('s4), 'm1), ServiceRef(CONST_SERVER_NO, 'bar)),
+    Send(ServiceRef(Var('s4), 'm2), ServiceRef(CONST_SERVER_NO, 'baz))
   ))
 
-  testInterp("p4",
+  testInterpUntyped("p4",
     p4,
-    Set(Bag(Send(ServiceRef(PRINT_SERVER, 'foo), List(ServiceRef(CONST_SERVER, 'bar), ServiceRef(CONST_SERVER, 'baz))))
+    Set(Bag(Send(ServiceRef(PRINT_SERVER_NO, 'foo), List(ServiceRef(CONST_SERVER_NO, 'bar), ServiceRef(CONST_SERVER_NO, 'baz))))
   ))
 
 
@@ -143,21 +112,21 @@ abstract class TestSemantics[V](sem: AbstractSemantics[V], nondeterm: Boolean = 
   val s5 = ServerImpl(
     Bag(Rule(
       Bag(Pattern('m1, 'x), Pattern('token)),
-      Send(ServiceRef(Var('Print), 'foo), Var('x)))))
+      Send(ServiceRef(PRINT_SERVER_NO, 'foo), Var('x)))))
 
   val s5norm = sigmap(s5)
 
   val p5 = Def('s5, s5, Par(
     Send(ServiceRef(Var('s5), 'token)),
-    Send(ServiceRef(Var('s5), 'm1), ServiceRef(CONST_SERVER, 'bar)),
-    Send(ServiceRef(Var('s5), 'm1), ServiceRef(CONST_SERVER, 'baz))
+    Send(ServiceRef(Var('s5), 'm1), ServiceRef(CONST_SERVER_NO, 'bar)),
+    Send(ServiceRef(Var('s5), 'm1), ServiceRef(CONST_SERVER_NO, 'baz))
   ))
 
-  testInterp("p5",
+  testInterpUntyped("p5",
     p5,
     Set(
-      Bag(Send(ServiceRef(PRINT_SERVER, 'foo), List(ServiceRef(CONST_SERVER, 'bar))), Send(ServiceRef(s5norm, 'm1), List(ServiceRef(CONST_SERVER, 'baz)))),
-      Bag(Send(ServiceRef(PRINT_SERVER, 'foo), List(ServiceRef(CONST_SERVER, 'baz))), Send(ServiceRef(s5norm, 'm1), List(ServiceRef(CONST_SERVER, 'bar))))
+      Bag(Send(ServiceRef(PRINT_SERVER_NO, 'foo), List(ServiceRef(CONST_SERVER_NO, 'bar))), Send(ServiceRef(s5norm, 'm1), List(ServiceRef(CONST_SERVER_NO, 'baz)))),
+      Bag(Send(ServiceRef(PRINT_SERVER_NO, 'foo), List(ServiceRef(CONST_SERVER_NO, 'baz))), Send(ServiceRef(s5norm, 'm1), List(ServiceRef(CONST_SERVER_NO, 'bar))))
   ))
   
 
@@ -165,15 +134,15 @@ abstract class TestSemantics[V](sem: AbstractSemantics[V], nondeterm: Boolean = 
   val s6 = ServerImpl(
     Bag(Rule(
       Bag(Pattern('m1, 'x)),
-      Send(ServiceRef(Var('Print), 'foo6), Var('x)))))
+      Send(ServiceRef(PRINT_SERVER_NO, 'foo6), Var('x)))))
 
   val s6norm = sigmap(s6)
 
-  val p6 = Def('s6, s1, Def('s6, s6, Send(ServiceRef(Var('s6), 'm1), ServiceRef(CONST_SERVER, 'bar))))
+  val p6 = Def('s6, s1, Def('s6, s6, Send(ServiceRef(Var('s6), 'm1), ServiceRef(CONST_SERVER_NO, 'bar))))
 
-  testInterp("p6",
+  testInterpUntyped("p6",
     p6,
-    Set(Bag(Send(ServiceRef(PRINT_SERVER, 'foo6), ServiceRef(CONST_SERVER, 'bar)))))
+    Set(Bag(Send(ServiceRef(PRINT_SERVER_NO, 'foo6), ServiceRef(CONST_SERVER_NO, 'bar)))))
 
   // higher-order service: s7.m2(s1.m1, "bar") -> s1.m1("bar") -> Print.foo("bar")
   val s7 = ServerImpl(Bag(
@@ -182,19 +151,19 @@ abstract class TestSemantics[V](sem: AbstractSemantics[V], nondeterm: Boolean = 
       Send(Var('f), Var('x)))
   ))
 
-  val p7 = Def('s1, s1, Def('s7, s7, Send(ServiceRef(Var('s7), 'm2), ServiceRef(Var('s1), 'm1), ServiceRef(CONST_SERVER, 'bar))))
+  val p7 = Def('s1, s1, Def('s7, s7, Send(ServiceRef(Var('s7), 'm2), ServiceRef(Var('s1), 'm1), ServiceRef(CONST_SERVER_NO, 'bar))))
 
-  testInterp("p7",
+  testInterpUntyped("p7",
     p7,
-    Set(Bag(Send(ServiceRef(PRINT_SERVER, 'foo), ServiceRef(CONST_SERVER, 'bar)))
+    Set(Bag(Send(ServiceRef(PRINT_SERVER_NO, 'foo), ServiceRef(CONST_SERVER_NO, 'bar)))
   ))
 
   //flattening of Par
-  val s8 = ServerImpl(Rule(Bag(Pattern('a)), Send(ServiceRef(PRINT_SERVER, 'foo))),
-    Rule(Bag(Pattern('a),Pattern('b)), Send(ServiceRef(PRINT_SERVER, 'bar))))
+  val s8 = ServerImpl(Rule(Bag(Pattern('a)), Send(ServiceRef(PRINT_SERVER_NO, 'foo))),
+    Rule(Bag(Pattern('a),Pattern('b)), Send(ServiceRef(PRINT_SERVER_NO, 'bar))))
   val p8 = Def('srv, s8,
                      Par(Send(ServiceRef(Var('srv),'b)),  Par(Send(ServiceRef(Var('srv),'a))))  )
 
-  testInterp("p8", p8, Set(Bag(Send(ServiceRef(s8,'b)), Send(ServiceRef(PRINT_SERVER, 'foo))),
-                           Bag(Send(ServiceRef(PRINT_SERVER, 'bar)))))
+  testInterpUntyped("p8", p8, Set(Bag(Send(ServiceRef(s8,'b)), Send(ServiceRef(PRINT_SERVER_NO, 'foo))),
+                           Bag(Send(ServiceRef(PRINT_SERVER_NO, 'bar)))))
 }

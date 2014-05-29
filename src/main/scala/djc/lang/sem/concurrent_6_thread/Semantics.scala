@@ -3,7 +3,7 @@ package djc.lang.sem.concurrent_6_thread
 import util.Bag
 
 import djc.lang.Syntax._
-import djc.lang.sem.AbstractSemantics
+import djc.lang.sem.{ISemanticsFactory, AbstractSemantics}
 
 import Data._
 import Router._
@@ -16,14 +16,16 @@ trait SemanticsInner {
   def interpSends(server: ServerThread)
 }
 
-class Semantics {
-  val router = new Router
-  val data = new Data(router)
-  import data._
+object SemanticsFactory extends ISemanticsFactory[Value] {
+  
+  def newInstance() = {
+    val router = new Router
+    val data = new Data(router)
+    new Semantics(router, data)
+  }
 
-  def newInstance() = new Inner
-
-  class Inner extends AbstractSemantics[Value] with SemanticsInner {
+  class Semantics(val router: Router, val data: Data) extends AbstractSemantics[Value] with SemanticsInner {
+    import data._
 
     // all data is in the global state
     def normalizeVal(v: Val) = ((Bag() ++ router.routeTable.values) map (_.normalizeVal)).flatten

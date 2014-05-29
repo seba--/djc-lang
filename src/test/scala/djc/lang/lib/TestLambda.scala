@@ -2,29 +2,26 @@ package djc.lang.lib
 
 import util.Bag
 
-import djc.lang.sem.AbstractSemantics
+import djc.lang.sem._
 import djc.lang.AbstractTest
 
 import djc.lang.TypedSyntax._
 import djc.lang.TypedSyntaxDerived._
 import djc.lang.typ.Types._
-
-import djc.lang.sem.nondeterm_1_subst
-import djc.lang.sem.nondeterm_2_env
-import djc.lang.sem.nondeterm_3_routed
-import djc.lang.sem.nondeterm_4_grouped
-import djc.lang.sem.nondeterm_5_parallel
-import djc.lang.sem.concurrent_6_thread
-
-class TestLambda1 extends TestLambda(nondeterm_1_subst.Semantics())
-class TestLambda2 extends TestLambda(nondeterm_2_env.Semantics())
-class TestLambda3 extends TestLambda(new nondeterm_3_routed.Semantics().newInstance())
-class TestLambda4 extends TestLambda(new nondeterm_4_grouped.Semantics().newInstance())
-class TestLambda5 extends TestLambda(new nondeterm_5_parallel.Semantics().newInstance())
-class TestLambda6 extends TestLambda(new concurrent_6_thread.Semantics().newInstance(), false)
+import djc.lang.TypedSyntax.Var
+import djc.lang.TypedSyntax.ServiceRef
+import djc.lang.TypedSyntax.Rule
 
 
-class TestLambda[V](sem: AbstractSemantics[V], nondeterm: Boolean = true) extends AbstractTest(sem, nondeterm) {
+//class TestLambda1 extends TestLambda(nondeterm_1_subst.Semantics())
+//class TestLambda2 extends TestLambda(nondeterm_2_env.Semantics())
+//class TestLambda3 extends TestLambda(new nondeterm_3_routed.Semantics().newInstance())
+//class TestLambda4 extends TestLambda(new nondeterm_4_grouped.Semantics().newInstance())
+//class TestLambda5 extends TestLambda(new nondeterm_5_parallel.Semantics().newInstance())
+class TestLambda6 extends TestLambda(concurrent_6_thread.SemanticsFactory, false)
+
+
+class TestLambda[V](sem: ISemanticsFactory[V], nondeterm: Boolean = true) extends AbstractTest(sem, nondeterm) {
 
 
   val xt1 = ?()

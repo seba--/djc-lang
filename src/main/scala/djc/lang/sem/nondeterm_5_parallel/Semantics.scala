@@ -2,20 +2,21 @@ package djc.lang.sem.nondeterm_5_parallel
 
 import scala.language.postfixOps
 import util.Bag
-import djc.lang.sem.{Crossproduct, AbstractSemantics}
+import djc.lang.sem.{ISemanticsFactory, Crossproduct, AbstractSemantics}
 import djc.lang.Syntax._
 import Data._
 
 import Router._
 
-class Semantics {
-  val router= new Router
-  val data = new Data(router)
-  import data._
+object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
+  def newInstance() = {
+    val router= new Router
+    val data = new Data(router)
+    new Inner(router, data)
+  }
 
-  def newInstance() = new Inner
-
-  class Inner extends AbstractSemantics[(Value, Servers)] {
+  class Inner(val router: Router, val data: Data) extends AbstractSemantics[(Value, Servers)] {
+    import data._
 
     import Crossproduct._
 

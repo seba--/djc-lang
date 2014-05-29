@@ -1,6 +1,6 @@
 package djc.lang.sem.nondeterm_3_routed
 
-import djc.lang.sem.{Crossproduct, AbstractSemantics}
+import djc.lang.sem.{ISemanticsFactory, Crossproduct, AbstractSemantics}
 import util.Bag
 import djc.lang.Syntax._
 import Crossproduct._
@@ -8,14 +8,16 @@ import Data._
 import Router._
 
 
-class Semantics {
-  val router = new Router
-  val data = new Data(router)
-  import data._
+object SemanticsFactory extends ISemanticsFactory[Value] {
 
-  def newInstance() = new Inner
+  def newInstance() = {
+    val router = new Router
+    val data = new Data(router)
+    new Semantics(router, data)
+  }
 
-  class Inner extends AbstractSemantics[Value] {
+  class Semantics(val router: Router, val data: Data) extends AbstractSemantics[Value] {
+    import data._
 
     def normalizeVal(v: Val) = v.asInstanceOf[UnitVal].sends map (_.toNormalizedResolvedProg)
 
