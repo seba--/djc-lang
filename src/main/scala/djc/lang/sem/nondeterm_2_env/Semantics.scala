@@ -18,6 +18,12 @@ object Semantics extends AbstractSemantics[Value] {
   }
 
   def interp(p: Exp, env: Env, sends: Bag[SendVal]): Res[Val] = p match {
+    case BaseCall(b, es) =>
+      nondeterministic[List[BaseValue], Val](
+        crossProductList(es map (interp(_, env, Bag()) map (makeBaseValue(_)))),
+        vs => Set(unmakeBaseValue(b.reduce(vs)))
+      )
+
     case Var(y) if env.isDefinedAt(y) =>
       Set(env(y))
 

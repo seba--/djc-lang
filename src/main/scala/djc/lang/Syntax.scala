@@ -49,6 +49,10 @@ object Syntax {
   abstract class BaseValue {
     def toExp: Exp
   }
+  case class WrappedBaseValue[V](v: V) extends BaseValue {
+    def toExp = throw new UnsupportedOperationException
+  }
+
   abstract class BaseOp {
     def reduce(vs: List[BaseValue]): BaseValue
   }

@@ -20,7 +20,7 @@ class TestLambda1 extends TestLambda(nondeterm_1_subst.Semantics())
 class TestLambda2 extends TestLambda(nondeterm_2_env.Semantics())
 class TestLambda3 extends TestLambda(new nondeterm_3_routed.Semantics().newInstance())
 class TestLambda4 extends TestLambda(new nondeterm_4_grouped.Semantics().newInstance())
-//class TestLambda5 extends TestLambda(new nondeterm_5_parallel.Semantics().newInstance())
+class TestLambda5 extends TestLambda(new nondeterm_5_parallel.Semantics().newInstance())
 class TestLambda6 extends TestLambda(new concurrent_6_thread.Semantics().newInstance(), false)
 
 

@@ -12,6 +12,9 @@ object Data {
   abstract class Value {
     def toNormalizedProg: Exp
   }
+  case class BaseVal(b: BaseValue) extends Value {
+    def toNormalizedProg = b.toExp
+  }
   case class UnitVal(sends: Bag[SendVal]) extends Value {
     def toNormalizedProg = Par(Bag[Exp]() ++ sends.map(_.toNormalizedProg))
   }
@@ -28,5 +31,15 @@ object Data {
 
   case class SendVal(rcv: ServiceVal, args: List[Value]) {
     def toNormalizedProg = Send(rcv.toNormalizedProg, args map (_.toNormalizedProg))
+  }
+
+  def makeBaseValue(v: Value) = v match {
+    case BaseVal(b) => b
+    case v => WrappedBaseValue(v)
+  }
+
+  def unmakeBaseValue(b: BaseValue): Value = b match {
+    case b: WrappedBaseValue[Value @unchecked] => b.v
+    case v => BaseVal(v)
   }
 }

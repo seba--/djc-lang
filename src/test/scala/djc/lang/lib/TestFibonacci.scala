@@ -17,15 +17,15 @@ import djc.lang.sem.nondeterm_5_parallel
 import djc.lang.sem.concurrent_6_thread
 
 
-class TestFibonacci1 extends TestFibonacci(nondeterm_1_subst.Semantics)
-//class TestFibonacci2 extends TestFibonacci(nondeterm_2_env.Semantics)
-//class TestFibonacci3 extends TestFibonacci(nondeterm_3_routed.Semantics)
-//class TestFibonacci4 extends TestFibonacci(nondeterm_4_grouped.Semantics)
-//class TestFibonacci5 extends TestFibonacci(nondeterm_5_parallel.Semantics)
-//class TestFibonacci6 extends TestFibonacci(concurrent_6_thread.Semantics, false)
+class TestFibonacci1 extends TestFibonacci(3, nondeterm_1_subst.Semantics)
+class TestFibonacci2 extends TestFibonacci(2, nondeterm_2_env.Semantics)
+class TestFibonacci3 extends TestFibonacci(4, new nondeterm_3_routed.Semantics().newInstance())
+class TestFibonacci4 extends TestFibonacci(4, new nondeterm_4_grouped.Semantics().newInstance())
+//class TestFibonacci5 extends TestFibonacci(2, new nondeterm_5_parallel.Semantics().newInstance())
+//class TestFibonacci6 extends TestFibonacci(2, new concurrent_6_thread.Semantics().newInstance(), false)
 
 
-class TestFibonacci[V](sem: AbstractSemantics[V], nondeterm: Boolean = true) extends AbstractTest(sem, nondeterm) {
+class TestFibonacci[V](max: Int, sem: AbstractSemantics[V], nondeterm: Boolean = true) extends AbstractTest(sem, nondeterm) {
 
   testType("fib", Fibonacci.fib, Fibonacci.fibType)
 
@@ -35,7 +35,7 @@ class TestFibonacci[V](sem: AbstractSemantics[V], nondeterm: Boolean = true) ext
     testInterp(s"fib_$n", fibCall, Set(Bag(PRINT(Fibonacci.fibAcc(n, 0)))))
   }
 
-  for (i <- 0 to 3) // larger than 3 -> out of memory for nondeterm_1_subst.Semantics
+  for (i <- 0 to max) // larger than 3 -> out of memory for nondeterm_1_subst.Semantics
     testFib(i)
 
 

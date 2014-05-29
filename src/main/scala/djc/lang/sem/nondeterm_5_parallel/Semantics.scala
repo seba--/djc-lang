@@ -35,6 +35,13 @@ class Semantics {
     }
 
     def interp(p: Exp, env: Env, servers: Servers): Res[Val] = p match {
+      case BaseCall(b, es) =>
+        nondeterministic[(List[BaseValue],Servers), Val](
+        crossProductList(es map (interp(_, env, servers))) map (
+          _.foldRight ((List[BaseValue](), emptyServers))
+                      ((p, r) => (makeBaseValue(p._1)::r._1, p._2 &&& r._2))),
+        {case (vs, nuservers) => Set((unmakeBaseValue(b.reduce(vs)), servers &&& nuservers))})
+
       case Var(y) if env.isDefinedAt(y) =>
         Set((env(y), emptyServers))
 
@@ -49,14 +56,8 @@ class Semantics {
 
       case ServiceRef(srv, x) =>
         nondeterministic[Val, Val](
-        interp(srv, env, servers), {
-          case (sval@ServerVal(addr), nuServers) =>
-            //val ServerClosure(impl, _) = lookupAddr(addr)
-            //   if impl.rules.exists(_.ps.exists(_.name == x)) => //TODO add this check back once we have good solution for primitive services
-            Set((ServiceVal(sval, x), nuServers))
-
-          //   case ServerVal(impl, _) => throw SemanticException(s"service $x not defined in server $impl")
-        }
+          interp(srv, env, servers),
+          {case (sval@ServerVal(addr), nuServers) => Set((ServiceVal(sval, x), nuServers))}
         )
 
       case Par(ps) =>
@@ -75,7 +76,7 @@ class Semantics {
         interp(p, env, servers), {
           case (UnitVal, nuservers) => interp(Seq(ps), env, servers &&& nuservers)
         }
-        )
+      )
 
       case Send(rcv, args) =>
         nondeterministic[Val, Val](

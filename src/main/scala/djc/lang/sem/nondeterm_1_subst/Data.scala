@@ -5,21 +5,11 @@ import util.Bag
 import djc.lang.Syntax.ServiceRef
 
 object Data {
-  def unmakeBaseValue(b: BaseValue) = b match {
-    case WrappedNonBaseValue(v) => v
-    case v => BaseVal(v)
-  }
-  case class WrappedNonBaseValue(v: Value) extends BaseValue {
-    def toExp = v.toProg
-  }
-
   abstract class Value {
     def toProg: Exp
-    def makeBaseValue: BaseValue = WrappedNonBaseValue(this)
   }
   case class BaseVal(v: BaseValue) extends Value {
     def toProg = v.toExp
-    override def makeBaseValue = v
   }
   case class UnitVal(sval: Bag[SendVal]) extends Value {
     def toProg = Par(sval.map(_.toSend.asInstanceOf[Exp]))
@@ -36,4 +26,14 @@ object Data {
   }
 
   case class Match(subst: Map[Symbol, Value], used: Bag[SendVal])
+
+  def makeBaseValue(v: Value) = v match {
+    case BaseVal(b) => b
+    case v => WrappedBaseValue(v)
+  }
+
+  def unmakeBaseValue(b: BaseValue): Value = b match {
+    case b: WrappedBaseValue[Value @unchecked] => b.v
+    case v => BaseVal(v)
+  }
 }

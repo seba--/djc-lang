@@ -37,6 +37,13 @@ class Semantics {
     }
 
     def interp(p: Exp, env: Env, servers: Servers): Res[Val] = p match {
+      case BaseCall(b, es) =>
+        nondeterministic[(List[BaseValue],Servers), Val](
+          crossProductList(es map (interp(_, env, servers))) map (
+            _.foldRight ((List[BaseValue](), emptyServers))
+                        ((p, r) => (makeBaseValue(p._1)::r._1, p._2 &&& r._2))),
+          {case (vs, nuservers) => Set((unmakeBaseValue(b.reduce(vs)), servers &&& nuservers))})
+
       case Var(y) if env.isDefinedAt(y) =>
         Set((env(y), emptyServers))
 

@@ -30,6 +30,11 @@ import Data._
 
 class Data(router: Router) {
 
+  case class BaseVal(b: BaseValue) extends Value {
+    def toNormalizedProg = b.toExp
+    def toNormalizedResolvedProg = b.toExp
+  }
+
   case object UnitVal extends Value {
     def toNormalizedProg = Par()
     def toNormalizedResolvedProg = Par()
@@ -58,6 +63,13 @@ class Data(router: Router) {
     def toNormalizedResolvedProg = Send(rcv.toNormalizedResolvedProg, args map (_.toNormalizedResolvedProg))
   }
 
-  case class ExpClosure(p: Exp, env: Env) extends Exp
+  def makeBaseValue(v: Value) = v match {
+    case BaseVal(b) => b
+    case v => WrappedBaseValue(v)
+  }
 
+  def unmakeBaseValue(b: BaseValue): Value = b match {
+    case b: WrappedBaseValue[Value @unchecked] => b.v
+    case v => BaseVal(v)
+  }
 }

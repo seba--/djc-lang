@@ -7,9 +7,6 @@ import djc.lang.sem.AbstractSemantics
 
 import Data._
 import Router._
-//import djc.lang.Syntax.Mapper._
-import djc.lang.sem.Substitution._
-import djc.lang.sem.Crossproduct._
 
 /**
  * Created by seba on 09/04/14.
@@ -40,6 +37,11 @@ class Semantics {
     }
 
     def interp(p: Exp, env: Env): Res[Val] = p match {
+      case BaseCall(b, es) => {
+        val vs = es map (interp(_, env).head) map (makeBaseValue(_))
+        Set(unmakeBaseValue(b.reduce(vs)))
+      }
+
       case Var(y) if env.isDefinedAt(y) =>
         Set(env(y))
 
@@ -51,16 +53,10 @@ class Semantics {
         Set(ServerVal(server.addr))
 
       case ServiceRef(srv, x) =>
-        nondeterministic[Val, Val](
-        interp(srv, env), {
-          case sval@ServerVal(addr) =>
-            //val ServerClosure(impl, _) = lookupAddr(addr)
-            //   if impl.rules.exists(_.ps.exists(_.name == x)) => //TODO add this check back once we have good solution for primitive services
-            Set(ServiceVal(sval, x))
-
-          //   case ServerVal(impl, _) => throw SemanticException(s"service $x not defined in server $impl")
+        interp(srv, env).head match {
+          case sval@ServerVal(addr) => Set(ServiceVal(sval, x))
         }
-        )
+
 
       case Par(ps) if (ps map (interp(_, env))).forall(_ == Set(UnitVal)) =>
         Set(UnitVal)
@@ -70,36 +66,26 @@ class Semantics {
       case Seq(p :: Nil) =>
         interp(p, env)
       case Seq(p :: ps) =>
-        nondeterministic[Val, Val](
-        interp(p, env), {
+        interp(p, env).head match {
           case UnitVal => interp(Seq(ps), env)
         }
-        )
 
 
       case Send(rcv, args) =>
-        nondeterministic[Val, Val](
-        interp(rcv, env), {
+        interp(rcv, env).head match {
           case svc@ServiceVal(srvVal, x) =>
             router.lookupAddr(srvVal.addr)
-            nondeterministic[List[Value], Val](
-            crossProductList(args map (interp(_, env))), {
-              argVals =>
-                router.lookupAddr(srvVal.addr).sendRequest(SendVal(svc, argVals))
-                Set(UnitVal)
-            }
-            )
+            val argVals = args map (interp(_, env).head)
+            router.lookupAddr(srvVal.addr).sendRequest(SendVal(svc, argVals))
+            Set(UnitVal)
         }
-        )
-
-      case ExpClosure(p1, env1) => interp(p1, env1)
     }
 
     def interpSends(server: ServerThread) {
       for (r <- server.impl.rules) {
         val canSend = matchRule(ServerVal(server.addr), r.ps, server.inbox)
         if (!canSend.isEmpty) {
-          val ma = canSend.head
+          val ma = canSend.get
           val (newProg, env, newQueue) = fireRule(ServerVal(server.addr), r, ma, server.inbox)
           server.inbox = newQueue
           interp(newProg, env)
@@ -108,9 +94,9 @@ class Semantics {
       }
     }
 
-    def matchRule(server: ServerVal, pats: Bag[Pattern], sends: Bag[ISendVal]): Res[Match] =
+    def matchRule(server: ServerVal, pats: Bag[Pattern], sends: Bag[ISendVal]): Option[Match] =
       if (pats.isEmpty)
-        Set(Match(Map(), Bag()))
+        Some(Match(Map(), Bag()))
       else {
         val name = pats.head.name
         val params = pats.head.params
@@ -118,12 +104,14 @@ class Semantics {
           case SendVal(ServiceVal(`server`, `name`), args) => params.size == args.size
           case _ => false
         })
-        nondeterministic[ISendVal, Match](
-          matchingSends,
-          s => matchRule(server, pats.tail, sends - s) map (
-            p => Match(p.subst ++ (params zip s.args), p.used + s)
-            )
-        )
+
+        if (matchingSends.isEmpty)
+          None
+        else {
+          val matchingSend = matchingSends.head
+          matchRule(server, pats.tail, sends - matchingSend).
+            map (p => Match(p.subst ++ (params zip matchingSend.args), p.used + matchingSend))
+        }
       }
 
     def fireRule(server: ServerVal, rule: Rule, ma: Match, oldQueue: Bag[ISendVal]): (Exp, Env, Bag[ISendVal]) = {

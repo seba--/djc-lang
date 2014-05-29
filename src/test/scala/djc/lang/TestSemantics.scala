@@ -21,7 +21,7 @@ class TestSemantics_nondeterm_env extends TestSemantics(nondeterm_2_env.Semantic
 class TestSemantics_nondeterm_routed extends TestSemantics(new nondeterm_3_routed.Semantics().newInstance())
 class TestSemantics_nondeterm_grouped extends TestSemantics(new nondeterm_4_grouped.Semantics().newInstance())
 class TestSemantics_nondeterm_parallel extends TestSemantics(new nondeterm_5_parallel.Semantics().newInstance())
-class TestSemantics_concurrent_thread extends TestSemantics(new concurrent_6_thread.Semantics().newInstance(), false)
+//class TestSemantics_concurrent_thread extends TestSemantics(new concurrent_6_thread.Semantics().newInstance(), false)
 
 abstract class TestSemantics[V](sem: AbstractSemantics[V], nondeterm: Boolean = true) extends FunSuite {
   val PRINT_SERVER = ServerImpl(Bag(Rule(Bag(Pattern('PRINT)), Par())))
