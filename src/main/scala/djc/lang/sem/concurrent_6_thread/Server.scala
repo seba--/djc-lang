@@ -7,7 +7,7 @@ import Data._
 
 import Router._
 
-class Server(sem: ISemantics, val impl: ServerImpl, val env: Env) {
+class Server(sem: ISemantics, val impl: ServerImpl, val env: Env, currentThread: ServerThread) {
 
   var addr: ServerAddr = null
 
@@ -30,7 +30,7 @@ class Server(sem: ISemantics, val impl: ServerImpl, val env: Env) {
         newMessages = Bag()
         dirty = false
       }
-      sem.interpSends(this)
+      sem.interpSends(this, currentThread)
     }
   }
 

@@ -14,7 +14,7 @@ import djc.lang.FlattenPar.flattenPars
  */
 
 trait ISemantics {
-  def interpSends(server: Server)
+  def interpSends(server: Server, currentThread: ServerThread)
 }
 
 object SemanticsFactory extends ISemanticsFactory[Value] {
@@ -32,73 +32,75 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
     def normalizeVal(v: Val) = ((Bag() ++ router.routeTable.values) map (_.normalizeVal)).flatten
 
     override def interp(p: Par): Res[Val] = {
-      val res = interp(p, Map())
+      val res = interp(p, Map(), null)
       ServerThread.waitUntilStable(router.routeTable.values)
       router.routeTable.values.map(_.waitForTermination())
       res
     }
 
-    def interp(p: Exp, env: Env): Res[Val] = p match {
+    def interp(p: Exp, env: Env, currentThread: ServerThread): Res[Val] = p match {
       case BaseCall(b, es) => {
-        val vs = es map (interp(_, env).head) map (makeBaseValue(_))
+        val vs = es map (interp(_, env, currentThread).head) map (makeBaseValue(_))
         Set(unmakeBaseValue(b.reduce(vs)))
       }
 
       case Var(y) if env.isDefinedAt(y) =>
         Set(env(y))
 
-//      case s@ServerImpl(rules) if s.local =>
-//        val serverAddr = null
-//        Set(ServerVal(serverAddr))
+      case s@ServerImpl(rules) if s.local && currentThread != null => {
+        val server = new Server(this, s, env, currentThread)
+        val serverAddr = currentThread.registerServer(server)
+        Set(ServerVal(serverAddr))
+      }
 
-      case s@ServerImpl(rules) if !s.local =>
-        val serverThread = new ServerThread(this, s, env)
+      case s@ServerImpl(rules) if !s.local || currentThread == null => {
+        val serverThread = new ServerThread
         val addr = router.registerServer(serverThread)
-
-        val serverAddr = ServerAddr(addr, 0)
-        val server = router.lookupServer(serverAddr)
-        server.addr = serverAddr
+        serverThread.addr = addr
+        val server = new Server(this, s, env, serverThread)
+        val serverAddr = serverThread.registerServer(server)
 
         serverThread.start()
         Set(ServerVal(serverAddr))
+      }
 
       case ServiceRef(srv, x) =>
-        interp(srv, env).head match {
+        interp(srv, env, currentThread).head match {
           case sval@ServerVal(addr) => Set(ServiceVal(sval, x))
         }
 
 
       case Par(ps) =>
-        flattenPars(ps).map(interp(_, env)).foldLeft[Res[Val]](Set(UnitVal)) ((p1,p2) => (p1.head, p2.head) match {case (UnitVal,UnitVal) => Set(UnitVal)})
+        flattenPars(ps).map(interp(_, env, currentThread)).foldLeft[Res[Val]](Set(UnitVal)) ((p1,p2) => (p1.head, p2.head) match {case (UnitVal,UnitVal) => Set(UnitVal)})
 
       case Seq(Nil) =>
         Set(UnitVal)
       case Seq(p :: Nil) =>
-        interp(p, env)
+        interp(p, env, currentThread)
       case Seq(p :: ps) =>
-        interp(p, env).head match {
-          case UnitVal => interp(Seq(ps), env)
+        interp(p, env, currentThread).head match {
+          case UnitVal => interp(Seq(ps), env, currentThread)
         }
 
 
       case Send(rcv, args) =>
-        interp(rcv, env).head match {
+        interp(rcv, env, currentThread).head match {
           case svc@ServiceVal(srvVal, x) =>
             router.lookupAddr(srvVal.addr)
-            val argVals = args map (interp(_, env).head)
+            val argVals = args map (interp(_, env, currentThread).head)
             router.lookupAddr(srvVal.addr).receiveRequest(SendVal(svc, argVals))
             Set(UnitVal)
         }
     }
 
-    def interpSends(server: Server) {
+    def interpSends(server: Server, currentThread: ServerThread) {
       for (r <- server.impl.rules) {
         val canSend = matchRule(ServerVal(server.addr), r.ps, server.inbox)
         if (!canSend.isEmpty) {
           val ma = canSend.get
           val (newProg, env, newQueue) = fireRule(ServerVal(server.addr), r, ma, server.inbox)
           server.inbox = newQueue
-          interp(newProg, env)
+          interp(newProg, env, currentThread)
           return
         }
       }

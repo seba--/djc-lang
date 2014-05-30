@@ -9,13 +9,11 @@ import Router._
 
 class ServerThread extends Thread {
 
-  private var nextPort = 1
+  ServerThread.incCounter()
+  
+  var addr: Addr = null
+  private var nextPort = 0
   private val servers: collection.mutable.Map[Router.Port, Server] = collection.mutable.Map()
-
-  def this(sem: ISemantics, impl: ServerImpl, env: Env) {
-    this()
-    servers += (0 -> new Server(sem, impl, env))
-  }
 
   private var terminate = false
   var terminated = false
@@ -62,9 +60,22 @@ class ServerThread extends Thread {
 
   def lookupServer(port: Port) =
     synchronized { servers(port) }
+
+  def registerServer(server: Server): ServerAddr = {
+    synchronized { servers += (nextPort -> server) }
+    nextPort += 1
+
+    val a = ServerAddr(addr, nextPort - 1)
+    server.addr = a
+    a
+
+  }
 }
 
 object ServerThread {
+  var counter = 0
+  def incCounter() = synchronized( counter += 1 )
+
   def waitUntilStable(ss: Iterable[ServerThread]) {
     var last = ss.hashCode()
     while (true) {

@@ -8,6 +8,7 @@ import util.Bag
 
 import djc.lang.typ.Checker._
 import djc.lang.typ.Types._
+import djc.lang.sem.concurrent_6_thread.ServerThread
 
 
 abstract class AbstractTest[V](semFactory: ISemanticsFactory[V], nondeterm: Boolean = true) extends FunSuite {
@@ -33,6 +34,7 @@ abstract class AbstractTest[V](semFactory: ISemanticsFactory[V], nondeterm: Bool
       val res = sem.interp(p)
       val norm = res map (sem.normalizeVal(_))
       val normExpected = expected map (bag => bag.map(s => sigmap(sigmac(s)).asInstanceOf[Syntax.Send]))
+      println(s"ServerThread instances: ${ServerThread.counter}")
       if (nondeterm)
         assert(norm == normExpected) //, s"Was $norm, expected $expected")
       else {
