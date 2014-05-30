@@ -35,7 +35,7 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
       val res = interp(p, Map())
       ServerThread.waitUntilStable(router.routeTable.values)
       val res2 = res filter (v => interp(v.toNormalizedProg, Map()).size == 1)
-      router.routeTable.values.map(_.terminate = true)
+      router.routeTable.values.map(_.waitForTermination())
       res2
     }
 

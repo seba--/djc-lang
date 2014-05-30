@@ -14,20 +14,24 @@ class ServerThread(sem: SemanticsInner, val impl: ServerImpl, val env: Env) exte
   var dirty = false
   var inbox = Bag[ISendVal]()
   var newMessages = Bag[ISendVal]()
-  var terminate = false
+  private var terminate = false
   var terminated = false
 
   def sendRequest(cl: ISendVal) {
+    if (terminate || terminated)
+      throw new IllegalStateException(s"Received send after server termination ($terminate,$terminated): $cl")
     synchronized {
+//      println(s"**RECEIVE: $cl")
       newMessages += cl
       dirty = true
     }
   }
 
   override def run() {
-    while (!terminate) {
+    while (!terminate || dirty) {
       if (dirty) {
         synchronized {
+//          newMessages map (m => println(s"**PROCESS: $m"))
           inbox ++= newMessages
           newMessages = Bag()
           dirty = false
@@ -37,6 +41,8 @@ class ServerThread(sem: SemanticsInner, val impl: ServerImpl, val env: Env) exte
       else
         Thread.sleep(1)
     }
+    if (!terminate)
+      throw new IllegalStateException(s"Unexpected server termination")
     terminated = true
   }
 
@@ -63,15 +69,13 @@ class ServerThread(sem: SemanticsInner, val impl: ServerImpl, val env: Env) exte
 
 object ServerThread {
   def waitUntilStable(ss: Iterable[ServerThread]) {
-    var last = ssHash(ss)
+    var last = ss.hashCode()
     while (true) {
-      Thread.sleep(50)
-      val hash = ssHash(ss)
+      Thread.sleep(1000)
+      val hash = ss.hashCode()
       if (hash == last)
         return
       last = hash
     }
   }
-
-  def ssHash(ss: Iterable[ServerThread]) = ss.foldLeft(0)((h, s) => h + s.hashCode)
 }
