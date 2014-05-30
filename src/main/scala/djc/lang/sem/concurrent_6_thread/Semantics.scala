@@ -34,9 +34,8 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
     override def interp(p: Par): Res[Val] = {
       val res = interp(p, Map())
       ServerThread.waitUntilStable(router.routeTable.values)
-      val res2 = res filter (v => interp(v.toNormalizedProg, Map()).size == 1)
       router.routeTable.values.map(_.waitForTermination())
-      res2
+      res
     }
 
     def interp(p: Exp, env: Env): Res[Val] = p match {
@@ -48,14 +47,18 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
       case Var(y) if env.isDefinedAt(y) =>
         Set(env(y))
 
-      case s@ServerImpl(rules) =>
+//      case s@ServerImpl(rules) if s.local =>
+//        val serverAddr = null
+//        Set(ServerVal(serverAddr))
+
+      case s@ServerImpl(rules) if !s.local =>
         val serverThread = new ServerThread(this, s, env)
         val addr = router.registerServer(serverThread)
 
         val serverAddr = ServerAddr(addr, 0)
         val server = router.lookupServer(serverAddr)
         server.addr = serverAddr
-        
+
         serverThread.start()
         Set(ServerVal(serverAddr))
 
