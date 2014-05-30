@@ -15,13 +15,4 @@ object Function {
         ServerImpl(Rule(Bag(Pattern('id, 'x -> TVar('A))), Par()))),
       TAbs('B, ServiceRef(TApp(Var('Id), TVar('B)), 'id)))
 
-
-  val mkThunk =
-    Def('MkThunk, null,
-      ServerImpl(Rule(
-        Bag(Pattern('mkThunk, 'f -> TSvc())),
-        ServerImpl(Rule(
-          Bag(Pattern('force)),
-          Send(Var('f), Nil))))),
-      ServiceRef(Var('MkThunk), 'mkThunk))
 }
