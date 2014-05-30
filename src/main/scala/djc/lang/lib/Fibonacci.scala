@@ -36,7 +36,7 @@ object Fibonacci {
 
   val fibType = TFun(TInteger, TInteger)
   val fib =
-    ServiceRef(ServerImpl(Rule(
+    ServiceRef(LocalServerImpl(Rule(
         Bag('fib?('n -> TBase('Int), 'k -> ?(TBase('Int)))),
         Def('FIB, fibType, 'this~>'fib,
           Ifc(

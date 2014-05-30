@@ -9,7 +9,7 @@ import Router._
 
 class ServerThread extends Thread {
 
-  ServerThread.incCounter()
+  ServerThread.incInstanceCounter()
 
   var addr: Addr = null
   private var nextPort = 0
@@ -17,8 +17,13 @@ class ServerThread extends Thread {
 
   private var terminate = false
   var terminated = false
+  private var _requestCounter = 0
+
+  def requestCounter = synchronized(_requestCounter)
 
   def receiveRequest(cl: ISendVal) {
+    synchronized { _requestCounter += 1 }
+
     if (terminate || terminated)
       throw new IllegalStateException(s"Received send after server termination ($terminate,$terminated): $cl")
 
@@ -73,17 +78,17 @@ class ServerThread extends Thread {
 }
 
 object ServerThread {
-  var counter = 0
-  def incCounter() = synchronized( counter += 1 )
+  var instanceCounter = 0
+  def incInstanceCounter() = synchronized( instanceCounter += 1 )
 
   def waitUntilStable(ss: Iterable[ServerThread]) {
-    var last = ss.hashCode()
+    var last = ss map (_.requestCounter)
     while (true) {
-      Thread.sleep(2000)
-      val hash = ss.hashCode()
-      if (hash == last)
+      Thread.sleep(50)
+      val next = ss map (_.requestCounter)
+      if (next == last)
         return
-      last = hash
+      last = next
     }
   }
 }

@@ -34,7 +34,7 @@ abstract class AbstractTest[V](semFactory: ISemanticsFactory[V], nondeterm: Bool
       val res = sem.interp(p)
       val norm = res map (sem.normalizeVal(_))
       val normExpected = expected map (bag => bag.map(s => sigmap(sigmac(s)).asInstanceOf[Syntax.Send]))
-      println(s"ServerThread instances: ${ServerThread.counter}")
+      println(s"ServerThread instances: ${ServerThread.instanceCounter}")
       if (nondeterm)
         assert(norm == normExpected) //, s"Was $norm, expected $expected")
       else {
