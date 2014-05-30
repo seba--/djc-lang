@@ -75,23 +75,13 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
 
       case Send(rcv, args) =>
         nondeterministic[Val, Val](
-        interp(rcv, env, servers), {
-          case (svc@ServiceVal(srvVal, x), nuServers) =>
-            val addr = ServerAddr.unapply(srvVal.addr).get
-            val s = for (l <- crossProductList(args map (interp(_, env, servers)));
-                         (values, maps) = l.map {
-                           case (v, ss) => (v, ss)
-                         }.unzip)
-            yield (values, maps.foldLeft(emptyServers) {
-                case (m, m1) => m &&& m1
-              })
-
-            s map {
-              case (argVals, nuServers1) =>
-                val srvs = List(servers, nuServers, nuServers1).reduce(_ &&& _)
-                (UnitVal, sendToServer(srvs, addr, SendVal(svc, argVals)))
-            }
-        }
+          interp(rcv, env, servers),
+          {case (svc@ServiceVal(srvVal, x), _) =>
+              val addr = ServerAddr.unapply(srvVal.addr).get
+              crossProductList(args.map(interp(_, env, emptyServers) map (_._1))) map (
+                argVals => (UnitVal, sendToServer(servers, addr, SendVal(svc, argVals)))
+              )
+          }
         )
 
       case ExpClosure(p1, env1) => interp(p1, env1, servers)

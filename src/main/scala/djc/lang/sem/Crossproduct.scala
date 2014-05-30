@@ -43,8 +43,8 @@ object Crossproduct {
     else {
       val rest = crossProductList(tss.tail)
       for (prod <- rest;
-           t <- tss.head)
-      yield t :: prod
+           ts <- tss.head)
+      yield ts :: prod
     }
 
   def crossProductMap[K,V](tss: Bag[Set[Map[K,Bag[V]]]]): Set[Map[K,Bag[V]]] =
@@ -56,7 +56,7 @@ object Crossproduct {
       val rest = crossProductMap(tss.tail)
       for (prod <- rest;
            ts <- tss.head)
-      yield mergeMaps(prod, ts)
+      yield mergeMaps(ts, prod)
     }
 
 
@@ -66,13 +66,12 @@ object Crossproduct {
   }
 
   def mergeMaps[K,V](m1: Map[K,Bag[V]], m2: Map[K,Bag[V]]) = {
-    var m = Map[K, Bag[V]]()
-    for(k <- m1.keySet & m2.keySet)
-      m = m + (k -> (m1(k) ++ m2(k)))
-    for(k <- m1.keySet &~ m2.keySet)
-      m = m + (k -> m1(k))
-    for(k <- m2.keySet &~ m1.keySet)
-      m = m + (k -> m2(k))
+    var m = m2
+    for((k,v) <- m1)
+      m2.get(k) match {
+        case None => m += k -> v
+        case Some(v2) => m += k -> (v ++ v2)
+      }
     m
   }
 
