@@ -46,14 +46,6 @@ object TypedSyntaxDerived {
   def App(f: Exp, arg: Exp, cont: Exp) =
     Send(f, arg, cont)
 
-
-  def ThunkWrong(e: Exp) =
-    Def('Thunk, TSrv('force -> TSrv()),
-      ServerImpl(Rule(
-        Bag(Pattern('force)),
-        e)),
-      ServiceRef(Var('Thunk), 'force))
-
   def Thunk(e: Exp) =
     ServiceRef(
       ServerImpl(Rule(
@@ -66,4 +58,8 @@ object TypedSyntaxDerived {
       c,
       Thunk(t),
       Thunk(e)))
+
+
+
+
 }
