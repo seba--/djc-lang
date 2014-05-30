@@ -35,11 +35,9 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
 
     def interp(p: Exp, env: Env, servers: Servers): Res[Val] = p match {
       case BaseCall(b, es) =>
-        nondeterministic[(List[BaseValue],Servers), Val](
-          crossProductList(es map (interp(_, env, servers))) map (
-            _.foldRight ((List[BaseValue](), emptyServers))
-                        ((p, r) => (makeBaseValue(p._1)::r._1, p._2 &&& r._2))),
-          {case (vs, nuservers) => Set((unmakeBaseValue(b.reduce(vs)), servers &&& nuservers))})
+        nondeterministic[List[BaseValue], Val](
+          crossProductList(es.map (interp(_, env, servers).map (p => makeBaseValue(p._1)))),
+          vs => Set((unmakeBaseValue(b.reduce(vs)), emptyServers)))
 
       case Var(y) if env.isDefinedAt(y) =>
         Set((env(y), emptyServers))
@@ -50,24 +48,19 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
       case s@ServerImpl(_,_) =>
         val raddr = router.registerServer(ServerClosure(s, env))
         val addr = ServerAddr(raddr)
-        val nuServers = Map(raddr -> Bag[ISendVal]())
-        Set((ServerVal(addr), nuServers))
+        Set((ServerVal(addr), emptyServers))
 
       case ServiceRef(srv, x) =>
         nondeterministic[Val, Val](
-        interp(srv, env, servers), {
-          case (sval@ServerVal(addr), nuServers) =>
-            //val ServerClosure(impl, _) = lookupAddr(addr)
-            //   if impl.rules.exists(_.ps.exists(_.name == x)) => //TODO add this check back once we have good solution for primitive services
-            Set((ServiceVal(sval, x), nuServers))
-
-          //   case ServerVal(impl, _) => throw SemanticException(s"service $x not defined in server $impl")
+        interp(srv, env, emptyServers), {
+          case (sval@ServerVal(addr), `emptyServers`) =>
+            Set((ServiceVal(sval, x), emptyServers))
         }
         )
 
       case Par(ps) =>
         nondeterministic[Servers, Val](
-          crossProductMap(flattenPars(ps) map (interp(_, env, servers) map {
+          crossProductMap(flattenPars(ps) map (interp(_, env, emptyServers) map {
             case (UnitVal, nuServers) => nuServers
           })),
           nuServers => interpSends(servers &&& nuServers))
@@ -86,8 +79,8 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
 
       case Send(rcv, args) =>
         nondeterministic[Val, Val](
-        interp(rcv, env, servers), {
-          case (svc@ServiceVal(srvVal, x), _) =>
+        interp(rcv, env, emptyServers), {
+          case (svc@ServiceVal(srvVal, x), `emptyServers`) =>
             val addr = ServerAddr.unapply(srvVal.addr).get
             crossProductList(args.map(interp(_, env, emptyServers) map (_._1))) map (
                argVals => (UnitVal, sendToServer(servers, addr, SendVal(svc, argVals)))

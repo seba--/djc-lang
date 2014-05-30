@@ -59,10 +59,36 @@ object Crossproduct {
       yield mergeMaps(ts, prod)
     }
 
+  def crossProductMap2inner[K,V](tss: Bag[Set[Map[K,Bag[V]]]]): Set[List[Map[K,Bag[V]]]] =
+    if (tss.isEmpty)
+      Set(List(Map()))
+    else if (tss.tail.isEmpty)
+      tss.head map (List(_))
+    else {
+      val rest = crossProductMap2inner(tss.tail)
+      for (prod <- rest;
+           ts <- tss.head)
+      yield ts :: prod
+    }
+
+  def crossProductMap2[K,V](tss: Bag[Set[Map[K,Bag[V]]]]): Set[Map[K,Bag[V]]] =
+    crossProductMap2inner(tss) map (mergeAllMaps(_))
+
 
   implicit class MapOps[K,V](m : Map[K,Bag[V]]) {
     def merge(that: Map[K,Bag[V]]) = mergeMaps(m, that)
     def &&&(that: Map[K,Bag[V]]) = mergeMaps(m, that)
+  }
+
+  def mergeAllMaps[K,V](ms: List[Map[K,Bag[V]]]) = {
+    var m = ms.head
+    for(m2 <- ms.tail;
+        (k,v) <- m2)
+      m.get(k) match {
+        case None => m += k -> v
+        case Some(v2) => m += k -> (v ++ v2)
+      }
+    m
   }
 
   def mergeMaps[K,V](m1: Map[K,Bag[V]], m2: Map[K,Bag[V]]) = {

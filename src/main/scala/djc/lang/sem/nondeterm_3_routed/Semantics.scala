@@ -45,11 +45,7 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
         nondeterministic[Val, Val](
         interp(srv, env, sends), {
           case sval@ServerVal(addr) =>
-            //val ServerClosure(impl, _) = lookupAddr(addr)
-            //   if impl.rules.exists(_.ps.exists(_.name == x)) => //TODO add this check back once we have good solution for primitive services
             Set(ServiceVal(sval, x))
-
-          //   case ServerVal(impl, _) => throw SemanticException(s"service $x not defined in server $impl")
         }
         )
 
