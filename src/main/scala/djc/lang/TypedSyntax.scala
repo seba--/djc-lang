@@ -48,8 +48,8 @@ object TypedSyntax {
     override def eraseType = Syntax.ServiceRef(srv.eraseType, x)
   }
 
-  case class ServerImpl(rules: Bag[Rule]) extends Exp {
-    override def eraseType = Syntax.ServerImpl(rules map (_.eraseType))
+  case class ServerImpl(rules: Bag[Rule], local: Boolean) extends Exp {
+    override def eraseType = Syntax.ServerImpl(rules map (_.eraseType), local)
 
     lazy val signature = {
       import collection.mutable.{HashMap, MultiMap, Set}
@@ -68,11 +68,12 @@ object TypedSyntax {
       TSrv(m)
     }
   }
-
   object ServerImpl {
-    def apply(rules: Rule*) = new ServerImpl(Bag(rules: _*))
+    def apply(rules: Bag[Rule]) = new ServerImpl(rules, false)
+    def apply(rules: Rule*) = new ServerImpl(Bag(rules: _*), false)
   }
-
+  def LocalServerImpl(rules: Bag[Rule]) = ServerImpl(rules, true)
+  def LocalServerImpl(rules: Rule*) = ServerImpl(Bag(rules:_*), true)
 
   case class TApp(p: Exp, t: Type) extends Exp {
     override def eraseType = p.eraseType
@@ -165,8 +166,8 @@ object TypedSyntax {
         Var(x)
       case ServiceRef(p1, x) =>
         ServiceRef(map(p1), x)
-      case ServerImpl(rs) =>
-        ServerImpl(rs map mapRule)
+      case ServerImpl(rs, local) =>
+        ServerImpl(rs map mapRule, local)
       case TApp(p1, t) =>
         TApp(map(p1), mapType(t))
       case TAbs(alpha, bound1, p1) =>
@@ -212,7 +213,7 @@ object TypedSyntax {
         init
       case ServiceRef(p1, x) =>
         fold(init)(p1)
-      case ServerImpl(rs) =>
+      case ServerImpl(rs, _) =>
         rs.foldLeft(init)(foldRule(_)(_))
       case TApp(p1, t) =>
         fold(foldType(init)(t))(p1)

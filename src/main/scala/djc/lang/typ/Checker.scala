@@ -50,7 +50,7 @@ object Checker {
         case x => throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\nboundTv: $boundTv\nwith $x")
       }
 
-    case srv@ServerImpl(rules) => {
+    case srv@ServerImpl(rules,_) => {
       val ruleTypes = rules map (typecheckRule(gamma, boundTv, _, srv.signature))
 
       if (!(FreeTypeVars(srv.signature) subsetOf boundTv))

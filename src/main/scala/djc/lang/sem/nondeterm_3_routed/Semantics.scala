@@ -37,7 +37,7 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
       case addr@ServerAddr(_) =>
         Set(ServerVal(addr))
 
-      case s@ServerImpl(rules) =>
+      case s@ServerImpl(_,_) =>
         val addr = ServerAddr(router.registerServer(ServerClosure(s, env)))
         Set(ServerVal(addr))
 

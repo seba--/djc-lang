@@ -47,13 +47,13 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
       case Var(y) if env.isDefinedAt(y) =>
         Set(env(y))
 
-      case s@ServerImpl(rules) if s.local && currentThread != null => {
+      case s@ServerImpl(rules, true) if currentThread != null => {
         val server = new Server(this, s, env, currentThread)
         val serverAddr = currentThread.registerServer(server)
         Set(ServerVal(serverAddr))
       }
 
-      case s@ServerImpl(rules) if !s.local || currentThread == null => {
+      case s@ServerImpl(rules, _) => {
         val serverThread = new ServerThread
         val addr = router.registerServer(serverThread)
         serverThread.addr = addr

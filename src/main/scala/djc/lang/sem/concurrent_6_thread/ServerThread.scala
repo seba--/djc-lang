@@ -10,7 +10,7 @@ import Router._
 class ServerThread extends Thread {
 
   ServerThread.incCounter()
-  
+
   var addr: Addr = null
   private var nextPort = 0
   private val servers: collection.mutable.Map[Router.Port, Server] = collection.mutable.Map()
@@ -79,7 +79,7 @@ object ServerThread {
   def waitUntilStable(ss: Iterable[ServerThread]) {
     var last = ss.hashCode()
     while (true) {
-      Thread.sleep(1000)
+      Thread.sleep(2000)
       val hash = ss.hashCode()
       if (hash == last)
         return

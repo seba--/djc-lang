@@ -51,11 +51,11 @@ case class SubstProg(x: Symbol, repl: Exp) extends Mapper {
     case Var(y) if x == y =>
       repl
 
-    case ServerImpl(rs) =>
+    case ServerImpl(rs, local) =>
       if (x == 'this)
-        ServerImpl(rs)
+        ServerImpl(rs, local)
       else
-        ServerImpl(rs map mapRule)
+        ServerImpl(rs map mapRule, local)
 
     case TAbs(alpha, bound1, p1) =>
       val captureAvoiding = !replTVars(alpha)
@@ -105,7 +105,7 @@ object FreeVars extends Fold {
   def fold(init: Set[Symbol])(prog: Exp): Set[Symbol] = prog match {
     case Var(x) =>
       init + x
-    case ServerImpl(rs) =>
+    case ServerImpl(rs,_) =>
       rs.foldLeft(init)(foldRule(_)(_)) - 'this
     case _ => super.fold(init)(prog)
   }

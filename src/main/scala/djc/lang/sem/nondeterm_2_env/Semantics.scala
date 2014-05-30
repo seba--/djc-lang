@@ -25,7 +25,7 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
     case Var(y) if env.isDefinedAt(y) =>
       Set(env(y))
 
-    case s@ServerImpl(rules) =>
+    case s@ServerImpl(_, _) =>
       Set(ServerVal(s, env))
 
     case ServiceRef(srv, x) =>

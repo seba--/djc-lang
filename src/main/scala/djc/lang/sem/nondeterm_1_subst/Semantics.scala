@@ -68,7 +68,7 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
         {case srv@ServerVal(_) => Set(ServiceVal(srv, x))}        //TODO check if service defined in srv
       )
 
-    case impl@ServerImpl(_) => 
+    case impl@ServerImpl(_,_) =>
       Set(ServerVal(impl))
   }
 
@@ -118,7 +118,7 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
   }
 
   def collectRules(s: SendVal): Bag[(ServerVal, Rule)] = {
-    val Send(ServiceRef(ServerImpl(rules), _), _) = s.toSend
+    val Send(ServiceRef(ServerImpl(rules, _), _), _) = s.toSend
     rules map ((s.rcv.srv, _))
   }
 }

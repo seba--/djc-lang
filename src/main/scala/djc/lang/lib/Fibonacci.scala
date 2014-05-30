@@ -45,12 +45,12 @@ object Fibonacci {
             'FIB!!(
               'n - 1,
               ServiceRef(
-                ServerImpl(Rule(
+                LocalServerImpl(Rule(
                   Bag('k1?('v1->TBase('Int))),
                   'FIB!!(
                     'n - 2,
                     ServiceRef(
-                      ServerImpl(Rule(
+                      LocalServerImpl(Rule(
                         Bag('k2?('v2->TBase('Int))),
                         'k!!('v1+'v2))),
                       'k2)))),
