@@ -7,39 +7,33 @@ import Data._
 
 import Router._
 
-class ServerThread(sem: SemanticsInner, val impl: ServerImpl, val env: Env) extends Thread {
+class ServerThread extends Thread {
 
-  var addr: ServerAddr = null
+  private var nextPort = 1
+  private val servers: collection.mutable.Map[Router.Port, Server] = collection.mutable.Map()
 
-  var dirty = false
-  var inbox = Bag[ISendVal]()
-  var newMessages = Bag[ISendVal]()
+  def this(sem: ISemantics, impl: ServerImpl, env: Env) {
+    this()
+    servers += (0 -> new Server(sem, impl, env))
+  }
+
   private var terminate = false
   var terminated = false
 
-  def sendRequest(cl: ISendVal) {
+  def receiveRequest(cl: ISendVal) {
     if (terminate || terminated)
       throw new IllegalStateException(s"Received send after server termination ($terminate,$terminated): $cl")
-    synchronized {
-//      println(s"**RECEIVE: $cl")
-      newMessages += cl
-      dirty = true
+
+    cl.rcvAddr match {
+      case ServerAddr(addr, port) => servers(port).receiveRequest(cl)
     }
   }
 
   override def run() {
-    while (!terminate || dirty) {
-      if (dirty) {
-        synchronized {
-//          newMessages map (m => println(s"**PROCESS: $m"))
-          inbox ++= newMessages
-          newMessages = Bag()
-          dirty = false
-        }
-        sem.interpSends(this)
-      }
-      else
-        Thread.sleep(1)
+    while (!terminate) {
+      val ss = synchronized {servers.values}
+      ss map (_.tryFireRules())
+      Thread.sleep(1)
     }
     if (!terminate)
       throw new IllegalStateException(s"Unexpected server termination")
@@ -47,11 +41,8 @@ class ServerThread(sem: SemanticsInner, val impl: ServerImpl, val env: Env) exte
   }
 
   def normalizeVal: Bag[Send] = {
-    var res: Bag[Send] = null
-    synchronized {
-      res = (inbox map (_.toNormalizedResolvedProg)) ++ (newMessages map (_.toNormalizedResolvedProg))
-    }
-    res
+    val ss = synchronized {servers.values}
+    Bag() ++ servers.values flatMap (_.normalizeVal)
   }
   
   def waitForTermination() = {
@@ -64,7 +55,13 @@ class ServerThread(sem: SemanticsInner, val impl: ServerImpl, val env: Env) exte
     if (terminated)
       0
     else
-      inbox.hashCode() * 31 + newMessages.hashCode()
+      synchronized { servers.hashCode }
+
+  override def equals(a: Any) =
+    a.isInstanceOf[ServerThread] && synchronized { a.asInstanceOf[ServerThread].servers == servers }
+
+  def lookupServer(port: Port) =
+    synchronized { servers(port) }
 }
 
 object ServerThread {

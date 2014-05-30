@@ -18,6 +18,7 @@ object Data {
   }
 
   trait ISendVal {
+    def rcvAddr: ServerAddr
     def rcv: Value
     def args: List[Value]
     def toNormalizedResolvedProg: Send
@@ -43,10 +44,8 @@ class Data(router: Router) {
   case class ServerVal(addr: ServerAddr) extends Value {
     def toNormalizedProg = addr
     def toNormalizedResolvedProg = {
-      val scl = router.lookupAddr(addr)
-      val impl = scl.impl
-      val env = scl.env
-      env.foldLeft(impl) {
+      val s = router.lookupServer(addr)
+      s.env.foldLeft(s.impl) {
         case (srv, (x, value)) => Substitution(x, value.toNormalizedResolvedProg)(srv).asInstanceOf[ServerImpl]
       }
     }
@@ -61,6 +60,7 @@ class Data(router: Router) {
 
   case class SendVal(rcv: ServiceVal, args: List[Value]) extends ISendVal {
     def toNormalizedResolvedProg = Send(rcv.toNormalizedResolvedProg, args map (_.toNormalizedResolvedProg))
+    def rcvAddr = rcv.srv.addr
   }
 
   def makeBaseValue(v: Value) = v match {

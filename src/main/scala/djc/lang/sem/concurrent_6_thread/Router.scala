@@ -7,19 +7,26 @@ import djc.lang.Syntax.Var
  */
 object Router {
   type Addr = String
+  type Port = Int
 
   type ServerAddr = Var
 
   object ServerAddr {
     val prefix = "ADDR:"
+    val portSep = "::"
 
-    def apply(addr: Router.Addr) = new ServerAddr(Symbol(prefix + addr))
+    def apply(addr: Addr, port: Port) = new ServerAddr(Symbol(prefix + addr + portSep + port))
 
-    def unapply(s: Var): Option[Router.Addr] = getAddr(s.x.name)
+    def unapply(s: Var): Option[(Addr,Port)] = getAddrWithPort(s.x.name)
 
-    def getAddr(name: String): Option[Router.Addr] =
-      if (name.startsWith(prefix))
-        Some(name.substring(prefix.length))
+    def getAddrWithPort(name: String): Option[(Addr,Port)] =
+      if (name.startsWith(prefix)) {
+        val addrWithPort = name.substring(prefix.length)
+        val sepIndex = addrWithPort.indexOf(portSep)
+        val addr = addrWithPort.substring(0, sepIndex)
+        val port = addrWithPort.substring(sepIndex + portSep.length)
+        Some((addr, port.toInt))
+      }
       else
         None
   }
@@ -49,7 +56,12 @@ class Router {
 
   def lookupAddr(addr: Addr): ServerThread = routeTable(addr)
   def lookupAddr(a: ServerAddr): ServerThread = a match {
-    case ServerAddr(addr) => lookupAddr(addr)
+    case ServerAddr(addr, port) => lookupAddr(addr)
     case _ => throw new IllegalArgumentException(s"Not a server address: $a")
   }
+  def lookupServer(a: ServerAddr): Server = a match {
+    case ServerAddr(addr, port) => lookupAddr(addr).lookupServer(port)
+    case _ => throw new IllegalArgumentException(s"Not a server address: $a")
+  }
+
 }

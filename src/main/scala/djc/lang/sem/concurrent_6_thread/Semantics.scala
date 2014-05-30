@@ -13,8 +13,8 @@ import djc.lang.FlattenPar.flattenPars
  * Created by seba on 09/04/14.
  */
 
-trait SemanticsInner {
-  def interpSends(server: ServerThread)
+trait ISemantics {
+  def interpSends(server: Server)
 }
 
 object SemanticsFactory extends ISemanticsFactory[Value] {
@@ -25,7 +25,7 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
     new Semantics(router, data)
   }
 
-  class Semantics(val router: Router, val data: Data) extends AbstractSemantics[Value] with SemanticsInner {
+  class Semantics(val router: Router, val data: Data) extends AbstractSemantics[Value] with ISemantics {
     import data._
 
     // all data is in the global state
@@ -49,11 +49,15 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
         Set(env(y))
 
       case s@ServerImpl(rules) =>
-        val server = new ServerThread(this, s, env)
-        val addr = router.registerServer(server)
-        server.addr = ServerAddr(addr)
-        server.start()
-        Set(ServerVal(server.addr))
+        val serverThread = new ServerThread(this, s, env)
+        val addr = router.registerServer(serverThread)
+
+        val serverAddr = ServerAddr(addr, 0)
+        val server = router.lookupServer(serverAddr)
+        server.addr = serverAddr
+        
+        serverThread.start()
+        Set(ServerVal(serverAddr))
 
       case ServiceRef(srv, x) =>
         interp(srv, env).head match {
@@ -79,12 +83,12 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
           case svc@ServiceVal(srvVal, x) =>
             router.lookupAddr(srvVal.addr)
             val argVals = args map (interp(_, env).head)
-            router.lookupAddr(srvVal.addr).sendRequest(SendVal(svc, argVals))
+            router.lookupAddr(srvVal.addr).receiveRequest(SendVal(svc, argVals))
             Set(UnitVal)
         }
     }
 
-    def interpSends(server: ServerThread) {
+    def interpSends(server: Server) {
       for (r <- server.impl.rules) {
         val canSend = matchRule(ServerVal(server.addr), r.ps, server.inbox)
         if (!canSend.isEmpty) {
@@ -118,8 +122,8 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
       }
 
     def fireRule(server: ServerVal, rule: Rule, ma: Match, oldQueue: Bag[ISendVal]): (Exp, Env, Bag[ISendVal]) = {
-      val serverThread = router.lookupAddr(server.addr)
-      val env = serverThread.env ++ ma.subst + ('this -> server)
+      val s = router.lookupServer(server.addr)
+      val env = s.env ++ ma.subst + ('this -> server)
       val newQueue = oldQueue -- ma.used
       (Par(rule.p), env, newQueue)
     }
