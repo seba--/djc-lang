@@ -24,10 +24,10 @@ abstract class AbstractTest[V](semFactory: ISemanticsFactory[V], nondeterm: Bool
   def withPrintServer(p: Exp) = Def('Print, TSrv('PRINT -> TSvc()), _PRINT_SERVER, p)
   def withConstServer(p: Exp) = Def('Const, TSrv('CONST -> TSvc()), CONST_SERVER, p)
 
-  def testInterp(s: String, p: TypedSyntax.Exp, expected: AbstractSemantics.Res[Bag[TypedSyntax.Send]]): Unit =
+  def testInterp(s: String, p: TypedSyntax.Par, expected: AbstractSemantics.Res[Bag[TypedSyntax.Send]]): Unit =
     testInterpUntyped(s, p.eraseType, expected map (_.map(_.eraseType)))
 
-  def testInterpUntyped(s: String, p: Syntax.Exp, expected: AbstractSemantics.Res[Bag[Syntax.Send]]): Unit = {
+  def testInterpUntyped(s: String, p: Syntax.Par, expected: AbstractSemantics.Res[Bag[Syntax.Send]]): Unit = {
     test(s ++ "-interp") {
       val sem = semFactory.newInstance()
       val res = sem.interp(p)

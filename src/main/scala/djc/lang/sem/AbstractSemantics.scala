@@ -11,7 +11,7 @@ trait AbstractSemantics[V] {
   type Val = V
   type Res[T] = AbstractSemantics.Res[T]
 
-  def interp(p: Exp): Res[Val]
+  def interp(p: Par): Res[Val]
 
   def normalizeVal(v: Val): Bag[Send]
 }

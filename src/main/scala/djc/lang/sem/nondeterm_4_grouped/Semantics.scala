@@ -6,6 +6,7 @@ import djc.lang.sem.{ISemanticsFactory, Crossproduct, AbstractSemantics}
 import djc.lang.Syntax._
 import Data._
 import Router._
+import djc.lang.FlattenPar.flattenPars
 
 
 
@@ -30,13 +31,7 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
         sends.map(sval => sval.toNormalizedResolvedProg)
     }
 
-    override def interp(p: Exp) =
-    {
-      val res = interp(p, Map(), Map())
-      res filter {
-        case (v, ss) => interp(v.toNormalizedProg, Map(), ss).size == 1
-      }
-    }
+    override def interp(p: Par) = interp(p, Map(), Map())
 
     def interp(p: Exp, env: Env, servers: Servers): Res[Val] = p match {
       case BaseCall(b, es) =>
@@ -72,21 +67,21 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
 
       case Par(ps) =>
         nondeterministic[Servers, Val](
-          crossProductMap(ps map (interp(_, env, servers) map {
+          crossProductMap(flattenPars(ps) map (interp(_, env, servers) map {
             case (UnitVal, nuServers) => nuServers
           })),
           nuServers => interpSends(servers &&& nuServers))
 
-      case Seq(Nil) =>
-        Set((UnitVal, servers))
-      case Seq(p :: Nil) =>
-        interp(p, env, servers)
-      case Seq(p :: ps) =>
-        nondeterministic[Val, Val](
-        interp(p, env, servers), {
-          case (UnitVal, nuservers) => interp(Seq(ps), env, servers &&& nuservers)
-        }
-        )
+//      case Seq(Nil) =>
+//        Set((UnitVal, servers))
+//      case Seq(p :: Nil) =>
+//        interp(p, env, servers)
+//      case Seq(p :: ps) =>
+//        nondeterministic[Val, Val](
+//        interp(p, env, servers), {
+//          case (UnitVal, nuservers) => interp(Seq(ps), env, servers &&& nuservers)
+//        }
+//        )
 
 
       case Send(rcv, args) =>
@@ -95,19 +90,13 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
           case (svc@ServiceVal(srvVal, x), nuServers) =>
             val addr = ServerAddr.unapply(srvVal.addr).get
             val s = for (l <- crossProductList(args map (interp(_, env, servers)));
-                         (values, maps) = l.map {
-                           case (v, ss) => (v, ss)
-                         }.unzip)
-            yield (values, maps.foldLeft(emptyServers) {
-                case (m, m1) => m &&& m1
-              })
+                         (values, maps) = l.unzip)
+            yield (values, maps.foldLeft(emptyServers) {case (m, m1) => m &&& m1})
 
-            nondeterministic[(List[Value], Servers), Val](s, {
-              case (argVals, nuServers1) =>
+            s map {case (argVals, nuServers1) =>
                 val srvs = List(servers, nuServers, nuServers1).reduce(_ &&& _)
-                interpSends(sendToServer(srvs, addr, SendVal(svc, argVals)))
+                (UnitVal, sendToServer(srvs, addr, SendVal(svc, argVals)))
             }
-            )
         }
         )
     }
@@ -121,7 +110,7 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
         canSend, {
           case (srv, r, m) =>
             val (newProg, newEnv, nuServers) = fireRule(srv, r, m, servers)
-            interp(newProg, newEnv, nuServers) + ((UnitVal, servers))
+            interp(newProg, newEnv, nuServers)
         })
     }
 
@@ -162,7 +151,7 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
       val newQueue = queue -- ma.used
       val rest = orig.updated(raddr, newQueue)
 
-      (rule.p, env, rest)
+      (Par(rule.p), env, rest)
     }
 
     def collectRules(s: ISendVal): Bag[(IServerVal, Rule)] = {

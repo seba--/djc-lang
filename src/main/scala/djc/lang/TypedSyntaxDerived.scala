@@ -7,6 +7,8 @@ import djc.lang.typ.Checker._
 
 object TypedSyntaxDerived {
 
+  implicit def makeParSend(s: Send) = Par(s)
+
   // undelimited CPS function type:
   //   t * (u -> Unit) -> Unit
   def TFun(t: Type, u: Type) = TSvc(t, TSvc(u))
@@ -41,7 +43,7 @@ object TypedSyntaxDerived {
 
 
 
-  def App(f: Exp, arg: Exp, cont: Exp): Exp =
+  def App(f: Exp, arg: Exp, cont: Exp) =
     Send(f, arg, cont)
 
 

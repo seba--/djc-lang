@@ -23,12 +23,22 @@ abstract class TestSemantics[V](sem: ISemanticsFactory[V], nondeterm: Boolean = 
       Bag(Pattern('m1, 'x)),
       Send(ServiceRef(PRINT_SERVER_NO, 'foo), Var('x)))))
 
-  val s1norm = sigmap(s1)
-
   val p1 = Def('s1, s1, Send(ServiceRef(Var('s1), 'm1), ServiceRef(CONST_SERVER_NO, 'bar)))
 
+  Set(
+    Bag(
+      Send(
+        ServiceRef(PRINT_SERVER_NO,'foo),
+        List(ServiceRef(ServerImpl(Bag(Rule(Bag(Pattern('CONST,List())),Par()))),'bar)))),
+    Bag(
+      Send(
+        ServiceRef(s1,'m1),
+        List(ServiceRef(ServerImpl(Bag(Rule(Bag(Pattern('CONST,List())),Par()))),'bar)))),
+    Bag(
+      Send(ServiceRef(ServerImpl(Bag(Rule(Bag(Pattern('def,List('s1))),Send(ServiceRef(Var('s1),'m1),List(ServiceRef(ServerImpl(Bag(Rule(Bag(Pattern('CONST,List())),Par()))),'bar)))))),'def),List(ServerImpl(Bag(Rule(Bag(Pattern('m1,List('x))),Send(ServiceRef(ServerImpl(Bag(Rule(Bag(Pattern('PRINT,List())),Par()))),'foo),List(Var('x))))))))))
+
   testInterpUntyped("p1",
-    p1,
+    Par(p1),
     Set(Bag(Send(ServiceRef(PRINT_SERVER_NO, 'foo), ServiceRef(CONST_SERVER_NO, 'bar)))))
 
 
@@ -41,8 +51,6 @@ abstract class TestSemantics[V](sem: ISemanticsFactory[V], nondeterm: Boolean = 
       Bag(Pattern('m2, 'x)),
       Send(ServiceRef(Var('this),'m1), Var('x)))
     ))
-
-  val s2norm = sigmap(s2)
 
   val p2 = Def('s2, s2, Send(ServiceRef(Var('s2), 'm2), ServiceRef(CONST_SERVER_NO, 'bar)))
 
@@ -59,8 +67,6 @@ abstract class TestSemantics[V](sem: ISemanticsFactory[V], nondeterm: Boolean = 
       Send(ServiceRef(Var('s1), 'm1), Var('x)))
     ))
 
-  val s3norm = Substitution('s1, s1norm)(s3)
-
   val p3 = Def('s1, s1, Def('s3, s3, Send(ServiceRef(Var('s3), 'm2), ServiceRef(CONST_SERVER_NO, 'bar))))
 
   testInterpUntyped("p3",
@@ -75,8 +81,6 @@ abstract class TestSemantics[V](sem: ISemanticsFactory[V], nondeterm: Boolean = 
     Rule(
       Bag(Pattern('m1, 'x), Pattern('m2, 'y)),
       Send(ServiceRef(PRINT_SERVER_NO, 'foo), Var('x), Var('y))))
-
-  val s4norm = sigmap(s4)
 
   val p4 = Def('s4, s4, Par(
     Send(ServiceRef(Var('s4), 'm1), ServiceRef(CONST_SERVER_NO, 'bar)),
@@ -114,8 +118,6 @@ abstract class TestSemantics[V](sem: ISemanticsFactory[V], nondeterm: Boolean = 
       Bag(Pattern('m1, 'x), Pattern('token)),
       Send(ServiceRef(PRINT_SERVER_NO, 'foo), Var('x)))))
 
-  val s5norm = sigmap(s5)
-
   val p5 = Def('s5, s5, Par(
     Send(ServiceRef(Var('s5), 'token)),
     Send(ServiceRef(Var('s5), 'm1), ServiceRef(CONST_SERVER_NO, 'bar)),
@@ -125,18 +127,16 @@ abstract class TestSemantics[V](sem: ISemanticsFactory[V], nondeterm: Boolean = 
   testInterpUntyped("p5",
     p5,
     Set(
-      Bag(Send(ServiceRef(PRINT_SERVER_NO, 'foo), List(ServiceRef(CONST_SERVER_NO, 'bar))), Send(ServiceRef(s5norm, 'm1), List(ServiceRef(CONST_SERVER_NO, 'baz)))),
-      Bag(Send(ServiceRef(PRINT_SERVER_NO, 'foo), List(ServiceRef(CONST_SERVER_NO, 'baz))), Send(ServiceRef(s5norm, 'm1), List(ServiceRef(CONST_SERVER_NO, 'bar))))
+      Bag(Send(ServiceRef(PRINT_SERVER_NO, 'foo), List(ServiceRef(CONST_SERVER_NO, 'bar))), Send(ServiceRef(s5, 'm1), List(ServiceRef(CONST_SERVER_NO, 'baz)))),
+      Bag(Send(ServiceRef(PRINT_SERVER_NO, 'foo), List(ServiceRef(CONST_SERVER_NO, 'baz))), Send(ServiceRef(s5, 'm1), List(ServiceRef(CONST_SERVER_NO, 'bar))))
   ))
-  
+
 
   // server-variable shadowing
   val s6 = ServerImpl(
     Bag(Rule(
       Bag(Pattern('m1, 'x)),
       Send(ServiceRef(PRINT_SERVER_NO, 'foo6), Var('x)))))
-
-  val s6norm = sigmap(s6)
 
   val p6 = Def('s6, s1, Def('s6, s6, Send(ServiceRef(Var('s6), 'm1), ServiceRef(CONST_SERVER_NO, 'bar))))
 
@@ -162,8 +162,9 @@ abstract class TestSemantics[V](sem: ISemanticsFactory[V], nondeterm: Boolean = 
   val s8 = ServerImpl(Rule(Bag(Pattern('a)), Send(ServiceRef(PRINT_SERVER_NO, 'foo))),
     Rule(Bag(Pattern('a),Pattern('b)), Send(ServiceRef(PRINT_SERVER_NO, 'bar))))
   val p8 = Def('srv, s8,
-                     Par(Send(ServiceRef(Var('srv),'b)),  Par(Send(ServiceRef(Var('srv),'a))))  )
+                     Par(Send(ServiceRef(Var('srv),'b)),  Par(Send(ServiceRef(Var('srv),'a)))))
 
-  testInterpUntyped("p8", p8, Set(Bag(Send(ServiceRef(s8,'b)), Send(ServiceRef(PRINT_SERVER_NO, 'foo))),
-                           Bag(Send(ServiceRef(PRINT_SERVER_NO, 'bar)))))
+  testInterpUntyped("p8", p8,
+    Set(Bag(Send(ServiceRef(s8,'b)), Send(ServiceRef(PRINT_SERVER_NO, 'foo))),
+        Bag(Send(ServiceRef(PRINT_SERVER_NO, 'bar)))))
 }

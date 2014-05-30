@@ -5,7 +5,6 @@ import util.Bag
 import djc.lang.sem.{ISemanticsFactory, Crossproduct, AbstractSemantics}
 import djc.lang.Syntax._
 import Data._
-
 import Router._
 
 object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
@@ -14,7 +13,7 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
     val data = new Data(router)
     new Inner(router, data)
   }
-
+  
   class Inner(val router: Router, val data: Data) extends AbstractSemantics[(Value, Servers)] {
     import data._
 
@@ -28,12 +27,7 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
         sends.map(sval => sval.toNormalizedResolvedProg)
     }
 
-    override def interp(p: Exp) = {
-      val res = interp(p, Map(), Map())
-      res filter {
-        case (v, ss) => interp(v.toNormalizedProg, Map(), ss).size == 1
-      }
-    }
+    override def interp(p: Par) = interp(p, Map(), Map())
 
     def interp(p: Exp, env: Env, servers: Servers): Res[Val] = p match {
       case BaseCall(b, es) =>
@@ -63,7 +57,7 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
 
       case Par(ps) =>
         nondeterministic[Servers, Val](
-          crossProductMap(ps map (interp(_, env, servers) map {
+          crossProductMap(FlattenParWithExpClosure.flattenPars(ps) map (interp(_, env, servers) map {
             case (UnitVal, nuServers) => nuServers
           })),
           nuServers => interpSends(servers &&& nuServers))
@@ -92,12 +86,11 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
                 case (m, m1) => m &&& m1
               })
 
-            nondeterministic[(List[Value], Servers), Val](s, {
+            s map {
               case (argVals, nuServers1) =>
                 val srvs = List(servers, nuServers, nuServers1).reduce(_ &&& _)
-                interpSends(sendToServer(srvs, addr, SendVal(svc, argVals)))
+                (UnitVal, sendToServer(srvs, addr, SendVal(svc, argVals)))
             }
-            )
         }
         )
 
@@ -114,7 +107,7 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
           matches =>
             val (newProgs, newServers) = fireRules(matches, servers)
             val progClosures = newProgs map (p => ExpClosure(p._1, p._2).asInstanceOf[Exp])
-            interp(Par(progClosures), Map(), newServers) + ((UnitVal, servers))
+            interp(Par(progClosures), Map(), newServers)
         })
     }
 

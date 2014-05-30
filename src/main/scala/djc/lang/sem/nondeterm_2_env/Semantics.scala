@@ -5,6 +5,7 @@ import util.Bag
 import djc.lang.Syntax._
 import Crossproduct._
 import Data._
+import djc.lang.FlattenPar.flattenPars
 
 object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] {
 
@@ -12,10 +13,7 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
 
   def normalizeVal(v: Val) = v.asInstanceOf[UnitVal].sends map (_.toNormalizedProg)
 
-  override def interp(p: Exp) = {
-    val res = interp(p, Map(), Bag())
-    res filter (v => interp(v.toNormalizedProg, Map(), Bag()).size == 1)
-  }
+  override def interp(p: Par) = interp(p, Map(), Bag())
 
   def interp(p: Exp, env: Env, sends: Bag[SendVal]): Res[Val] = p match {
     case BaseCall(b, es) =>
@@ -43,7 +41,7 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
 
     case Par(ps) =>
       nondeterministic[Bag[SendVal],Val](
-        crossProduct(ps map (interp(_, env, Bag()) map {case UnitVal(s) => s})),
+        crossProduct(flattenPars(ps) map (interp(_, env, Bag()) map {case UnitVal(s) => s})),
         x => interpSends(sends ++ x))
 
     case Seq(Nil) =>
@@ -60,9 +58,8 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
       nondeterministic[Val,Val](
         interp(rcv, env, sends),
         { case svc@ServiceVal(srvVal, x) =>
-            nondeterministic[List[Val], Val](
-              crossProductList(args map (interp(_, env, Bag()))),
-              argVals => interpSends(sends + SendVal(svc, argVals))
+            crossProductList(args map (interp(_, env, Bag()))) map (
+              argVals => UnitVal(sends + SendVal(svc, argVals))
             )
         }
       )
@@ -78,7 +75,7 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
         canSend,
         {case (srv, r, m) =>
           val (newProg, newEnv, restSends) = fireRule(srv, r, m, sends)
-          interp(newProg, newEnv, restSends) + UnitVal(sends)
+          interp(newProg, newEnv, restSends)
         })
   }
 
@@ -109,7 +106,7 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
   def fireRule(server: ServerVal, rule: Rule, ma: Match, orig: Bag[SendVal]): (Exp, Env, Bag[SendVal]) = {
     val env = server.env ++ ma.subst + ('this -> server)
     val rest = orig diff ma.used
-    (rule.p, env, rest)
+    (Par(rule.p), env, rest)
   }
 
   def collectRules(s: SendVal): Bag[(ServerVal, Rule)] = {

@@ -88,4 +88,19 @@ class Data(router: Router) {
     case v => BaseVal(v)
   }
 
+
+  object FlattenParWithExpClosure extends Mapper {
+    override def map(e: Exp) = e match {
+      case Par(es) => Par(flattenPars(es))
+      case ExpClosure(p, env) => map(p) match {
+        case Par(es) => Par(Bag[Exp]() ++ es.map(ExpClosure(_, env)))
+        case e => ExpClosure(e, env)
+      }
+      case e => super.map(e)
+    }
+
+    def flattenPars(es: Bag[Exp]) =
+      es flatMap (map(_) match {case Par(es) => es; case e => Bag(e)})
+  }
+
 }

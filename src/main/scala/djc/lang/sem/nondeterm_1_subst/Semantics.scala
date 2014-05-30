@@ -16,6 +16,7 @@ import djc.lang.sem.nondeterm_1_subst.Data.ServiceVal
 import djc.lang.sem.nondeterm_1_subst.Data.ServerVal
 import djc.lang.Syntax.ServiceRef
 import djc.lang.Syntax.Rule
+import djc.lang.FlattenPar.flattenPars
 
 object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] {
   import Crossproduct._
@@ -24,10 +25,7 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
 
   def normalizeVal(v: Val) = v.asInstanceOf[UnitVal].sval map (_.toSend)
 
-  override def interp(p: Exp) = {
-    val res = interp(p, Bag())
-    res filter (v => interp(v.toProg, Bag()).size == 1)
-  }
+  override def interp(p: Par) = interp(p, Bag())
 
   def interp(p: Exp, sends: Bag[SendVal]): Res[Val] = p match {
     case BaseCall(b, es) =>
@@ -38,7 +36,7 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
 
     case Par(ps) =>
       nondeterministic[Bag[SendVal],Val](
-        crossProduct(ps map (interp(_, Bag()) map {case UnitVal(s) => s})),
+        crossProduct(flattenPars(ps) map (interp(_, Bag()) map {case UnitVal(s) => s})),
         x => interpSends(sends ++ x))
 
     case Seq(Nil) =>
@@ -55,9 +53,8 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
       nondeterministic[Val,Val](
         interp(rcv, sends),
         {case rcvVal@ServiceVal(_, _) =>
-          nondeterministic[List[Val], Val](
-            crossProductList(args map (interp(_, Bag()))),
-            argvals => interpSends(sends + SendVal(rcvVal, argvals))
+          crossProductList(args map (interp(_, Bag()))) map (
+            argvals => UnitVal(sends + SendVal(rcvVal, argvals))
           )
         }
       )
@@ -84,7 +81,7 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
         canSend,
         p => {
           val (newProg, newQueue) = fireRule(p._1, p._2, p._3, sends)
-          interp(newProg, newQueue) + UnitVal(sends)
+          interp(newProg, newQueue)
         })
   }
 
@@ -117,7 +114,7 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
     for ((x, v) <- ma.subst)
       p = Substitution(x, v.toProg)(p)
     val rest = orig diff ma.used
-    (p, rest)
+    (Par(p), rest)
   }
 
   def collectRules(s: SendVal): Bag[(ServerVal, Rule)] = {

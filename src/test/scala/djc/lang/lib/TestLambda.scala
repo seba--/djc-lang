@@ -11,13 +11,14 @@ import djc.lang.typ.Types._
 import djc.lang.TypedSyntax.Var
 import djc.lang.TypedSyntax.ServiceRef
 import djc.lang.TypedSyntax.Rule
+import djc.lang.TypedSyntaxDerived._
 
 
-//class TestLambda1 extends TestLambda(nondeterm_1_subst.Semantics())
-//class TestLambda2 extends TestLambda(nondeterm_2_env.Semantics())
-//class TestLambda3 extends TestLambda(new nondeterm_3_routed.Semantics().newInstance())
-//class TestLambda4 extends TestLambda(new nondeterm_4_grouped.Semantics().newInstance())
-//class TestLambda5 extends TestLambda(new nondeterm_5_parallel.Semantics().newInstance())
+class TestLambda1 extends TestLambda(nondeterm_1_subst.Semantics)
+class TestLambda2 extends TestLambda(nondeterm_2_env.Semantics)
+class TestLambda3 extends TestLambda(nondeterm_3_routed.SemanticsFactory)
+class TestLambda4 extends TestLambda(nondeterm_4_grouped.SemanticsFactory)
+class TestLambda5 extends TestLambda(nondeterm_5_parallel.SemanticsFactory)
 class TestLambda6 extends TestLambda(concurrent_6_thread.SemanticsFactory, false)
 
 

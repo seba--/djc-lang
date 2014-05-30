@@ -7,6 +7,7 @@ import djc.lang.sem.{ISemanticsFactory, AbstractSemantics}
 
 import Data._
 import Router._
+import djc.lang.FlattenPar.flattenPars
 
 /**
  * Created by seba on 09/04/14.
@@ -30,7 +31,7 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
     // all data is in the global state
     def normalizeVal(v: Val) = ((Bag() ++ router.routeTable.values) map (_.normalizeVal)).flatten
 
-    override def interp(p: Exp): Res[Val] = {
+    override def interp(p: Par): Res[Val] = {
       val res = interp(p, Map())
       ServerThread.waitUntilStable(router.routeTable.values)
       val res2 = res filter (v => interp(v.toNormalizedProg, Map()).size == 1)
@@ -60,8 +61,8 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
         }
 
 
-      case Par(ps) if (ps map (interp(_, env))).forall(_ == Set(UnitVal)) =>
-        Set(UnitVal)
+      case Par(ps) =>
+        flattenPars(ps).map(interp(_, env)).foldLeft[Res[Val]](Set(UnitVal)) ((p1,p2) => (p1.head, p2.head) match {case (UnitVal,UnitVal) => Set(UnitVal)})
 
       case Seq(Nil) =>
         Set(UnitVal)
@@ -120,7 +121,7 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
       val serverThread = router.lookupAddr(server.addr)
       val env = serverThread.env ++ ma.subst + ('this -> server)
       val newQueue = oldQueue -- ma.used
-      (rule.p, env, newQueue)
+      (Par(rule.p), env, newQueue)
     }
   }
 }

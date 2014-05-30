@@ -36,6 +36,7 @@ object Data {
   trait ISendVal {
     def rcv: IServiceVal
     def args: List[Value]
+    def toNormalizedProg: Send
     def toNormalizedResolvedProg: Send
   }
 
@@ -70,6 +71,7 @@ class Data(router: Router) {
   case class Match(subst: Map[Symbol, Value], used: Bag[ISendVal])
 
   case class SendVal(rcv: ServiceVal, args: List[Value]) extends ISendVal {
+    def toNormalizedProg = Send(rcv.toNormalizedProg, args map (_.toNormalizedProg))
     def toNormalizedResolvedProg = Send(rcv.toNormalizedResolvedProg, args map (_.toNormalizedResolvedProg))
   }
 
