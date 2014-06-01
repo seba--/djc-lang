@@ -11,9 +11,11 @@ class Server(sem: ISemantics, val impl: ServerImpl, val env: Env, currentThread:
 
   var addr: ServerAddr = null
 
-  var dirty = false
+  private var dirty = false
   var inbox = Bag[ISendVal]()
-  var newMessages = Bag[ISendVal]()
+  private var newMessages = Bag[ISendVal]()
+
+  def hasNewMessages = synchronized (dirty)
 
   def receiveRequest(cl: ISendVal) {
     synchronized {

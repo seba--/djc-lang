@@ -23,9 +23,6 @@ object Data {
     def args: List[Value]
     def toNormalizedResolvedProg: Send
   }
-
-  type Servers = Map[Router.Addr, ServerThread]
-  val emptyServers: Servers = Map()
 }
 import Data._
 
@@ -56,7 +53,7 @@ class Data(router: Router) {
     def toNormalizedResolvedProg = ServiceRef(srv.toNormalizedResolvedProg, x)
   }
 
-  case class Match(subst: Map[Symbol, Value], used: Bag[ISendVal])
+  case class Match(subst: Env, used: Bag[ISendVal])
 
   case class SendVal(rcv: ServiceVal, args: List[Value]) extends ISendVal {
     def toNormalizedResolvedProg = Send(rcv.toNormalizedResolvedProg, args map (_.toNormalizedResolvedProg))

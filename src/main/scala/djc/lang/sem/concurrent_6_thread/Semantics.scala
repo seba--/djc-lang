@@ -35,9 +35,13 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
     def normalizeVal(v: Val) = ((Bag() ++ router.routeTable.values) map (_.normalizeVal)).flatten
 
     override def interp(p: Par): Res[Val] = {
-      val res = interp(p, Map(), null)
-      ServerThread.waitUntilStable(router.routeTable.values)
-      router.routeTable.values.map(_.waitForTermination())
+      var res: Res[Val] = null
+      try {
+        res = interp(p, Map(), null)
+        ServerThread.waitUntilStable(router)
+      } finally {
+        router.routeTable.values.map(_.waitForTermination())
+      }
       res
     }
 

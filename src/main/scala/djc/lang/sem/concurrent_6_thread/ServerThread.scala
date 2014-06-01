@@ -21,11 +21,14 @@ class ServerThread extends Thread {
 
   def requestCounter = synchronized(_requestCounter)
 
+  def hasNewMessages = synchronized(servers).exists(_._2.hasNewMessages)
+
   def receiveRequest(cl: ISendVal) {
     synchronized { _requestCounter += 1 }
 
-    if (terminate || terminated)
+    if (terminate || terminated) {
       throw new IllegalStateException(s"Received send after server termination ($terminate,$terminated): $cl")
+    }
 
     cl.rcvAddr match {
       case ServerAddr(addr, port) => servers(port).receiveRequest(cl)
@@ -33,25 +36,32 @@ class ServerThread extends Thread {
   }
 
   override def run() {
-    while (!terminate) {
-      val ss = synchronized {servers.values}
-      ss map (_.tryFireRules())
-      Thread.sleep(1)
+    try {
+      while (!terminate || hasNewMessages) {
+        val ss = synchronized {
+          servers.values
+        }
+        ss map (_.tryFireRules())
+        //      Thread.sleep(3)
+      }
+      if (!terminate)
+        throw new IllegalStateException(s"Unexpected server termination")
+    } finally {
+      terminated = true
     }
-    if (!terminate)
-      throw new IllegalStateException(s"Unexpected server termination")
-    terminated = true
   }
 
   def normalizeVal: Bag[Send] = {
     val ss = synchronized {servers.values}
     Bag() ++ servers.values flatMap (_.normalizeVal)
   }
-  
+
   def waitForTermination() = {
     terminate = true
-    while (!terminated)
-      Thread.sleep(2)
+    while (!terminated) {
+      Thread.sleep(1)
+    }
+    stop()
   }
 
   override def hashCode =
@@ -81,14 +91,23 @@ object ServerThread {
   var instanceCounter = 0
   def incInstanceCounter() = synchronized( instanceCounter += 1 )
 
-  def waitUntilStable(ss: Iterable[ServerThread]) {
-    var last = ss map (_.requestCounter)
+  def waitUntilStable(router: Router) {
+    var stableCount = 0
+    var last = router.routeTable map (_._2.requestCounter)
     while (true) {
-      Thread.sleep(50)
-      val next = ss map (_.requestCounter)
-      if (next == last)
-        return
-      last = next
+      Thread.sleep(5)
+      val next = router.routeTable map (_._2.requestCounter)
+
+      if (next == last && !router.routeTable.exists(_._2.hasNewMessages)) {
+        if (stableCount > 2)
+          return
+        else
+          stableCount += 1
+      }
+      else {
+        last = next
+        stableCount = 0
+      }
     }
   }
 }
