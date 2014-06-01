@@ -60,11 +60,15 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
         )
 
       case Par(ps) =>
-        nondeterministic[Servers, Val](
-          crossProductMap(flattenPars(ps) map (interp(_, env, emptyServers) map {
-            case (UnitVal, nuServers) => nuServers
+        nondeterministic[Bag[(Router.Addr, ISendVal)], Val](
+          crossProductAlt(flattenPars(ps) map (interp(_, env, emptyServers) map {
+            case (UnitVal, nuServers) => {
+              val hd = nuServers.head
+              (hd._1, hd._2.head)
+            }
           })),
-          nuServers => interpSends(servers &&& nuServers))
+          newSends => interpSends(mergeIntoMap(servers, newSends))
+        )
 
 //      case Seq(Nil) =>
 //        Set((UnitVal, servers))
@@ -90,19 +94,12 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
         )
     }
 
-    implicit val buildSetFromMap = new CanBuildFrom[Map[_,_], Val, Set[Val]] {
-      type From = Map[_,_]
-      type To = Set[Val]
-      def apply(from: From): Builder[Val, To] = Set.newBuilder[Val]
-      def apply(): Builder[Val, To] = Set.newBuilder[Val]
-    }
-
     def interpSends(servers: Servers): Res[Val] = {
       val canSend = selectServerSends(servers)
       if (canSend.isEmpty)
         Set((UnitVal, servers))
       else
-        canSend.flatMap[Val, Set[Val]](p => {
+        canSend.flatMap[Val, Res[Val]](p => {
           val addr = p._1
           nondeterministic[(Rule,Match), Val](
             p._2,
@@ -124,7 +121,7 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
 //        )
     }
 
-    def selectServerSends(servers: Servers): Map[Router.Addr, Res[(Rule, Match)]] = { //Res[(IServerVal, Rule, Match)] = {
+    def selectServerSends(servers: Servers): Map[Router.Addr, Res[(Rule, Match)]] = {
       servers.mapValues(selectSends(_)) filter (!_._2.isEmpty)
     }
 

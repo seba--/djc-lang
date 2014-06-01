@@ -1,6 +1,8 @@
 package djc.lang.sem
 
 import util.Bag
+import scala.collection.generic.CanBuildFrom
+import scala.collection.mutable.Builder
 
 
 object Crossproduct {
@@ -25,14 +27,22 @@ object Crossproduct {
 
   def crossProductAlt[T](tss: Bag[Set[T]]): Set[Bag[T]] =
     if (tss.isEmpty)
-      throw new IllegalArgumentException("Cross product requires non-empty input list")
+      Set(Bag())
     else if (tss.tail.isEmpty)
       tss.head map (Bag(_))
     else {
       val rest = crossProductAlt(tss.tail)
-      for (prod <- rest;
-           t <- tss.head)
-      yield prod + t
+      val hd = tss.head
+      if (hd.isEmpty)
+        rest
+      else if (hd.size == 1) {
+        val hdhd = hd.head
+        rest map (_ + hdhd)
+      }
+      else
+        for (prod <- rest;
+             t <- tss.head)
+        yield prod + t
     }
 
   def crossProductList[T](tss: List[Set[T]]): Set[List[T]] =
@@ -75,6 +85,23 @@ object Crossproduct {
     crossProductMap2inner(tss) map (mergeAllMaps(_))
 
 
+
+  def crossProductNew[K,V](tss: Map[K, Set[V]]): Set[Map[K,V]] =
+    if (tss.isEmpty)
+      Set(Map[K,V]())
+    else if (tss.tail.isEmpty) {
+      val (k,set) = tss.head
+      set map (v => Map(k -> v))
+    }
+    else {
+      val rest = crossProductNew(tss.tail)
+      val (k,set) = tss.head
+      for (prod <- rest;
+           v <- set)
+        yield prod + ((k,v))
+    }
+
+
   implicit class MapOps[K,V](m : Map[K,Bag[V]]) {
     def merge(that: Map[K,Bag[V]]) = mergeMaps(m, that)
     def &&&(that: Map[K,Bag[V]]) = mergeMaps(m, that)
@@ -101,5 +128,20 @@ object Crossproduct {
     m
   }
 
+  def mergeIntoMap[K,V](m: Map[K,Bag[V]], newVals: Bag[(K,V)]) = {
+    var res = m
+    for((k,v) <- newVals)
+      res.get(k) match {
+        case None => res += k -> Bag(v)
+        case Some(vs) => res += k -> (vs + v)
+      }
+    res
+  }
+
+
+  implicit def buildSetFromMap[Val] = new CanBuildFrom[Map[_,_], Val, Set [Val]] {
+    def apply(from: Map[_,_]) = Set.newBuilder[Val]
+    def apply() = Set.newBuilder[Val]
+  }
 
 }
