@@ -7,7 +7,8 @@ import djc.lang.Syntax._
 import Data._
 import Router._
 import djc.lang.FlattenPar.flattenPars
-
+import scala.collection.generic.CanBuildFrom
+import scala.collection.mutable.Builder
 
 
 object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
@@ -89,62 +90,82 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
         )
     }
 
+    implicit val buildSetFromMap = new CanBuildFrom[Map[_,_], Val, Set[Val]] {
+      type From = Map[_,_]
+      type To = Set[Val]
+      def apply(from: From): Builder[Val, To] = Set.newBuilder[Val]
+      def apply(): Builder[Val, To] = Set.newBuilder[Val]
+    }
+
     def interpSends(servers: Servers): Res[Val] = {
       val canSend = selectServerSends(servers)
       if (canSend.isEmpty)
         Set((UnitVal, servers))
       else
-        nondeterministic[(IServerVal, Rule, Match), Val](
-        canSend, {
-          case (srv, r, m) =>
-            val (newProg, newEnv, nuServers) = fireRule(srv, r, m, servers)
-            interp(newProg, newEnv, nuServers)
+        canSend.flatMap[Val, Set[Val]](p => {
+          val addr = p._1
+          nondeterministic[(Rule,Match), Val](
+            p._2,
+            p => {
+              val r = p._1
+              val m = p._2
+              val (newProg, newEnv, nuServers) = fireRule(addr, r, m, servers)
+              interp(newProg, newEnv, nuServers)
+            }
+          )
         })
+
+
+//        nondeterministic[(Rule, Match), Val](
+//          canSend,
+//          (r, m) =>
+//            val (newProg, newEnv, nuServers) = fireRule(srv, r, m, servers)
+//            interp(newProg, newEnv, nuServers)
+//        )
     }
 
-    def selectServerSends(servers: Servers): Res[(IServerVal, Rule, Match)] =
-      servers.values.toSet.map((bag: Bag[ISendVal]) => selectSends(bag)).flatten //TODO is a set really adequate? what about bag?
+    def selectServerSends(servers: Servers): Map[Router.Addr, Res[(Rule, Match)]] = { //Res[(IServerVal, Rule, Match)] = {
+      servers.mapValues(selectSends(_)) filter (!_._2.isEmpty)
+    }
 
-    def selectSends(sends: Bag[ISendVal]): Res[(IServerVal, Rule, Match)] =
-      nondeterministic[(IServerVal, Rule), (IServerVal, Rule, Match)](
-      (sends map collectRules).flatten, {
-        case (srvVal, rule) => matchRule(srvVal, rule.ps, sends) map (x => (srvVal, rule, x))
-      }
+    def selectSends(sends: Bag[ISendVal]): Res[(Rule, Match)] =
+      nondeterministic[Rule, (Rule, Match)](
+        (sends map collectRules).flatten,
+        rule => matchRule(rule.ps, sends) map (x => (rule, x))
       )
 
-    def matchRule(server: IServerVal, pats: Bag[Pattern], sends: Bag[ISendVal]): Res[Match] =
+    def matchRule(pats: Bag[Pattern], sends: Bag[ISendVal]): Res[Match] =
       if (pats.isEmpty)
         Set(Match(Map(), Bag()))
       else {
         val name = pats.head.name
         val params = pats.head.params
         val matchingSends = sends.filter({
-          case SendVal(ServiceVal(`server`, `name`), args) => params.size == args.size
+          case SendVal(ServiceVal(_, `name`), args) => params.size == args.size
           case _ => false
         })
         nondeterministic[ISendVal, Match](
           matchingSends,
-          s => matchRule(server, pats.tail, sends - s) map (
+          s => matchRule(pats.tail, sends - s) map (
             p => Match(p.subst ++ (params zip s.args), p.used + s)
             )
         )
       }
 
-    def fireRule(server: IServerVal, rule: Rule, ma: Match, orig: Servers): (Exp, Env, Servers) = {
-      val ServerClosure(_, env0) = router.lookupAddr(server.addr)
-      val env = env0 ++ ma.subst + ('this -> server)
+    def fireRule(addr: Router.Addr, rule: Rule, ma: Match, orig: Servers): (Exp, Env, Servers) = {
+      val ServerClosure(_, env0) = router.lookupAddr(addr)
+      val env = env0 ++ ma.subst + ('this -> ServerVal(ServerAddr(addr)))
 
-      val raddr = ServerAddr.unapply(server.addr).get
-      val queue = orig(raddr)
+      val queue = orig(addr)
       val newQueue = queue -- ma.used
-      val rest = orig.updated(raddr, newQueue)
+      val rest = orig.updated(addr, newQueue)
 
       (Par(rule.p), env, rest)
     }
 
-    def collectRules(s: ISendVal): Bag[(IServerVal, Rule)] = {
+    def collectRules(s: ISendVal): Res[Rule] = {
       val ServerClosure(impl, _) = router.lookupAddr(s.rcv.srv.addr)
-      impl.rules map ((s.rcv.srv, _))
+      impl.rules
     }
   }
 }
