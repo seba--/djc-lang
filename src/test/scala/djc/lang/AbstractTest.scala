@@ -31,7 +31,7 @@ abstract class AbstractTest[V](semFactory: ISemanticsFactory[V], nondeterm: Bool
   def testInterpUntyped(s: String, p: Syntax.Par, expected: AbstractSemantics.Res[Bag[Syntax.Send]]): Unit = {
     test(s ++ "-interp") {
       val sem = semFactory.newInstance()
-      val res = sem.interp(p)
+      val res = sem.resToSet[V](sem.interp(p))
       val norm = res map (sem.normalizeVal(_))
       val normExpected = expected map (bag => bag.map(s => sigmap(sigmac(s)).asInstanceOf[Syntax.Send]))
       println(s"ServerThread instances: ${ServerThread.instanceCounter}")

@@ -28,6 +28,9 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
         sends.map(sval => sval.toNormalizedResolvedProg)
     }
 
+    type Res[T] = Set[T]
+    def resToSet[T](res: Res[T]) = res
+
     override def interp(p: Par) = interp(p, Map(), emptyServers)
 
     def interp(p: Exp, env: Env, servers: Servers): Res[Val] = p match {

@@ -13,6 +13,9 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
 
   def normalizeVal(v: Val) = v.asInstanceOf[UnitVal].sends map (_.toNormalizedProg)
 
+  type Res[T] = Set[T]
+  def resToSet[T](res: Res[T]) = res
+
   override def interp(p: Par) = interp(p, Map(), Bag())
 
   def interp(p: Exp, env: Env, sends: Bag[SendVal]): Res[Val] = p match {

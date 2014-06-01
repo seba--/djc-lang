@@ -22,6 +22,9 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
 
     def normalizeVal(v: Val) = v.asInstanceOf[UnitVal].sends map (_.toNormalizedResolvedProg)
 
+    type Res[T] = Set[T]
+    def resToSet[T](res: Res[T]) = res
+
     override def interp(p: Par) = interp(p, Map(), Bag())
 
     def interp(p: Exp, env: Env, sends: Bag[SendVal]): Res[Val] = p match {

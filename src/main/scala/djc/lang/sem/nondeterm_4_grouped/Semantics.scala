@@ -23,7 +23,6 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
     import data._
     import Crossproduct._
 
-
     def normalizeVal(v: Val) = v match {
       case (UnitVal, servers) =>
         val sends = servers.foldLeft(Bag[ISendVal]()) {
@@ -31,6 +30,9 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
         }
         sends.map(sval => sval.toNormalizedResolvedProg)
     }
+
+    type Res[T] = Set[T]
+    def resToSet[T](res: Res[T]) = res
 
     override def interp(p: Par) = interp(p, Map(), emptyServers)
 

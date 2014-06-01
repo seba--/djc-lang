@@ -28,6 +28,9 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
   class Semantics(val router: Router, val data: Data) extends AbstractSemantics[Value] with ISemantics {
     import data._
 
+    type Res[T] = T
+    def resToSet[T](res: Res[T]) = Set(res)
+
     // all data is in the global state
     def normalizeVal(v: Val) = ((Bag() ++ router.routeTable.values) map (_.normalizeVal)).flatten
 
@@ -40,17 +43,17 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
 
     def interp(p: Exp, env: Env, currentThread: ServerThread): Res[Val] = p match {
       case BaseCall(b, es) => {
-        val vs = es map (interp(_, env, currentThread).head) map (makeBaseValue(_))
-        Set(unmakeBaseValue(b.reduce(vs)))
+        val vs = es map (interp(_, env, currentThread)) map (makeBaseValue(_))
+        unmakeBaseValue(b.reduce(vs))
       }
 
       case Var(y) if env.isDefinedAt(y) =>
-        Set(env(y))
+        env(y)
 
       case s@ServerImpl(rules, true) if currentThread != null => {
         val server = new Server(this, s, env, currentThread)
         val serverAddr = currentThread.registerServer(server)
-        Set(ServerVal(serverAddr))
+        ServerVal(serverAddr)
       }
 
       case s@ServerImpl(rules, _) => {
@@ -61,35 +64,35 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
         val serverAddr = serverThread.registerServer(server)
 
         serverThread.start()
-        Set(ServerVal(serverAddr))
+        ServerVal(serverAddr)
       }
 
       case ServiceRef(srv, x) =>
-        interp(srv, env, currentThread).head match {
-          case sval@ServerVal(addr) => Set(ServiceVal(sval, x))
+        interp(srv, env, currentThread) match {
+          case sval@ServerVal(addr) => ServiceVal(sval, x)
         }
 
 
       case Par(ps) =>
-        flattenPars(ps).map(interp(_, env, currentThread)).foldLeft[Res[Val]](Set(UnitVal)) ((p1,p2) => (p1.head, p2.head) match {case (UnitVal,UnitVal) => Set(UnitVal)})
+        flattenPars(ps).map(interp(_, env, currentThread)).foldLeft[Res[Val]](UnitVal) ((p1,p2) => (p1, p2) match {case (UnitVal,UnitVal) => UnitVal})
 
-      case Seq(Nil) =>
-        Set(UnitVal)
-      case Seq(p :: Nil) =>
-        interp(p, env, currentThread)
-      case Seq(p :: ps) =>
-        interp(p, env, currentThread).head match {
-          case UnitVal => interp(Seq(ps), env, currentThread)
-        }
+//      case Seq(Nil) =>
+//        Set(UnitVal)
+//      case Seq(p :: Nil) =>
+//        interp(p, env, currentThread)
+//      case Seq(p :: ps) =>
+//        interp(p, env, currentThread).head match {
+//          case UnitVal => interp(Seq(ps), env, currentThread)
+//        }
 
 
       case Send(rcv, args) =>
-        interp(rcv, env, currentThread).head match {
+        interp(rcv, env, currentThread) match {
           case svc@ServiceVal(srvVal, x) =>
             router.lookupAddr(srvVal.addr)
-            val argVals = args map (interp(_, env, currentThread).head)
+            val argVals = args map (interp(_, env, currentThread))
             router.lookupAddr(srvVal.addr).receiveRequest(SendVal(svc, argVals))
-            Set(UnitVal)
+            UnitVal
         }
     }
 
