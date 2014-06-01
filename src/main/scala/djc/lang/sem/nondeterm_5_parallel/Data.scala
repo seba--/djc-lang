@@ -40,10 +40,13 @@ object Data {
     def toNormalizedResolvedProg: Send
   }
 
-  type Servers = Map[Router.Addr, Bag[ISendVal]]
-  val emptyServers: Servers = Map()
+  type BagMap[K,V] = Bag[(K,V)]
+  type SetMap[K,V] = Set[(K,V)]
+
+  type Servers = BagMap[Router.Addr, ISendVal]
+  val emptyServers: Servers = Bag()
   def sendToServer(servers: Servers, addr: Router.Addr, sv: ISendVal): Servers = {
-    servers + (addr -> (servers.getOrElse(addr, Bag()) + sv))
+    servers + (addr -> sv)
   }
 }
 import Data._
@@ -70,7 +73,7 @@ class Data(router: Router) {
   }
 
 
-  case class Match(subst: Map[Symbol, Value], used: Bag[ISendVal])
+  case class Match(subst: Env, used: Bag[(Router.Addr,ISendVal)])
 
   case class SendVal(rcv: ServiceVal, args: List[Value]) extends ISendVal {
     def toNormalizedResolvedProg = Send(rcv.toNormalizedResolvedProg, args map (_.toNormalizedResolvedProg))

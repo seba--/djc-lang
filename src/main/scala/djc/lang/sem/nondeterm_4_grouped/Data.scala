@@ -43,13 +43,6 @@ object Data {
   type BagMap[K,V] = Bag[(K,V)]
   type SetMap[K,V] = Set[(K,V)]
 
-  def lookup[K,V](m: Iterable[(K,V)], k: K): Option[V] = {
-    for ((k2,v2) <- m)
-      if (k == k2)
-        return Some(v2)
-    None
-  }
-
   type Servers = BagMap[Router.Addr, ISendVal]
   val emptyServers: Servers = Bag()
   def sendToServer(servers: Servers, addr: Router.Addr, sv: ISendVal): Servers = {

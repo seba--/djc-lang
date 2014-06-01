@@ -3,6 +3,7 @@ package djc.lang.sem
 import util.Bag
 import scala.collection.generic.CanBuildFrom
 import scala.collection.mutable.Builder
+import scala.collection.immutable.ListMap
 
 
 object Crossproduct {
@@ -86,12 +87,12 @@ object Crossproduct {
 
 
 
-  def crossProductNew[K,V](tss: Map[K, Set[V]]): Set[Map[K,V]] =
+  def crossProductNew[K,V](tss: Map[K, Set[V]]): Set[ListMap[K,V]] =
     if (tss.isEmpty)
-      Set(Map[K,V]())
+      Set(ListMap[K,V]())
     else if (tss.tail.isEmpty) {
       val (k,set) = tss.head
-      set map (v => Map(k -> v))
+      set map (v => ListMap(k -> v))
     }
     else {
       val rest = crossProductNew(tss.tail)

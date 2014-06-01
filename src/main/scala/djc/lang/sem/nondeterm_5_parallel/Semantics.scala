@@ -6,6 +6,7 @@ import djc.lang.sem.{ISemanticsFactory, Crossproduct, AbstractSemantics}
 import djc.lang.Syntax._
 import Data._
 import Router._
+import scala.collection.immutable.ListMap
 
 object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
   def newInstance() = {
@@ -21,21 +22,21 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
 
     def normalizeVal(v: Val) = v match {
       case (UnitVal, servers) =>
-        val sends = servers.values.toSet.foldLeft(Bag[ISendVal]()) {
-          case (b, b1) => b ++ b1
+        val sends = servers.foldLeft(Bag[ISendVal]()) {
+          case (b, b1) => b + b1._2
         }
         sends.map(sval => sval.toNormalizedResolvedProg)
     }
 
-    override def interp(p: Par) = interp(p, Map(), Map())
+    override def interp(p: Par) = interp(p, Map(), emptyServers)
 
     def interp(p: Exp, env: Env, servers: Servers): Res[Val] = p match {
       case BaseCall(b, es) =>
         nondeterministic[(List[BaseValue],Servers), Val](
         crossProductList(es map (interp(_, env, servers))) map (
           _.foldRight ((List[BaseValue](), emptyServers))
-                      ((p, r) => (makeBaseValue(p._1)::r._1, p._2 &&& r._2))),
-        {case (vs, nuservers) => Set((unmakeBaseValue(b.reduce(vs)), servers &&& nuservers))})
+                      ((p, r) => (makeBaseValue(p._1)::r._1, p._2 ++ r._2))),
+        {case (vs, nuservers) => Set((unmakeBaseValue(b.reduce(vs)), servers ++ nuservers))})
 
       case Var(y) if env.isDefinedAt(y) =>
         Set((env(y), emptyServers))
@@ -46,25 +47,23 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
       case s@ServerImpl(_,_) =>
         val raddr = router.registerServer(ServerClosure(s, env))
         val addr = ServerAddr(raddr)
-        val nuServers = Map(raddr -> Bag[ISendVal]())
-        Set((ServerVal(addr), nuServers))
+        Set((ServerVal(addr), emptyServers))
 
       case ServiceRef(srv, x) =>
         nondeterministic[Val, Val](
           interp(srv, env, servers),
-          {case (sval@ServerVal(addr), nuServers) => Set((ServiceVal(sval, x), nuServers))}
+          {case (sval@ServerVal(addr), nuServers) =>
+            Set((ServiceVal(sval, x), emptyServers))}
         )
 
       case Par(ps) =>
-        nondeterministic[Bag[(Router.Addr, ISendVal)], Val](
+        nondeterministic[Servers, Val](
           crossProductAlt(FlattenParWithExpClosure.flattenPars(ps) map (interp(_, env, emptyServers) map {
-            case (UnitVal, nuServers) => {
-              val hd = nuServers.head
-              (hd._1, hd._2.head)
-            }
+            case (UnitVal, nuServers) => nuServers.head
           })),
-          newSends => interpSends(mergeIntoMap(servers, newSends))
+          newSends => interpSends(servers ++ newSends)
         )
+
 
       case Seq(Nil) =>
         Set((UnitVal, servers))
@@ -73,7 +72,7 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
       case Seq(p :: ps) =>
         nondeterministic[Val, Val](
         interp(p, env, servers), {
-          case (UnitVal, nuservers) => interp(Seq(ps), env, servers &&& nuservers)
+          case (UnitVal, nuservers) => interp(Seq(ps), env, servers ++ nuservers)
         }
       )
 
@@ -96,7 +95,7 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
       if (canSend.isEmpty)
         Set((UnitVal, servers))
       else
-        nondeterministic[Map[Router.Addr, (Rule, Match)], Val](
+        nondeterministic[ListMap[Router.Addr, (Rule, Match)], Val](
           crossProductNew(canSend),
           rules => {
             val (newProgs,newServers) = fireRules(rules, servers)
@@ -106,35 +105,36 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
     }
 
     def selectServerSends(servers: Servers): Map[Router.Addr, Res[(Rule, Match)]] = {
-      servers.mapValues(selectSends(_)) filter (!_._2.isEmpty)
+      val newServers = servers.groupBy(_._1).mapValues(selectSends(_))
+      newServers filter(!_._2.isEmpty) //.flatMap(p => p._2 map ((p._1,_)))
     }
 
 
-    def selectSends(sends: Bag[ISendVal]): Res[(Rule, Match)] =
+    def selectSends(sends: Bag[(Router.Addr,ISendVal)]): Res[(Rule, Match)] =
       nondeterministic[Rule, (Rule, Match)](
-        (sends map collectRules).flatten,
+        (sends map (p => collectRules(p._2))).flatten,
         rule => matchRule(rule.ps, sends) map (x => (rule, x))
       )
 
-    def matchRule(pats: Bag[Pattern], sends: Bag[ISendVal]): Res[Match] =
+    def matchRule(pats: Bag[Pattern], sends: Bag[(Router.Addr,ISendVal)]): Res[Match] =
       if (pats.isEmpty)
         Set(Match(Map(), Bag()))
       else {
         val name = pats.head.name
         val params = pats.head.params
         val matchingSends = sends.filter({
-          case SendVal(ServiceVal(_, `name`), args) => params.size == args.size
+          case (_,SendVal(ServiceVal(_, `name`), args)) => params.size == args.size
           case _ => false
         })
-        nondeterministic[ISendVal, Match](
+        nondeterministic[(Router.Addr,ISendVal), Match](
           matchingSends,
           s => matchRule(pats.tail, sends - s) map (
-            p => Match(p.subst ++ (params zip s.args), p.used + s)
+            p => Match(p.subst ++ (params zip s._2.args), p.used + s)
             )
         )
       }
 
-    def fireRules(rules: Map[Router.Addr, (Rule, Match)], oldServers: Servers): (Bag[Exp], Servers) = {
+    def fireRules(rules: ListMap[Router.Addr, (Rule, Match)], oldServers: Servers): (Bag[Exp], Servers) = {
       var newServers = oldServers
       val newProgs = rules map {
         case (srv, (rule, mtch)) => {
@@ -152,10 +152,7 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
       val ServerClosure(_, env0) = router.lookupAddr(addr)
       val env = env0 ++ ma.subst + ('this -> ServerVal(ServerAddr(addr)))
 
-      val queue = orig(addr)
-      val newQueue = queue -- ma.used
-      val rest = orig.updated(addr, newQueue)
-
+      val rest = orig -- ma.used
       (ExpClosure(rule.p, env), rest)
     }
 

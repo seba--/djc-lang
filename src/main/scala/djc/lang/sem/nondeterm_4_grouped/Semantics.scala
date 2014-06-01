@@ -150,11 +150,7 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
       val ServerClosure(_, env0) = router.lookupAddr(addr)
       val env = env0 ++ ma.subst + ('this -> ServerVal(ServerAddr(addr)))
 
-//      val queue = lookup(orig, addr).get
       val rest = orig -- ma.used
-//      val newQueue = queue -- ma.used
-//      val rest = orig.updated(addr, newQueue)
-
       (Par(rule.p), env, rest)
     }
 
