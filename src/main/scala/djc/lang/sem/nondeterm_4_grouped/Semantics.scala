@@ -26,13 +26,13 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
 
     def normalizeVal(v: Val) = v match {
       case (UnitVal, servers) =>
-        val sends = servers.values.toSet.foldLeft(Bag[ISendVal]()) {
-          case (b, b1) => b ++ b1
+        val sends = servers.foldLeft(Bag[ISendVal]()) {
+          case (b, b1) => b + b1._2
         }
         sends.map(sval => sval.toNormalizedResolvedProg)
     }
 
-    override def interp(p: Par) = interp(p, Map(), Map())
+    override def interp(p: Par) = interp(p, Map(), emptyServers)
 
     def interp(p: Exp, env: Env, servers: Servers): Res[Val] = p match {
       case BaseCall(b, es) =>
@@ -60,14 +60,11 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
         )
 
       case Par(ps) =>
-        nondeterministic[Bag[(Router.Addr, ISendVal)], Val](
+        nondeterministic[Servers, Val](
           crossProductAlt(flattenPars(ps) map (interp(_, env, emptyServers) map {
-            case (UnitVal, nuServers) => {
-              val hd = nuServers.head
-              (hd._1, hd._2.head)
-            }
+            case (UnitVal, nuServers) => nuServers.head
           })),
-          newSends => interpSends(mergeIntoMap(servers, newSends))
+          newSends => interpSends(servers ++ newSends)
         )
 
 //      case Seq(Nil) =>
@@ -99,18 +96,17 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
       if (canSend.isEmpty)
         Set((UnitVal, servers))
       else
-        canSend.flatMap[Val, Res[Val]](p => {
-          val addr = p._1
-          nondeterministic[(Rule,Match), Val](
-            p._2,
-            p => {
-              val r = p._1
-              val m = p._2
-              val (newProg, newEnv, nuServers) = fireRule(addr, r, m, servers)
-              interp(newProg, newEnv, nuServers)
-            }
-          )
-        })
+        nondeterministic[(Router.Addr, (Rule, Match)), Val](
+          canSend,
+          p => {
+            val addr = p._1
+            val r = p._2._1
+            val m = p._2._2
+            val (newProg, newEnv, nuServers) = fireRule(addr, r, m, servers)
+            interp(newProg, newEnv, nuServers)
+          }
+        )
+    }
 
 
 //        nondeterministic[(Rule, Match), Val](
@@ -119,32 +115,33 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
 //            val (newProg, newEnv, nuServers) = fireRule(srv, r, m, servers)
 //            interp(newProg, newEnv, nuServers)
 //        )
+//    }
+
+    def selectServerSends(servers: Servers): SetMap[Router.Addr, (Rule, Match)] = {
+      val newServers = servers.groupBy(_._1).mapValues(selectSends(_))
+      newServers.flatMap(p => p._2 map ((p._1,_)))
     }
 
-    def selectServerSends(servers: Servers): Map[Router.Addr, Res[(Rule, Match)]] = {
-      servers.mapValues(selectSends(_)) filter (!_._2.isEmpty)
-    }
-
-    def selectSends(sends: Bag[ISendVal]): Res[(Rule, Match)] =
+    def selectSends(sends: Bag[(Router.Addr, ISendVal)]): Res[(Rule, Match)] =
       nondeterministic[Rule, (Rule, Match)](
-        (sends map collectRules).flatten,
+        (sends map (p => collectRules(p._2))).flatten,
         rule => matchRule(rule.ps, sends) map (x => (rule, x))
       )
 
-    def matchRule(pats: Bag[Pattern], sends: Bag[ISendVal]): Res[Match] =
+    def matchRule(pats: Bag[Pattern], sends: Bag[(Router.Addr,ISendVal)]): Res[Match] =
       if (pats.isEmpty)
         Set(Match(Map(), Bag()))
       else {
         val name = pats.head.name
         val params = pats.head.params
         val matchingSends = sends.filter({
-          case SendVal(ServiceVal(_, `name`), args) => params.size == args.size
+          case (_,SendVal(ServiceVal(_, `name`), args)) => params.size == args.size
           case _ => false
         })
-        nondeterministic[ISendVal, Match](
+        nondeterministic[(Router.Addr, ISendVal), Match](
           matchingSends,
           s => matchRule(pats.tail, sends - s) map (
-            p => Match(p.subst ++ (params zip s.args), p.used + s)
+              p => Match(p.subst ++ (params zip s._2.args), p.used + s)
             )
         )
       }
@@ -153,9 +150,10 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
       val ServerClosure(_, env0) = router.lookupAddr(addr)
       val env = env0 ++ ma.subst + ('this -> ServerVal(ServerAddr(addr)))
 
-      val queue = orig(addr)
-      val newQueue = queue -- ma.used
-      val rest = orig.updated(addr, newQueue)
+//      val queue = lookup(orig, addr).get
+      val rest = orig -- ma.used
+//      val newQueue = queue -- ma.used
+//      val rest = orig.updated(addr, newQueue)
 
       (Par(rule.p), env, rest)
     }
