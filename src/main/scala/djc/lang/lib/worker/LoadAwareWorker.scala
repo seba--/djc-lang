@@ -21,11 +21,12 @@ object LoadAwareWorker {
         LocalServerImpl(
           Rule(
             'work?('task -> TTaskK('K), 'k -> ?('K)) && 'load?('n -> TInteger),
-            Def('notifyDone, ?(), 'this~>'done,
+            'this~>'load!!('n + 1) &&
+             Def('outer, TLoadAwareWorkerK('K) ++ TSrv('load -> ?(TInteger), 'done -> ?()), 'this,
                'worker~>'work!!('task, ServiceRef(
                LocalServerImpl(Rule(
                  'cont?('res -> 'K),
-                 Par('notifyDone!!(), 'k!!('res))
+                 ('outer~>'done!!()) && ('k!!('res))
                )),
               'cont)))
           ),
@@ -35,7 +36,7 @@ object LoadAwareWorker {
           ),
           Rule(
             'getLoad?('notifyLoad -> ?(TInteger)) && 'load?('n -> TInteger),
-            'notifyLoad!!('n)
+            'notifyLoad!!('n) && 'this~>'load!!('n)
           )
         ),
         Par('laWorker~>'load!!(0), 'k!!('laWorker))

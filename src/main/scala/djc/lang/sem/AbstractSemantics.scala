@@ -17,6 +17,8 @@ trait AbstractSemantics[V] {
   def interp(p: Par): Res[Val]
 
   def normalizeVal(v: Val): Bag[Send]
+
+  val isFullyNondeterministic: Boolean
 }
 
 case class SemanticException(msg: String) extends RuntimeException(msg)

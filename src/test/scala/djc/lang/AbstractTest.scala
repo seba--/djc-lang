@@ -11,7 +11,7 @@ import djc.lang.typ.Types._
 import djc.lang.sem.concurrent_6_thread.ServerThread
 
 
-abstract class AbstractTest[V](semFactory: ISemanticsFactory[V], nondeterm: Boolean = true) extends FunSuite {
+abstract class AbstractTest[V](semFactory: ISemanticsFactory[V]) extends FunSuite {
   private[this] val _PRINT_SERVER = ServerImpl(Bag(Rule(Bag(Pattern('PRINT)), Par())))
   val PRINT_SERVER = TAbs('V, UnsafeCast(_PRINT_SERVER, TSrv('PRINT -> ?(TVar('V)))))
   val PRINT_SERVER_NO = PRINT_SERVER(?()).eraseType
@@ -26,23 +26,22 @@ abstract class AbstractTest[V](semFactory: ISemanticsFactory[V], nondeterm: Bool
   def withConstServer(p: Exp) = Def('Const, TSrv('CONST -> TSvc()), CONST_SERVER, p)
 
   def testInterp(s: String, p: TypedSyntax.Par, expected: AbstractSemantics.Res[Bag[TypedSyntax.Send]],
-                 ignore: Syntax.Send => Boolean = (s => true)): Unit =
+                 ignore: Syntax.Send => Boolean = (s => false)): Unit =
     testInterpUntyped(s, p.eraseType, expected map (_.map(_.eraseType)), ignore)
 
   def testInterpUntyped(s: String, p: Syntax.Par, expected: AbstractSemantics.Res[Bag[Syntax.Send]],
-                        ignore: Syntax.Send => Boolean = (s => true)): Unit = {
+                        ignore: Syntax.Send => Boolean = (s => false)): Unit = {
     test(s ++ "-interp") {
       val sem = semFactory.newInstance()
       val res = sem.resToSet[V](sem.interp(p))
       val norm = res map (sem.normalizeVal(_))
       val normFiltered = norm map (ss => ss filter (!ignore(_)))
       val normExpected = expected map (bag => bag.map(s => sigmap(sigmac(s)).asInstanceOf[Syntax.Send]))
-      if (nondeterm)
+      if (sem.isFullyNondeterministic)
         assert(normFiltered == normExpected) //, s"Was $norm, expected $expected")
       else {
-        assert(!normFiltered.isEmpty, s"No result found, expected one of $normExpected")
-        assert(normFiltered.size == 1, s"Too many results found $normFiltered, expected one of $normExpected")
-        assert(normExpected.contains(normFiltered.head), s"Was $normFiltered, expected one of $normExpected")
+        for (result <- normFiltered)
+          assert(normExpected.contains(result), s"Was $normFiltered, expected one of $normExpected")
       }
     }
   }

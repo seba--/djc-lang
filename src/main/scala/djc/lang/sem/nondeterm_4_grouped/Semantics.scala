@@ -31,6 +31,8 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
         sends.map(sval => sval.toNormalizedResolvedProg)
     }
 
+    val isFullyNondeterministic = true
+
     type Res[T] = Set[T]
     def resToSet[T](res: Res[T]) = res
 
@@ -86,8 +88,12 @@ object SemanticsFactory extends ISemanticsFactory[(Value, Servers)] {
         interp(rcv, env, emptyServers), {
           case (svc@ServiceVal(srvVal, x), `emptyServers`) =>
             val addr = ServerAddr.unapply(srvVal.addr).get
-            crossProductList(args.map(interp(_, env, emptyServers) map (_._1))) map (
-               argVals => (UnitVal, sendToServer(servers, addr, SendVal(svc, argVals)))
+            crossProductList(args.map(interp(_, env, emptyServers))) map (
+               argVals => {
+                 val newSends = argVals.foldLeft(emptyServers)((bag, s) => bag ++ s._2)
+                 val normalizedArgVals = argVals map (_._1)
+                 (UnitVal, sendToServer(servers ++ newSends, addr, SendVal(svc, normalizedArgVals)))
+               }
             )
         }
         )

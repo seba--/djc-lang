@@ -60,6 +60,12 @@ object TypedSyntaxDerived {
       Thunk(e)))
 
 
+//  def SendSeq(e1: Send, e2: Send) =
+//  LocalServerImpl(Rule(
+//      'k1?('v1 -> Unit),
+//      e2
+//    ))~>'k1!!(Par(e1))
+
 
 
 }

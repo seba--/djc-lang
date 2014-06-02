@@ -22,6 +22,8 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
 
     def normalizeVal(v: Val) = v.asInstanceOf[UnitVal].sends map (_.toNormalizedResolvedProg)
 
+    val isFullyNondeterministic = true
+
     type Res[T] = Set[T]
     def resToSet[T](res: Res[T]) = res
 
@@ -75,14 +77,22 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
         interp(rcv, env, sends), {
           case svc@ServiceVal(srvVal, x) =>
             crossProductList(args map (interp(_, env, Bag()))) map (
-              argVals => UnitVal(sends + SendVal(svc, argVals))
+              argvals => {
+                var newSends = Bag[SendVal]()
+                val normalizedArgvals = argvals.map {
+                  case UnitVal(sends) => newSends ++= sends; UnitVal(Bag())
+                  case v => v
+                }
+                UnitVal(sends ++ newSends + SendVal(svc, normalizedArgvals))
+              }
             )
         }
         )
     }
 
     def interpSends(sends: Bag[SendVal]): Res[Val] = {
-      val canSend = selectSends(sends)
+//      println(s"Have: ${sends filter (s => s.rcv.x == 'load || s.rcv.x == 'done)}")
+        val canSend = selectSends(sends)
       if (canSend.isEmpty)
         Set(UnitVal(sends))
       else
@@ -123,6 +133,9 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
       val ServerClosure(_, env0) = router.lookupAddr(server.addr)
       val env = env0 ++ ma.subst + ('this -> server)
       val rest = orig diff ma.used
+//      val loads = ma.used filter (s => s.rcv.x == 'load || s.rcv.x == 'done)
+//      if (!loads.isEmpty)
+//        println(s"***Used: ${loads}")
       (Par(rule.p), env, rest)
     }
 

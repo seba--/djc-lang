@@ -16,10 +16,10 @@ class TestBaseWorker2 extends TestBaseWorker(8, nondeterm_2_env.Semantics)
 class TestBaseWorker3 extends TestBaseWorker(8, nondeterm_3_routed.SemanticsFactory)
 class TestBaseWorker4 extends TestBaseWorker(8, nondeterm_4_grouped.SemanticsFactory)
 class TestBaseWorker5 extends TestBaseWorker(8, nondeterm_5_parallel.SemanticsFactory)
-class TestBaseWorker6 extends TestBaseWorker(8, concurrent_6_thread.SemanticsFactory, false)
+class TestBaseWorker6 extends TestBaseWorker(8, concurrent_6_thread.SemanticsFactory)
 
 
-class TestBaseWorker[V](max: Int, semFactory : ISemanticsFactory[V], nondeterm: Boolean = true) extends AbstractTest(semFactory, nondeterm) {
+class TestBaseWorker[V](max: Int, semFactory : ISemanticsFactory[V]) extends AbstractTest(semFactory) {
 
   testType("worker", Worker.worker, Worker.TWorker)
   testType("workerK", Worker.workerK, Worker.TWorkerK)

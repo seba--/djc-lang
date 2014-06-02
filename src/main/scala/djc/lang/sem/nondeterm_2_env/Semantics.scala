@@ -13,6 +13,8 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
 
   def normalizeVal(v: Val) = v.asInstanceOf[UnitVal].sends map (_.toNormalizedProg)
 
+  val isFullyNondeterministic = true
+
   type Res[T] = Set[T]
   def resToSet[T](res: Res[T]) = res
 
@@ -62,7 +64,14 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
         interp(rcv, env, sends),
         { case svc@ServiceVal(srvVal, x) =>
             crossProductList(args map (interp(_, env, Bag()))) map (
-              argVals => UnitVal(sends + SendVal(svc, argVals))
+              argvals => {
+                var newSends = Bag[SendVal]()
+                val normalizedArgvals = argvals.map {
+                  case UnitVal(sends) => newSends ++= sends; UnitVal(Bag())
+                  case v => v
+                }
+                UnitVal(sends ++ newSends + SendVal(svc, normalizedArgvals))
+              }
             )
         }
       )

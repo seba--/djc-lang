@@ -19,10 +19,10 @@ class TestLambda2 extends TestLambda(nondeterm_2_env.Semantics)
 class TestLambda3 extends TestLambda(nondeterm_3_routed.SemanticsFactory)
 class TestLambda4 extends TestLambda(nondeterm_4_grouped.SemanticsFactory)
 class TestLambda5 extends TestLambda(nondeterm_5_parallel.SemanticsFactory)
-class TestLambda6 extends TestLambda(concurrent_6_thread.SemanticsFactory, false)
+class TestLambda6 extends TestLambda(concurrent_6_thread.SemanticsFactory)
 
 
-class TestLambda[V](sem: ISemanticsFactory[V], nondeterm: Boolean = true) extends AbstractTest(sem, nondeterm) {
+class TestLambda[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem) {
 
 
   val xt1 = ?()

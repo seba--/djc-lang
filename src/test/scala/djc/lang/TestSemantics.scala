@@ -14,9 +14,9 @@ class TestSemantics_nondeterm_env extends TestSemantics(nondeterm_2_env.Semantic
 class TestSemantics_nondeterm_routed extends TestSemantics(nondeterm_3_routed.SemanticsFactory)
 class TestSemantics_nondeterm_grouped extends TestSemantics(nondeterm_4_grouped.SemanticsFactory)
 class TestSemantics_nondeterm_parallel extends TestSemantics(nondeterm_5_parallel.SemanticsFactory)
-class TestSemantics_concurrent_thread extends TestSemantics(concurrent_6_thread.SemanticsFactory, false)
+class TestSemantics_concurrent_thread extends TestSemantics(concurrent_6_thread.SemanticsFactory)
 
-abstract class TestSemantics[V](sem: ISemanticsFactory[V], nondeterm: Boolean = true) extends AbstractTest(sem, nondeterm) {
+abstract class TestSemantics[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem) {
   // single message send
   val s1 = ServerImpl(
     Bag(Rule(

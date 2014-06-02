@@ -17,10 +17,10 @@ class TestLoadAwareWorker2 extends TestLoadAwareWorker(8, nondeterm_2_env.Semant
 class TestLoadAwareWorker3 extends TestLoadAwareWorker(8, nondeterm_3_routed.SemanticsFactory)
 class TestLoadAwareWorker4 extends TestLoadAwareWorker(8, nondeterm_4_grouped.SemanticsFactory)
 class TestLoadAwareWorker5 extends TestLoadAwareWorker(8, nondeterm_5_parallel.SemanticsFactory)
-class TestLoadAwareWorker6 extends TestLoadAwareWorker(8, concurrent_6_thread.SemanticsFactory, false)
+class TestLoadAwareWorker6 extends TestLoadAwareWorker(8, concurrent_6_thread.SemanticsFactory)
 
 
-class TestLoadAwareWorker[V](max: Int, semFactory : ISemanticsFactory[V], nondeterm: Boolean = true) extends AbstractTest(semFactory, nondeterm) {
+class TestLoadAwareWorker[V](max: Int, semFactory : ISemanticsFactory[V]) extends AbstractTest(semFactory) {
 
   testType("mkLoadAwareWorkerK", LoadAwareWorker.mkLoadAwareWorker, LoadAwareWorker.mkLoadAwareWorkerType)
 
@@ -34,12 +34,18 @@ class TestLoadAwareWorker[V](max: Int, semFactory : ISemanticsFactory[V], nondet
             ServiceRef(
               LocalServerImpl(Rule(
                 'withTask?('task -> Task.TTaskK(TInteger)),
-                'worker~>'work!!('task, PRINT_SERVER(TInteger)~>'PRINT))),
+                'worker~>'work!!('task,
+                  ServiceRef(
+                    LocalServerImpl(Rule(
+                      'whenDone?('res -> TInteger),
+                      Par(PRINT_SERVER(TInteger)~>'PRINT!!('res), 'worker~>'getLoad!!(PRINT_SERVER(TInteger)~>'PRINT)))),
+                    'whenDone
+                  )))),
               'withTask)))),
         'withWorker))
 
     testType(s"mkFibTaskK_$n", fibWorkerCall, Unit)
-    testInterp(s"mkFibTaskK_$n", fibWorkerCall, Set(Bag(PRINT(Fibonacci.fibAcc(n, 0)))), send => send.rcv.asInstanceOf[Syntax.ServiceRef].srv != PRINT_SERVER_NO)
+    testInterp(s"mkFibTaskK_$n", fibWorkerCall, Set(Bag(PRINT(Fibonacci.fibAcc(n, 0)), PRINT(0)), Bag(PRINT(Fibonacci.fibAcc(n, 0)), PRINT(1))), send => send.rcv.asInstanceOf[Syntax.ServiceRef].srv != PRINT_SERVER_NO)
   }
 
   for (i <- 0 to max)

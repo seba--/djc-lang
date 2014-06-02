@@ -132,17 +132,23 @@ object TypedSyntax {
 
 
   implicit def varSymbol(s: Symbol) = Var(s)
-  implicit def varSymbolInfixExp(s: Symbol) = InfixExp(Var(s))
+  implicit def varSymbolInfixExp(s: Symbol) = new InfixExp(Var(s))
   implicit def varSymbolInfixPattern(s: Symbol) = PatternSymbol(s)
   implicit def patternBag(p: Pattern) = Bag(p)
   implicit def infixPattern(p: Pattern) = InfixPattern(p)
-  implicit def infixExp(e: Exp) = InfixExp(e)
-  case class InfixExp(e1: Exp) {
+//  implicit def infixSend(e: Send) = new InfixSend(e)
+  implicit def infixExp(e: Exp) = new InfixExp(e)
+  class InfixExp(val e1: Exp) {
     def ~>(s: Symbol) = ServiceRef(e1, s)
     def !!(es: Exp*) = Send(e1, List(es:_*))
     def apply(t: Type): Exp = TApp(e1, t)
-    def apply(ts: Type*): Exp = ts.foldLeft(this)((e,t) => InfixExp(e.apply(t))).e1
+    def apply(ts: Type*): Exp = ts.foldLeft(this)((e,t) => new InfixExp(e.apply(t))).e1
+    def &&(e2: Exp): Exp = Par(e1, e2)
+    def &&(e2s: Bag[Exp]): Exp = Par(e2s + e1)
   }
+//  class InfixSend(e1: Send) extends InfixExp(e1) {
+//    def >>(e2: Send) = TypedSyntaxDerived.SendSeq(e1, e2)
+//  }
   case class PatternSymbol(s: Symbol) {
     def ?(ps: (Symbol, Type)*) = Pattern(s, ListMap(ps:_*))
   }

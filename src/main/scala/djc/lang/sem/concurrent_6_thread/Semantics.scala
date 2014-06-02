@@ -34,6 +34,8 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
     // all data is in the global state
     def normalizeVal(v: Val) = ((Bag() ++ router.routeTable.values) map (_.normalizeVal)).flatten
 
+    val isFullyNondeterministic = false
+
     override def interp(p: Par): Res[Val] = {
       var res: Res[Val] = null
       try {
