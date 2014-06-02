@@ -88,7 +88,7 @@ object TypedSyntax {
     def apply(alpha: Symbol, bound: Type, p: Exp): TAbs = TAbs(alpha, Some(bound), p)
   }
 
-  case class TCast(e: Exp, t: Type) extends Exp {
+  case class UnsafeCast(e: Exp, t: Type) extends Exp {
     override def eraseType = e.eraseType
   }
 

@@ -81,7 +81,7 @@ object Checker {
 
       TUniv(alphares, bound1, t)
 
-    case TCast(e, t) => {
+    case UnsafeCast(e, t) => {
       typeCheck(gamma, boundTv, e)
       t
     }
