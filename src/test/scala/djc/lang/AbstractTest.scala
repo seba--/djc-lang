@@ -50,7 +50,7 @@ abstract class AbstractTest[V](semFactory: ISemanticsFactory[V]) extends FunSuit
     test(s ++ "-type") {
       try {
         val tpe = typeCheck(gamma, boundTv, p)
-        assert(tpe == expected)
+        assert(tpe <:< expected)
       } catch {
         case TypeCheckException(msg) => assert(false, msg)
       }

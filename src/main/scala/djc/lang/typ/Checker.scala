@@ -14,7 +14,7 @@ object Checker {
 
     case BaseCall(b, es) => {
       val ts = es map (typeCheck(gamma, boundTv, _))
-      if (ts.corresponds(b.ts)(_ === _))
+      if (ts.corresponds(b.ts)(_ <:< _)) // actual arguments have subtypes of declared parameters
         b.res
       else
         throw TypeCheckException(s"Arguments of base call mismatch. Was: $ts, Expected: ${b.ts}")
@@ -37,7 +37,7 @@ object Checker {
         case t => throw TypeCheckException(s"Illegal receiver type. Expected: TSvc(_), was $t\n  in ${Send(rcv, args)}")
       }
       val targs = args.map(typeCheck(gamma, boundTv, _))
-      if (!trcv.params.corresponds(targs)(_===_))
+      if (!targs.corresponds(trcv.params)(_<:<_)) // actual send arguments have subtypes of declared parameters
         throw TypeCheckException(s"Send arguments have wrong types for receiver \n  $rcv.\nArguments: $args\nExpected: ${trcv.params}\nWas: $targs")
       Unit
     }
@@ -84,6 +84,14 @@ object Checker {
     case UnsafeCast(e, t) => {
       typeCheck(gamma, boundTv, e)
       t
+    }
+
+    case UpCast(e, t) => {
+      val te = typeCheck(gamma, boundTv, e)
+      if (te <:< t)
+        t
+      else
+        throw TypeCheckException(s"Cannot upcast\n  expression $e\n  of type $te\n  to type $t")
     }
 
     case _ =>

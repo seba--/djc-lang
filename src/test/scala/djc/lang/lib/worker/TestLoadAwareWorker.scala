@@ -29,7 +29,7 @@ class TestLoadAwareWorker[V](max: Int, semFactory : ISemanticsFactory[V]) extend
     LoadAwareWorker.mkLoadAwareWorker(TInteger)!!(Worker.workerK(TInteger),
       ServiceRef(
         LocalServerImpl(Rule(
-          'withWorker?('worker -> (LoadAwareWorker.TLoadAwareWorkerK(TInteger) ++ TSrv('load -> ?(TInteger), 'done -> ?()))),
+          'withWorker?('worker -> LoadAwareWorker.TLoadAwareWorkerK(TInteger)),
           Task.mkFibTaskK!!(n,
             ServiceRef(
               LocalServerImpl(Rule(

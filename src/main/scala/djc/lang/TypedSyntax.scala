@@ -92,6 +92,10 @@ object TypedSyntax {
     override def eraseType = e.eraseType
   }
 
+  case class UpCast(e: Exp, t: Type) extends Exp {
+    override def eraseType = e.eraseType
+  }
+
   case class Rule(ps: Bag[Pattern], p: Exp) {
     def eraseType = Syntax.Rule(ps map (_.eraseType), p.eraseType)
 
@@ -145,6 +149,7 @@ object TypedSyntax {
     def apply(ts: Type*): Exp = ts.foldLeft(this)((e,t) => new InfixExp(e.apply(t))).e1
     def &&(e2: Exp): Exp = Par(e1, e2)
     def &&(e2s: Bag[Exp]): Exp = Par(e2s + e1)
+    def cast(t: Type) = UpCast(e1, t)
   }
 //  class InfixSend(e1: Send) extends InfixExp(e1) {
 //    def >>(e2: Send) = TypedSyntaxDerived.SendSeq(e1, e2)
@@ -201,6 +206,10 @@ object TypedSyntax {
         TApp(map(p1), mapType(t))
       case TAbs(alpha, bound1, p1) =>
         TAbs(alpha, bound1.map(mapType(_)), map(p1))
+      case UnsafeCast(e, t) =>
+        UnsafeCast(map(e), mapType(t))
+      case UpCast(e, t) =>
+        UpCast(map(e), mapType(t))
       case BaseCall(b, ps) =>
         BaseCall(b, ps map map)
     }
@@ -248,6 +257,10 @@ object TypedSyntax {
         fold(foldType(init)(t))(p1)
       case TAbs(alpha, bound1, p1) =>
         fold(bound1.map(foldType(init)(_)).getOrElse(init))(p1)
+      case UnsafeCast(e, t) =>
+        fold(foldType(init)(t))(e)
+      case UpCast(e, t) =>
+        fold(foldType(init)(t))(e)
       case BaseCall(b, ps) =>
         ps.foldLeft(init)(fold(_)(_))
     }
