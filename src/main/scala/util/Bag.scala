@@ -14,7 +14,7 @@ class Bag[T](m: ListMap[T, Int]) extends scala.collection.immutable.Set[T]
 
   override def seq: Bag[T] = this
 
-  override def +(t: T): Bag[T] = new Bag(m + (t -> m.getOrElse(t, 1)))
+  override def +(t: T): Bag[T] = new Bag(m + (t -> (m.getOrElse(t, 0) + 1)))
 
   override def -(t: T) = {
     val count = m.getOrElse(t, 0)
