@@ -4,6 +4,7 @@ import util.Bag
 import scala.collection.immutable.ListMap
 
 import djc.lang.typ.Types._
+import djc.lang.typ.SubstType
 
 object TypedSyntax {
 
@@ -137,15 +138,23 @@ object TypedSyntax {
   case class InfixExp(e1: Exp) {
     def ~>(s: Symbol) = ServiceRef(e1, s)
     def !!(es: Exp*) = Send(e1, List(es:_*))
+    def apply(t: Type): Exp = TApp(e1, t)
+    def apply(ts: Type*): Exp = ts.foldLeft(this)((e,t) => InfixExp(e.apply(t))).e1
   }
   case class InfixPattern(s: Symbol) {
     def ?(ps: (Symbol, Type)*) = Pattern(s, ListMap(ps:_*))
   }
 
-  implicit def ?(ts: Type*) = TSvc(List(ts:_*))
-
-
-
+  def ?(ts: Type*) = TSvc(List(ts:_*))
+  implicit def tvarSymbol(s: Symbol) = TVar(s)
+  implicit def infixType(t: Type) = InfixType(t)
+  case class InfixType(t: Type) {
+    def apply(t2: Type): Type = t match {
+      case TUniv(x, _, t1) => SubstType(x, t2)(t1)
+      case _ => throw new IllegalArgumentException(s"Expect TUniv but got $t")
+    }
+    def apply(t2s: Type*): Type = t2s.foldLeft(this)((t, t2) => InfixType(t.apply(t2))).t
+  }
 
 
 

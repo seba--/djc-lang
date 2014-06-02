@@ -13,7 +13,7 @@ import djc.lang.sem.concurrent_6_thread.ServerThread
 
 abstract class AbstractTest[V](semFactory: ISemanticsFactory[V], nondeterm: Boolean = true) extends FunSuite {
   private[this] val _PRINT_SERVER = ServerImpl(Bag(Rule(Bag(Pattern('PRINT)), Par())))
-  def PRINT_SERVER(t: Type) = TApp(TAbs('V, TCast(_PRINT_SERVER, TSrv('PRINT -> ?(TVar('V))))), t)
+  val PRINT_SERVER = TAbs('V, TCast(_PRINT_SERVER, TSrv('PRINT -> ?(TVar('V)))))
   val PRINT_SERVER_NO = PRINT_SERVER(?()).eraseType
   val CONST_SERVER = ServerImpl(Bag(Rule(Bag(Pattern('CONST)), Par())))
   val CONST_SERVER_NO = CONST_SERVER.eraseType

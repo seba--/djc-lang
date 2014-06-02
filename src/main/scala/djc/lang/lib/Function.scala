@@ -8,11 +8,10 @@ import util.Bag
 
 object Function {
 
-  val consumeType = TUniv('A, TSvc(TVar('A)))
+  val consumeType = TUniv('A, ?('A))
   val consume =
-    Def('Id, TUniv('A, TSrv('id -> TSvc(TVar('A)))),
-      TAbs('A, 
-        ServerImpl(Rule(Bag(Pattern('id, 'x -> TVar('A))), Par()))),
-      TAbs('B, ServiceRef(TApp(Var('Id), TVar('B)), 'id)))
-
+    TAbs('A,
+      ServiceRef(
+        ServerImpl(Rule(Bag(Pattern('consume, 'x -> TVar('A))), Par())),
+        'consume))
 }
