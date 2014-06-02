@@ -10,8 +10,5 @@ object Function {
 
   val consumeType = TUniv('A, ?('A))
   val consume =
-    TAbs('A,
-      ServiceRef(
-        LocalServerImpl(Rule(Bag(Pattern('consume, 'x -> TVar('A))), Par())),
-        'consume))
+    TAbs('A, LocalService('consume?('x -> TVar('A)), Par()))
 }

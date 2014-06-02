@@ -23,6 +23,9 @@ object TypedSyntaxDerived {
     Def(x, xt, s, p)
   }
 
+  def Service(p: Pattern, e: Exp) = ServiceRef(ServerImpl(Rule(Bag(p), e)), p.name)
+  def LocalService(p: Pattern, e: Exp) = ServiceRef(LocalServerImpl(Rule(Bag(p), e)), p.name)
+
   def LambdaServer(x: Symbol, xt: Type, e: Exp, resT: TSrv, init: Exp=Par()): Exp =
     ServiceRef(
       ServerImpl(

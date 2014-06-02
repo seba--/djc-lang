@@ -14,20 +14,13 @@ object Task {
   val TTaskK = TUniv('K, ?(?('K)))
 
   val mkFibTaskType = TFun(TInteger, TTask)
-  val mkFibTask = LocalServerImpl(
-    Rule(
+  val mkFibTask = LocalService(
       'make?('n -> TInteger, 'k -> ?(TTask)),
       'k!!(Thunk(Fibonacci.fib!!('n, Function.consume(TInteger)))))
-  )~>'make
+
 
   val mkFibTaskTypeK = TFun(TInteger, TTaskK(TInteger))
-  val mkFibTaskK = LocalServerImpl(
-    Rule(
+  val mkFibTaskK = LocalService(
       'make?('n -> TInteger, 'k -> ?(TTaskK(TInteger))),
-      'k!!(ServiceRef(
-        LocalServerImpl(Rule(
-          'force?('k2 -> ?(TInteger)),
-          Fibonacci.fib!!('n, 'k2))),
-        'force)))
-  )~>'make
+      'k!!(LocalService('force?('k2 -> ?(TInteger)), Fibonacci.fib!!('n, 'k2))))
 }

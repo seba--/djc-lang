@@ -36,25 +36,19 @@ object Fibonacci {
 
   val fibType = TFun(TInteger, TInteger)
   val fib =
-    ServiceRef(LocalServerImpl(Rule(
-        Bag('fib?('n -> TBase('Int), 'k -> ?(TBase('Int)))),
-        Def('FIB, fibType, 'this~>'fib,
-          Ifc(
-            'n <== 1,
-            'k!!(1),
-            'FIB!!(
-              'n - 1,
-              ServiceRef(
-                LocalServerImpl(Rule(
-                  Bag('k1?('v1->TBase('Int))),
-                  'FIB!!(
-                    'n - 2,
-                    ServiceRef(
-                      LocalServerImpl(Rule(
-                        Bag('k2?('v2->TBase('Int))),
-                        'k!!('v1+'v2))),
-                      'k2)))),
-                'k1)
-            ))))),
-      'fib)
+    LocalService(
+      'fib?('n -> TBase('Int), 'k -> ?(TBase('Int))),
+      Def('FIB, fibType, 'this~>'fib,
+        Ifc(
+          'n <== 1,
+          'k!!(1),
+          'FIB!!(
+            'n - 1,
+            LocalService(
+              'k1?('v1->TBase('Int)),
+              'FIB!!(
+                'n - 2,
+                LocalService(
+                  'k2?('v2->TBase('Int)),
+                  'k!!('v1+'v2))))))))
 }

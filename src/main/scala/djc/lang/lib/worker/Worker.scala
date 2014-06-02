@@ -2,6 +2,7 @@ package djc.lang.lib.worker
 
 import djc.lang.typ.Types._
 import djc.lang.TypedSyntax._
+import djc.lang.TypedSyntaxDerived._
 import djc.lang.lib.worker.Task._
 
 object Worker {
@@ -27,11 +28,7 @@ object Worker {
   val workerN = TAbs('K, ServerImpl(
     Rule(
       'work?('task -> TTaskK('K), 'k -> ?()),
-      'task!!(ServiceRef(
-        LocalServerImpl(Rule(
-          'notifyDone?('k2 -> ?('K)),
-          'k!!())),
-        'notifyDone))
+      'task!!(LocalService('notifyDone?('k2 -> ?('K)), 'k!!()))
     )
   ))
 
