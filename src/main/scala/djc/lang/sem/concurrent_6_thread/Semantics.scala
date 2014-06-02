@@ -42,6 +42,7 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
       } finally {
         router.routeTable.values.map(_.waitForTermination())
       }
+      println(s"ServerThread instances: ${ServerThread.instanceCounter}")
       res
     }
 

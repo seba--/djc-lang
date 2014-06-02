@@ -34,7 +34,6 @@ abstract class AbstractTest[V](semFactory: ISemanticsFactory[V], nondeterm: Bool
       val res = sem.resToSet[V](sem.interp(p))
       val norm = res map (sem.normalizeVal(_))
       val normExpected = expected map (bag => bag.map(s => sigmap(sigmac(s)).asInstanceOf[Syntax.Send]))
-      println(s"ServerThread instances: ${ServerThread.instanceCounter}")
       if (nondeterm)
         assert(norm == normExpected) //, s"Was $norm, expected $expected")
       else {
@@ -47,8 +46,12 @@ abstract class AbstractTest[V](semFactory: ISemanticsFactory[V], nondeterm: Bool
 
   def testType(s: String, p: Exp, expected: Type, gamma: Context=Map(), boundTv: Set[Symbol]=Set()) = {
     test(s ++ "-type") {
-      val tpe = typeCheck(gamma, boundTv, p)
-      assert(tpe == expected)
+      try {
+        val tpe = typeCheck(gamma, boundTv, p)
+        assert(tpe == expected)
+      } catch {
+        case TypeCheckException(msg) => assert(false, msg)
+      }
     }
   }
 }

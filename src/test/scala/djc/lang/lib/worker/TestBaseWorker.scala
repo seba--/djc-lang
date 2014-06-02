@@ -21,27 +21,37 @@ class TestBaseWorker6 extends TestBaseWorker(8, concurrent_6_thread.SemanticsFac
 
 class TestBaseWorker[V](max: Int, semFactory : ISemanticsFactory[V], nondeterm: Boolean = true) extends AbstractTest(semFactory, nondeterm) {
 
-  testType("fibWorker", BaseWorker.fibWorker, BaseWorker.fibWorkerType)
+  testType("worker", Worker.worker, Worker.TWorker)
+  testType("workerK", Worker.workerK, Worker.TWorkerK)
 
-  def testFibWorker(n: Int) {
-    val fibWokrerCall = Send(BaseWorker.fibWorker~>'work, n)
-    testType(s"ffibWorker_$n", fibWokrerCall, Unit)
-    testInterp(s"fibWorker_$n", fibWokrerCall, Set(Bag()))
+  testType("mkFibTask", Task.mkFibTask, Task.mkFibTaskType)
+  def testmkFibTask(n: Int) {
+    val mkFibTaskCall = Send(Task.mkFibTask, n, Worker.worker~>'work)
+    testType(s"mkFibTask_$n", mkFibTaskCall, Unit)
+    testInterp(s"mkFibTask_$n", mkFibTaskCall, Set(Bag()))
   }
 
   for (i <- 0 to max)
-    testFibWorker(i)
+    testmkFibTask(i)
 
 
-  testType("fibWorkerK", BaseWorker.fibWorkerK, BaseWorker.fibWorkerTypeK)
+  testType("mkFibTaskK", Task.mkFibTaskK, Task.mkFibTaskTypeK)
 
-  def testFibWorkerK(n: Int) {
-    val fibWokrerCall = Send(BaseWorker.fibWorkerK~>'work, n, PRINT_SERVER(TInteger)~>'PRINT)
-    testType(s"fibWorkerK_$n", fibWokrerCall, Unit)
-    testInterp(s"fibWorkerK_$n", fibWokrerCall, Set(Bag(PRINT(Fibonacci.fibAcc(n, 0)))))
+  def testmkFibTaskK(n: Int) {
+    val fibWokrerCall =
+      Send(
+        Task.mkFibTaskK,
+        n,
+        ServiceRef(
+          LocalServerImpl(Rule(
+            Bag(Pattern('cont, 'task -> Task.TTaskK(TInteger))),
+            Worker.workerK(TInteger)~>'work!!('task, PRINT_SERVER(TInteger)~>'PRINT))),
+          'cont))
+    testType(s"mkFibTaskK_$n", fibWokrerCall, Unit)
+    testInterp(s"mkFibTaskK_$n", fibWokrerCall, Set(Bag(PRINT(Fibonacci.fibAcc(n, 0)))))
   }
 
   for (i <- 0 to max)
-    testFibWorkerK(i)
+    testmkFibTaskK(i)
 
 }
