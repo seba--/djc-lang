@@ -10,6 +10,8 @@ object Checker {
   case class TypeCheckException(msg: String) extends RuntimeException(msg)
 
   def typeCheck(gamma: Context, boundTv: Set[Symbol], p: Exp): Type = p match {
+//    case _ if {println(s"gammma: ${gamma.keys}");false} => ?()
+
     case BaseCall(b, es) => {
       val ts = es map (typeCheck(gamma, boundTv, _))
       if (ts.corresponds(b.ts)(_ === _))
@@ -32,7 +34,7 @@ object Checker {
     case Send(rcv, args) => {
       val trcv: TSvc = typeCheck(gamma, boundTv, rcv) match {
         case t: TSvc => t
-        case t => throw TypeCheckException(s"Illegal receiver type. Expected: TSvc(_), was: $t")
+        case t => throw TypeCheckException(s"Illegal receiver type. Expected: TSvc(_), was $t\n  in ${Send(rcv, args)}")
       }
       val targs = args.map(typeCheck(gamma, boundTv, _))
       if (!trcv.params.corresponds(targs)(_===_))
@@ -41,7 +43,7 @@ object Checker {
     }
 
     case Var(x) =>
-      gamma.getOrElse(x, throw TypeCheckException(s"Unbound variable $x"))
+      gamma.getOrElse(x, throw TypeCheckException(s"Unbound variable $x\ngamma: $gamma\nboundTv: $boundTv"))
 
     case ServiceRef(srv, x) =>
       typeCheck(gamma, boundTv, srv) match {
@@ -60,7 +62,9 @@ object Checker {
     }
 
 
-    case TApp(p2, t) if FreeTypeVars(t) subsetOf boundTv =>
+    case TApp(p2, t) =>
+      if (!(FreeTypeVars(t) subsetOf boundTv))
+        throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\nboundTv: $boundTv\n  free type vars ${FreeTypeVars(t) -- boundTv}")
       typeCheck(gamma, boundTv, p2) match {
         case TUniv(alpha, bound, t2) if t <:< bound =>
           SubstType(alpha, t)(t2)
@@ -89,7 +93,10 @@ object Checker {
 
   def typecheckRule(gamma: Context, boundTv: Set[Symbol], r: Rule, srvSignature: TSrv): Type = {
 //    val t = typeCheck(gamma ++ srvSignature.svcs ++ r.rcvars, boundTv, r.p)
-    val t = typeCheck(gamma ++ r.rcvars + ('this -> srvSignature), boundTv, r.p)
+    val ruleGamma = gamma ++ r.rcvars + ('this -> srvSignature)
+//    println(s"rule-pats: ${r.ps}")
+//    println(s"rule-gamma: ${ruleGamma.keys}")
+    val t = typeCheck(ruleGamma, boundTv, r.p)
     if (!(t === Unit))
       throw TypeCheckException(s"Illegal rule type in rule $r, expected: Unit, was: $t")
     t

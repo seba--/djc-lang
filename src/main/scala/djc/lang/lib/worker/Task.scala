@@ -16,18 +16,18 @@ object Task {
   val mkFibTaskType = TFun(TInteger, TTask)
   val mkFibTask = LocalServerImpl(
     Rule(
-      Bag(Pattern('run, 'n -> TInteger, 'k -> ?(TTask))),
+      'make?('n -> TInteger, 'k -> ?(TTask)),
       'k!!(Thunk(Fibonacci.fib!!('n, Function.consume(TInteger)))))
-  )~>'run
+  )~>'make
 
   val mkFibTaskTypeK = TFun(TInteger, TTaskK(TInteger))
   val mkFibTaskK = LocalServerImpl(
     Rule(
-      Bag(Pattern('run, 'n -> TInteger, 'k -> ?(TTaskK(TInteger)))),
+      'make?('n -> TInteger, 'k -> ?(TTaskK(TInteger))),
       'k!!(ServiceRef(
         LocalServerImpl(Rule(
-          Bag(Pattern('force, 'k2 -> ?(TInteger))),
+          'force?('k2 -> ?(TInteger)),
           Fibonacci.fib!!('n, 'k2))),
         'force)))
-  )~>'run
+  )~>'make
 }

@@ -25,21 +25,24 @@ abstract class AbstractTest[V](semFactory: ISemanticsFactory[V], nondeterm: Bool
   def withPrintServer(p: Exp) = Def('Print, TSrv('PRINT -> TSvc()), _PRINT_SERVER, p)
   def withConstServer(p: Exp) = Def('Const, TSrv('CONST -> TSvc()), CONST_SERVER, p)
 
-  def testInterp(s: String, p: TypedSyntax.Par, expected: AbstractSemantics.Res[Bag[TypedSyntax.Send]]): Unit =
-    testInterpUntyped(s, p.eraseType, expected map (_.map(_.eraseType)))
+  def testInterp(s: String, p: TypedSyntax.Par, expected: AbstractSemantics.Res[Bag[TypedSyntax.Send]],
+                 ignore: Syntax.Send => Boolean = (s => true)): Unit =
+    testInterpUntyped(s, p.eraseType, expected map (_.map(_.eraseType)), ignore)
 
-  def testInterpUntyped(s: String, p: Syntax.Par, expected: AbstractSemantics.Res[Bag[Syntax.Send]]): Unit = {
+  def testInterpUntyped(s: String, p: Syntax.Par, expected: AbstractSemantics.Res[Bag[Syntax.Send]],
+                        ignore: Syntax.Send => Boolean = (s => true)): Unit = {
     test(s ++ "-interp") {
       val sem = semFactory.newInstance()
       val res = sem.resToSet[V](sem.interp(p))
       val norm = res map (sem.normalizeVal(_))
+      val normFiltered = norm map (ss => ss filter (!ignore(_)))
       val normExpected = expected map (bag => bag.map(s => sigmap(sigmac(s)).asInstanceOf[Syntax.Send]))
       if (nondeterm)
-        assert(norm == normExpected) //, s"Was $norm, expected $expected")
+        assert(normFiltered == normExpected) //, s"Was $norm, expected $expected")
       else {
-        assert(!norm.isEmpty, s"No result found, expected one of $normExpected")
-        assert(norm.size == 1, s"Too many results found $norm, expected one of $normExpected")
-        assert(normExpected.contains(norm.head), s"Was $norm, expected one of $normExpected")
+        assert(!normFiltered.isEmpty, s"No result found, expected one of $normExpected")
+        assert(normFiltered.size == 1, s"Too many results found $normFiltered, expected one of $normExpected")
+        assert(normExpected.contains(normFiltered.head), s"Was $normFiltered, expected one of $normExpected")
       }
     }
   }

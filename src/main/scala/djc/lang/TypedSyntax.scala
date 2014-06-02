@@ -133,7 +133,9 @@ object TypedSyntax {
 
   implicit def varSymbol(s: Symbol) = Var(s)
   implicit def varSymbolInfixExp(s: Symbol) = InfixExp(Var(s))
-  implicit def varSymbolInfixPattern(s: Symbol) = InfixPattern(s)
+  implicit def varSymbolInfixPattern(s: Symbol) = PatternSymbol(s)
+  implicit def patternBag(p: Pattern) = Bag(p)
+  implicit def infixPattern(p: Pattern) = InfixPattern(p)
   implicit def infixExp(e: Exp) = InfixExp(e)
   case class InfixExp(e1: Exp) {
     def ~>(s: Symbol) = ServiceRef(e1, s)
@@ -141,8 +143,11 @@ object TypedSyntax {
     def apply(t: Type): Exp = TApp(e1, t)
     def apply(ts: Type*): Exp = ts.foldLeft(this)((e,t) => InfixExp(e.apply(t))).e1
   }
-  case class InfixPattern(s: Symbol) {
+  case class PatternSymbol(s: Symbol) {
     def ?(ps: (Symbol, Type)*) = Pattern(s, ListMap(ps:_*))
+  }
+  case class InfixPattern(p1: Pattern) {
+    def &&(ps: Bag[Pattern]) = ps + p1
   }
 
   def ?(ts: Type*) = TSvc(List(ts:_*))
@@ -154,6 +159,15 @@ object TypedSyntax {
       case _ => throw new IllegalArgumentException(s"Expect TUniv but got $t")
     }
     def apply(t2s: Type*): Type = t2s.foldLeft(this)((t, t2) => InfixType(t.apply(t2))).t
+
+    def ++(t2: Type): Type = (t, t2) match {
+      case (TSrv(svcs1), TSrv(svcs2)) =>
+        if (!svcs1.keySet.intersect(svcs2.keySet).isEmpty)
+          throw new IllegalArgumentException(s"Cannot build union of server types: Overlapping service declarations.")
+        else
+          TSrv(svcs1 ++ svcs2)
+      case _ => throw new IllegalArgumentException(s"Cannot build union of server types: Expected server types but got ${(t,t2)}")
+    }
   }
 
 

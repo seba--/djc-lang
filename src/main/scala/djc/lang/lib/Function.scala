@@ -12,6 +12,6 @@ object Function {
   val consume =
     TAbs('A,
       ServiceRef(
-        ServerImpl(Rule(Bag(Pattern('consume, 'x -> TVar('A))), Par())),
+        LocalServerImpl(Rule(Bag(Pattern('consume, 'x -> TVar('A))), Par())),
         'consume))
 }

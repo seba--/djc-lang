@@ -25,19 +25,19 @@ class TestBaseWorker[V](max: Int, semFactory : ISemanticsFactory[V], nondeterm: 
   testType("workerK", Worker.workerK, Worker.TWorkerK)
 
   testType("mkFibTask", Task.mkFibTask, Task.mkFibTaskType)
-  def testmkFibTask(n: Int) {
+  def testFibTask(n: Int) {
     val mkFibTaskCall = Send(Task.mkFibTask, n, Worker.worker~>'work)
     testType(s"mkFibTask_$n", mkFibTaskCall, Unit)
     testInterp(s"mkFibTask_$n", mkFibTaskCall, Set(Bag()))
   }
 
   for (i <- 0 to max)
-    testmkFibTask(i)
+    testFibTask(i)
 
 
   testType("mkFibTaskK", Task.mkFibTaskK, Task.mkFibTaskTypeK)
 
-  def testmkFibTaskK(n: Int) {
+  def testFibTaskK(n: Int) {
     val fibWokrerCall =
       Send(
         Task.mkFibTaskK,
@@ -52,6 +52,6 @@ class TestBaseWorker[V](max: Int, semFactory : ISemanticsFactory[V], nondeterm: 
   }
 
   for (i <- 0 to max)
-    testmkFibTaskK(i)
+    testFibTaskK(i)
 
 }
