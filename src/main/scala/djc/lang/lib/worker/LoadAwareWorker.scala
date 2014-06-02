@@ -17,7 +17,7 @@ object LoadAwareWorker {
   val mkLoadAwareWorker = TAbs('K, LocalService(
     'make?('worker -> TWorkerK('K), 'k -> ?(TLoadAwareWorkerK('K))),
     Def('laWorker, TLoadAwareWorkerK('K) ++ TSrv('load -> ?(TInteger)), // internally we know that there is a 'load service
-      LocalServerImpl(
+      ServerImpl(
         Rule(
           'work?('task -> TTaskK('K), 'k -> ?('K)) && 'load?('n -> TInteger),
           'this~>'load!!('n + 1) &&
