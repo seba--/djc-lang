@@ -93,12 +93,12 @@ object ServerThread {
 
   def waitUntilStable(router: Router) {
     var stableCount = 0
-    var last = router.routeTable map (_._2.requestCounter)
+    var last = router.runningServers map (_.requestCounter)
     while (true) {
-      Thread.sleep(5)
-      val next = router.routeTable map (_._2.requestCounter)
+      Thread.sleep(50)
+      val next = router.runningServers map (_.requestCounter)
 
-      if (next == last && !router.routeTable.exists(_._2.hasNewMessages)) {
+      if (next == last && !router.runningServers.exists(_.hasNewMessages)) {
         if (stableCount > 2)
           return
         else

@@ -32,7 +32,7 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
     def resToSet[T](res: Res[T]) = Set(res)
 
     // all data is in the global state
-    def normalizeVal(v: Val) = ((Bag() ++ router.routeTable.values) map (_.normalizeVal)).flatten
+    def normalizeVal(v: Val) = ((Bag() ++ router.runningServers) map (_.normalizeVal)).flatten
 
     val isFullyNondeterministic = false
 
@@ -42,7 +42,7 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
         res = interp(p, Map(), null)
         ServerThread.waitUntilStable(router)
       } finally {
-        router.routeTable.values.map(_.waitForTermination())
+        router.runningServers.map(_.waitForTermination())
       }
       println(s"ServerThread instances: ${ServerThread.instanceCounter}")
       res

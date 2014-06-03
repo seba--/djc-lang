@@ -35,11 +35,13 @@ import Router._
 
 class Router {
 
-  var routeTable: collection.mutable.Map[Addr, ServerThread] = collection.mutable.Map()
+  private var routeTable: collection.mutable.Map[Addr, ServerThread] = collection.mutable.Map()
 
-  var addrNum = 0
-  val addrPrefix = "Server@"
-  def nextAddr: Addr = {
+  def runningServers = synchronized (routeTable.values)
+
+  private var addrNum = 0
+  private val addrPrefix = "Server@"
+  private def nextAddr: Addr = {
     addrNum += 1
     val addr = addrPrefix + addrNum
     if (!routeTable.isDefinedAt(addr))
@@ -49,12 +51,14 @@ class Router {
   }
 
   def registerServer(s: ServerThread): Addr = {
-    val addr = nextAddr
-    routeTable += (addr -> s)
-    addr
+    synchronized {
+      val addr = nextAddr
+      routeTable += (addr -> s)
+      addr
+    }
   }
 
-  def lookupAddr(addr: Addr): ServerThread = routeTable(addr)
+  def lookupAddr(addr: Addr): ServerThread = synchronized(routeTable(addr))
   def lookupAddr(a: ServerAddr): ServerThread = a match {
     case ServerAddr(addr, port) => lookupAddr(addr)
     case _ => throw new IllegalArgumentException(s"Not a server address: $a")
