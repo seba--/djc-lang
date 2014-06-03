@@ -23,7 +23,7 @@ class TestFibonacci[V](max: Int, semFactory : ISemanticsFactory[V]) extends Abst
   testType("fib", Fibonacci.fib, Fibonacci.fibType)
 
   def testFib(n: Int) {
-    val fibCall = Send(Fibonacci.fib, n, PRINT_SERVER(TInteger) ~> 'PRINT)
+    val fibCall = Send(Fibonacci.fib, n, Spawn(PRINT_SERVER(TInteger))~>'PRINT)
     testType(s"fib_$n", fibCall, Unit)
     testInterp(s"fib_$n", fibCall, Set(Bag(PRINT(Fibonacci.fibAcc(n, 0)))))
   }
