@@ -51,7 +51,7 @@ object Types {
     def apply(svcs: (Symbol, Type)*): TSrvRep = TSrvRep(Map(svcs: _*))
   }
 
-  case class TSrv(rep: TSrvRep) extends Type {
+  case class TSrv(rep: Type) extends Type {
     override def ===(that: Type) = that match {
       case TSrv(rep2) => rep === rep2
       case _ => false

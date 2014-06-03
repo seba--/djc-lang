@@ -24,7 +24,7 @@ object Data {
     }
   }
   case class ServerVal(closure: ServerClosure, n: Int) extends Value {
-    def toNormalizedProg = closure.env.foldLeft[Exp](Spawn(closure.impl)) {
+    def toNormalizedProg = closure.env.foldLeft[Exp](SpawnAny(closure.impl)) {
       case (srv, (x, value)) => Substitution(x, value.toNormalizedProg)(srv)
     }
   }

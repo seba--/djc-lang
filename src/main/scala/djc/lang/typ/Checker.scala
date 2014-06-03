@@ -40,7 +40,7 @@ object Checker {
 
     case ServiceRef(srv, x) =>
       typeCheck(gamma, boundTv, srv) match {
-        case TSrv(rep) if rep.svcs.contains(x) => rep.svcs(x)
+        case TSrv(TSrvRep(svcs)) if svcs.contains(x) => svcs(x)
         case x => throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\nboundTv: $boundTv\nwith $x")
       }
 

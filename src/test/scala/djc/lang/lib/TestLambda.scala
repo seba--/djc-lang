@@ -32,12 +32,12 @@ class TestLambda[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem) {
   testType("lam1", lam1, TFun(xt1, rt1))
 
   val fooService = ServiceRef(
-    ServerImpl(Rule(
+    LocalServer(Rule(
       Bag(Pattern('foo)),
       Par())),
     'foo)
   val resultService = ServiceRef(
-    ServerImpl(Rule(
+    LocalServer(Rule(
       Bag(Pattern('bar, 'result -> rt1)),
       'result!!())),
     'bar
@@ -49,14 +49,37 @@ class TestLambda[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem) {
 
 
   val fooPrintService = ServiceRef(
-    ServerImpl(Rule(
+    LocalServer(Rule(
       Bag(Pattern('foo)),
-      Send(PRINT_SERVER(?())~>'PRINT, ServiceRef('this, 'foo)))),
+      Send(Spawn(PRINT_SERVER(?()))~>'PRINT, 'this~>'foo))),
     'foo)
   val app2 = App(lam1, fooPrintService, resultService)
   testType("app2", app2, Unit)
   testInterp("app2", app2, Set(Bag(PRINT(fooPrintService))))
 
 
+//  Set(
+//    Bag(
+//      Send(
+//        ServiceRef(
+//          Spawn(false,ServerImpl(Bag(
+//            Rule(Bag(Pattern('PRINT)),Par())))),
+//          'PRINT),
+//        List(
+//          ServiceRef(
+//            Spawn(false,ServerImpl(Bag(
+//              Rule(Bag(Pattern('foo)),Send(ServiceRef(Spawn(false,ServerImpl(Bag(Rule(Bag(Pattern('PRINT)),Par())))),'PRINT),List(ServiceRef(Var('this),'foo))))))),
+//            'foo)))))
+//
+//  Set(
+//    Bag(
+//      Send(
+//        ServiceRef(
+//          Spawn(false,ServerImpl(Bag(
+//            Rule(Bag(Pattern('PRINT)),Par())))),
+//          'PRINT),
+//        List(
+//          ServiceRef(
+//            Spawn(true,ServerImpl(Bag(Rule(Bag(Pattern('foo)),Send(ServiceRef(Spawn(false,ServerImpl(Bag(Rule(Bag(Pattern('PRINT,List())),Par())))),'PRINT),List(ServiceRef(Var('this),'foo))))))),'foo)))))
 
 }

@@ -61,7 +61,7 @@ class Data(router: Router) {
   }
   case class ServerVal(addr: ServerAddr) extends Value with IServerVal {
     def toNormalizedProg = addr
-    def toNormalizedResolvedProg = Spawn(router.lookupAddr(addr).toNormalizedResolvedProg)
+    def toNormalizedResolvedProg = SpawnAny(router.lookupAddr(addr).toNormalizedResolvedProg)
   }
   case class ServiceVal(srv: ServerVal, x: Symbol) extends Value with IServiceVal {
     def toNormalizedProg = ServiceRef(srv.toNormalizedProg, x)

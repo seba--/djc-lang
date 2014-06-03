@@ -23,12 +23,12 @@ object TypedSyntaxDerived {
     Def(x, xt, s, p)
   }
 
-  def Service(p: Pattern, e: Exp) = ServiceRef(ServerImpl(Rule(Bag(p), e)), p.name)
+  def Service(p: Pattern, e: Exp) = ServiceRef(Server(Rule(Bag(p), e)), p.name)
   def LocalService(p: Pattern, e: Exp) = ServiceRef(LocalServer(Rule(Bag(p), e)), p.name)
 
   def LambdaServer(x: Symbol, xt: Type, e: Exp, resT: TSrvRep, init: Exp=Par()): Exp =
     ServiceRef(
-      ServerImpl(
+      LocalServer(
         Rule(
           Bag(Pattern('app, x -> xt, 'result-> ?(resT))),
           Def('SERVER, resT, e,
@@ -38,7 +38,7 @@ object TypedSyntaxDerived {
 
   def Lambda(x: Symbol, xt: Type, e: Exp, resT: Type): Exp =
     ServiceRef(
-      ServerImpl(
+      LocalServer(
         Rule(
           Bag(Pattern('app, x -> xt, 'result-> ?(resT))),
           'result!!e)),

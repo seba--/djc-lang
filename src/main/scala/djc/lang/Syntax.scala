@@ -27,8 +27,19 @@ object Syntax {
   }
   object ServerImpl { def apply(rules: Rule*): ServerImpl = new ServerImpl(Bag(rules:_*)) }
 
-  case class Spawn(local: Boolean, e: Exp) extends Exp
+  case class Spawn(local: Boolean, e: Exp) extends Exp {
+    override def equals(a: Any) = a.isInstanceOf[SpawnAny] && a == this || a.isInstanceOf[Spawn] && {
+      val o = a.asInstanceOf[Spawn]
+      o.local == local && o.e == e
+    }
+    override def hashCode = e.hashCode
+  }
+  class SpawnAny(e: Exp) extends Spawn(false, e) {
+    override def equals(a: Any) = a.isInstanceOf[Spawn] && a.asInstanceOf[Spawn].e == e
+    override def hashCode = e.hashCode
+  }
   object Spawn { def apply(e: Exp): Spawn = Spawn(false, e) }
+  object SpawnAny { def apply(e: Exp): SpawnAny = new SpawnAny(e) }
 
   case class Rule(ps: Bag[Pattern], p: Exp)
 

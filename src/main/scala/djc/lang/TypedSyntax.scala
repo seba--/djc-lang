@@ -218,8 +218,8 @@ object TypedSyntax {
     def mapType(tpe: Type): Type = tpe match {
       case Unit => Unit
       case TSvc(ts) => TSvc((ts map mapType))
-      case TSrvRep(svcs) =>
-        TSrvRep(svcs mapValues mapType)
+      case TSrvRep(svcs) => TSrvRep(svcs mapValues mapType)
+      case TSrv(t) => TSrv(mapType(t))
       case TVar(alpha) => TVar(alpha)
       case TBase(name) => TBase(name)
       case TUniv(alpha, bound, tpe1) => TUniv(alpha, bound.map(mapType(_)), mapType(tpe1))
@@ -275,6 +275,7 @@ object TypedSyntax {
         svcs.foldLeft(init) {
           (i, kv) => foldType(i)(kv._2)
         }
+      case TSrv(t) => foldType(init)(t)
       case TVar(alpha) =>
         init
       case TBase(name) =>

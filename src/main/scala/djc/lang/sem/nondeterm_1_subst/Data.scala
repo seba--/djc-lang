@@ -15,7 +15,7 @@ object Data {
     def toProg = Par(sval.map(_.toSend.asInstanceOf[Exp]))
   }
   class ServerVal(val impl: ServerImplVal, val n: Int) extends Spawn(false, impl.impl) with Value {
-    def toProg = Spawn(impl.toProg)
+    def toProg = SpawnAny(impl.toProg)
     override def toString = s"ServerVal($impl, $n)"
   }
   object ServerVal {

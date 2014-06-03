@@ -1,4 +1,4 @@
-package djc.lang.sem.typesystem
+package djc.lang.sem.typ
 
 import org.scalatest.FunSuite
 import util.Bag
@@ -13,8 +13,8 @@ class TypeCheckTest extends FunSuite {
 
   val gamma: Context = Map('n6 -> TBase('Int), 'n7 -> TBase('Int), 'echo -> TSvc(TBase('Int)))
 
-  def cellTypePrivate(t: Type) = TSrvRep('get -> TSvc(TSvc(t)), 'set -> TSvc(t), 's -> TSvc(t))
-  def cellTypePublic(t: Type) = TSrvRep('get -> TSvc(TSvc(t)), 'set -> TSvc(t))
+  def cellTypePrivate(t: Type) = TSrv(TSrvRep('get -> TSvc(TSvc(t)), 'set -> TSvc(t), 's -> TSvc(t)))
+  def cellTypePublic(t: Type) = TSrv(TSrvRep('get -> TSvc(TSvc(t)), 'set -> TSvc(t)))
 
   val cellServer =
     ServerImpl(
@@ -35,7 +35,7 @@ class TypeCheckTest extends FunSuite {
       ServerImpl(
         Rule(
           Bag(Pattern('mkCell, 'init -> TVar('V), 'cont -> TSvc(cellTypePrivate(TVar('V))))),
-          Def('cell, cellTypePrivate(TVar('V)), cellServer,
+          Def('cell, cellTypePrivate(TVar('V)), Spawn(cellServer),
             Par(
               Send(
                 ServiceRef(Var('cell), 's),
@@ -46,7 +46,7 @@ class TypeCheckTest extends FunSuite {
 
 
   test("cellServer typeCheck") {
-    assert(cellTypePrivate(TVar('V)) === typeCheck(Map(), Set(), cellServer))
+    assert(cellTypePrivate(TVar('V)).rep === typeCheck(Map(), Set(), cellServer))
   }
 
   test("cellFactoryServer typeCheck factory") {

@@ -42,7 +42,7 @@ class Data(router: Router) {
     def toNormalizedProg = addr
     def toNormalizedResolvedProg = {
       val s = router.lookupServer(addr)
-      s.env.foldLeft[Exp](Spawn(s.impl)) {
+      s.env.foldLeft[Exp](SpawnAny(s.impl)) {
         case (srv, (x, value)) => Substitution(x, value.toNormalizedResolvedProg)(srv)
       }
     }
