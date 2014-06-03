@@ -36,7 +36,7 @@ class TypeCheckTest extends FunSuite {
         Rule(
           Bag(Pattern('mkCell, 'init -> TVar('V), 'cont -> TSvc(cellTypePrivate(TVar('V))))),
           Def('cell, cellTypePrivate(TVar('V)), cellServer,
-            Seq(
+            Par(
               Send(
                 ServiceRef(Var('cell), 's),
                 Var('init)),

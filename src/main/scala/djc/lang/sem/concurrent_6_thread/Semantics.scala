@@ -83,16 +83,6 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
       case Par(ps) =>
         flattenPars(ps).map(interp(_, env, currentThread)).foldLeft[Res[Val]](UnitVal) ((p1,p2) => (p1, p2) match {case (UnitVal,UnitVal) => UnitVal})
 
-//      case Seq(Nil) =>
-//        Set(UnitVal)
-//      case Seq(p :: Nil) =>
-//        interp(p, env, currentThread)
-//      case Seq(p :: ps) =>
-//        interp(p, env, currentThread).head match {
-//          case UnitVal => interp(Seq(ps), env, currentThread)
-//        }
-
-
       case Send(rcv, args) =>
         interp(rcv, env, currentThread) match {
           case svc@ServiceVal(srvVal, x) =>
