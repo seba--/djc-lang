@@ -25,6 +25,7 @@ class TestBaseWorker[V](max: Int, semFactory : ISemanticsFactory[V]) extends Abs
   testType("workerK", Worker.workerK, Worker.TWorkerK)
 
   testType("mkFibTask", Task.mkFibTask, Task.mkFibTaskType)
+
   def testFibTask(n: Int) {
     val mkFibTaskCall = Send(Task.mkFibTask, n, Spawn(Worker.worker)~>'work)
     testType(s"mkFibTask_$n", mkFibTaskCall, Unit)

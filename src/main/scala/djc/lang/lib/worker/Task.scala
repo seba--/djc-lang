@@ -10,17 +10,17 @@ import djc.lang.lib.Function
 
 object Task {
 
-  val TTask = ?()
-  val TTaskK = TUniv('K, ?(?('K)))
+  val TTask = TSrvRep('run -> ?())
+  val TTaskK = TUniv('K, TSrvRep('run -> ?(?('K))))
 
   val mkFibTaskType = TFun(TInteger, TTask)
   val mkFibTask = LocalService(
       'make?('n -> TInteger, 'k -> ?(TTask)),
-      'k!!(Thunk(Fibonacci.fib!!('n, Function.consume(TInteger)))))
+      'k!!(ServerImpl(Rule('run?(), Fibonacci.fib!!('n, Function.consume(TInteger))))))
 
 
   val mkFibTaskTypeK = TFun(TInteger, TTaskK(TInteger))
   val mkFibTaskK = LocalService(
       'make?('n -> TInteger, 'k -> ?(TTaskK(TInteger))),
-      'k!!(LocalService('force?('k2 -> ?(TInteger)), Fibonacci.fib!!('n, 'k2))))
+      'k!!(ServerImpl(Rule('run?('k2 -> ?(TInteger)), Fibonacci.fib!!('n, 'k2)))))
 }

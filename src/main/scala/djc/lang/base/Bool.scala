@@ -1,6 +1,7 @@
 package djc.lang.base
 
 import djc.lang.TypedSyntax._
+import djc.lang.TypedSyntaxDerived._
 import djc.lang.typ.Types._
 import djc.lang.sem.SemanticException
 
@@ -45,7 +46,7 @@ object Bool {
     }
   }
 
-  case object If extends BaseOp(List(TBool, TSvc(), TSvc()), TSvc()) {
+  case object If extends BaseOp(List(TBool, TThunk, TThunk), TThunk) {
     def reduce(es: List[BaseValue]) = es(0) match {
       case BoolValue(b) =>
         if (b)

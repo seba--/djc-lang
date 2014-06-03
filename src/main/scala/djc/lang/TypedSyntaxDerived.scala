@@ -49,18 +49,20 @@ object TypedSyntaxDerived {
   def App(f: Exp, arg: Exp, cont: Exp) =
     Send(f, arg, cont)
 
+  val TThunk = TSrvRep('force -> ?())
   def Thunk(e: Exp) =
-    ServiceRef(
-      LocalServer(Rule(
-        Bag(Pattern('force)),
-        e)),
-      'force)
+    ServerImpl(Rule(Bag(Pattern('force)), e))
 
   def Ifc(c: Exp, t: Exp, e: Exp) =
-    Send(BaseCall(djc.lang.base.Bool.If,
-      c,
-      Thunk(t),
-      Thunk(e)))
+    Send(
+      ServiceRef(
+        SpawnLocal(
+          BaseCall(djc.lang.base.Bool.If,
+            c,
+            Thunk(t),
+            Thunk(e)
+          )),
+        'force))
 
 
 //  def SendSeq(e1: Send, e2: Send) =

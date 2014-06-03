@@ -9,26 +9,18 @@ object Worker {
 
   val TWorker = TSrvRep('work -> ?(TTask))
   val TWorkerK = TUniv('K, TSrvRep('work -> ?(TTaskK('K), ?('K))))
-  val TWorkerN = TUniv('K, TSrvRep('work -> ?(TTaskK('K), ?())))
 
   val worker = ServerImpl(
     Rule(
       'work?('task -> TTask),
-      'task!!()
+      SpawnLocal('task)~>'run!!()
     )
   )
 
   val workerK = TAbs('K, ServerImpl(
     Rule(
       'work?('task -> TTaskK('K), 'k -> ?('K)),
-      'task!!('k)
-    )
-  ))
-
-  val workerN = TAbs('K, ServerImpl(
-    Rule(
-      'work?('task -> TTaskK('K), 'k -> ?()),
-      'task!!(LocalService('notifyDone?('k2 -> ?('K)), 'k!!()))
+      SpawnLocal('task)~>'run!!('k)
     )
   ))
 
