@@ -16,32 +16,34 @@ object LoadAwareWorker {
   val mkLoadAwareWorkerType = TUniv('K, TFun(TWorkerK('K), TLoadAwareWorkerK('K)))
   val mkLoadAwareWorker = TAbs('K, LocalService(
     'make?('workerRep -> TWorkerK('K), 'k -> ?(TLoadAwareWorkerK('K))),
-    Def('worker, TSrv(TWorkerK('K)), SpawnLocal('workerRep),
-      Def('laWorker, TLoadAwareWorkerK('K) ++ TSrvRep('load -> ?(TInteger)), // internally we know that there is a 'load service
-        ServerImpl(
-          Rule(
-            'init?(),
-            'this~>'load!!(0)
-          ),
-          Rule(
-            'work?('task -> TTaskK('K), 'k -> ?('K)) && 'load?('n -> TInteger),
-            'this~>'load!!('n + 1) &&
-             Def('notifyDone, ?(), 'this~>'done,
-               'worker~>'work!!('task,
-                 LocalService('cont?('res -> 'K),'notifyDone!!() && 'k!!('res))))
-          ),
-          Rule(
-            'done?() && 'load?('n -> TInteger),
-            'this~>'load!!('n - 1)
-          ),
-          Rule(
-            'getLoad?('notifyLoad -> ?(TInteger)) && 'load?('n -> TInteger),
-            'notifyLoad!!('n) && 'this~>'load!!('n)
-          )
+    Def('laWorker, TLoadAwareWorkerK('K) ++ TSrvRep('load -> ?(TInteger), 'worker -> ?(TSrv(TWorkerK('K)))), // internally we know that there is a 'load service
+      ServerImpl(
+        Rule(
+          'init?(),
+          'this~>'load!!(0) && 'this~>'worker!!(SpawnLocal('workerRep))
         ),
-        'k!!('laWorker cast (TLoadAwareWorkerK('K)))
-      )
+        Rule(
+          'work?('task -> TTaskK('K), 'k -> ?('K))
+            && ('worker?('worker -> TSrv(TWorkerK('K)))
+            && 'load?('n -> TInteger)),
+          'this~>'load!!('n + 1)
+            && ('this~>'worker!!('worker)
+            && Def('notifyDone, ?(), 'this~>'done,
+                'worker~>'work!!('task,
+                   LocalService('cont?('res -> 'K),'notifyDone!!() && 'k!!('res)))))
+        ),
+        Rule(
+          'done?() && 'load?('n -> TInteger),
+          'this~>'load!!('n - 1)
+        ),
+        Rule(
+          'getLoad?('notifyLoad -> ?(TInteger)) && 'load?('n -> TInteger),
+          'notifyLoad!!('n) && 'this~>'load!!('n)
+        )
+      ),
+      'k!!('laWorker cast (TLoadAwareWorkerK('K)))
     )
-  )
-  )
+  ))
 }
+
+// Def('worker, TSrv(TWorkerK('K)), SpawnLocal('workerRep),

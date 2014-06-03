@@ -162,7 +162,8 @@ object TypedSyntax {
     def ?(ps: (Symbol, Type)*) = Pattern(s, ListMap(ps:_*))
   }
   case class InfixPattern(p1: Pattern) {
-    def &&(ps: Bag[Pattern]) = ps + p1
+    def &&(ps: Bag[Pattern]): Bag[Pattern] = ps + p1
+    def &&(p2: Pattern): Bag[Pattern] = Bag(p1, p2)
   }
 
   def ?(ts: Type*) = TSvc(List(ts:_*))
