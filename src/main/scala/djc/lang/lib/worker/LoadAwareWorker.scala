@@ -10,31 +10,37 @@ import djc.lang.base.Integer._
 
 object LoadAwareWorker {
 
-  val TLoadAwareWorker = TSrvRep('work -> ?(TTask), 'getLoad -> ?(?(TInteger)))
-  val TLoadAwareWorkerK = TUniv('K, TSrvRep('work -> ?(TTaskK('K), ?('K)), 'getLoad -> ?(?(TInteger))))
+  val TLoadAwareWorker = TSrvRep('work -> ?(TTask), 'getLoad -> ?(?(TInteger)), 'init -> ?())
+  val TLoadAwareWorkerK = TUniv('K, TSrvRep('work -> ?(TTaskK('K), ?('K)), 'getLoad -> ?(?(TInteger)), 'init -> ?()))
 
   val mkLoadAwareWorkerType = TUniv('K, TFun(TWorkerK('K), TLoadAwareWorkerK('K)))
   val mkLoadAwareWorker = TAbs('K, LocalService(
-    'make?('worker -> TWorkerK('K), 'k -> ?(TLoadAwareWorkerK('K))),
-    Def('laWorker, TLoadAwareWorkerK('K) ++ TSrvRep('load -> ?(TInteger)), // internally we know that there is a 'load service
-      ServerImpl(
-        Rule(
-          'work?('task -> TTaskK('K), 'k -> ?('K)) && 'load?('n -> TInteger),
-          'this~>'load!!('n + 1) &&
-           Def('notifyDone, ?(), 'this~>'done,
-             'worker~>'work!!('task,
-               LocalService('cont?('res -> 'K),'notifyDone!!() && 'k!!('res))))
+    'make?('workerRep -> TWorkerK('K), 'k -> ?(TLoadAwareWorkerK('K))),
+    Def('worker, TSrv(TWorkerK('K)), SpawnLocal('workerRep),
+      Def('laWorker, TLoadAwareWorkerK('K) ++ TSrvRep('load -> ?(TInteger)), // internally we know that there is a 'load service
+        ServerImpl(
+          Rule(
+            'init?(),
+            'this~>'load!!(0)
+          ),
+          Rule(
+            'work?('task -> TTaskK('K), 'k -> ?('K)) && 'load?('n -> TInteger),
+            'this~>'load!!('n + 1) &&
+             Def('notifyDone, ?(), 'this~>'done,
+               'worker~>'work!!('task,
+                 LocalService('cont?('res -> 'K),'notifyDone!!() && 'k!!('res))))
+          ),
+          Rule(
+            'done?() && 'load?('n -> TInteger),
+            'this~>'load!!('n - 1)
+          ),
+          Rule(
+            'getLoad?('notifyLoad -> ?(TInteger)) && 'load?('n -> TInteger),
+            'notifyLoad!!('n) && 'this~>'load!!('n)
+          )
         ),
-        Rule(
-          'done?() && 'load?('n -> TInteger),
-          'this~>'load!!('n - 1)
-        ),
-        Rule(
-          'getLoad?('notifyLoad -> ?(TInteger)) && 'load?('n -> TInteger),
-          'notifyLoad!!('n) && 'this~>'load!!('n)
-        )
-      ),
-      Par('laWorker~>'load!!(0), 'k!!('laWorker cast (TLoadAwareWorkerK('K))))
+        'k!!('laWorker cast (TLoadAwareWorkerK('K)))
+      )
     )
   )
   )

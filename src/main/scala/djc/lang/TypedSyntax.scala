@@ -68,6 +68,9 @@ object TypedSyntax {
   object Spawn {
     def apply(e: Exp): Spawn = Spawn(false, e)
   }
+  object SpawnLocal {
+    def apply(e: Exp): Spawn = Spawn(true, e)
+  }
   object Server {
     def apply(rules: Bag[Rule]): Spawn = Spawn(false, ServerImpl(rules))
     def apply(rules: Rule*): Spawn = Spawn(false, ServerImpl(Bag(rules: _*)))

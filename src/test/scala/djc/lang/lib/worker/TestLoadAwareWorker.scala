@@ -26,19 +26,24 @@ class TestLoadAwareWorker[V](max: Int, semFactory : ISemanticsFactory[V]) extend
 
   def testLoadAwareFibTaskK(n: Int) {
     val fibWorkerCall =
-    LoadAwareWorker.mkLoadAwareWorker(TInteger)!!(Worker.workerK(TInteger),
-      LocalService(
-        'withWorker?('worker -> LoadAwareWorker.TLoadAwareWorkerK(TInteger)),
-        Task.mkFibTaskK!!(n,
-          LocalService(
-            'withTask?('task -> Task.TTaskK(TInteger)),
-            'worker~>'work!!('task,
+    Def('Print, ?(TInteger), Spawn(PRINT_SERVER(TInteger))~>'PRINT,
+      LoadAwareWorker.mkLoadAwareWorker(TInteger)!!(Worker.workerK(TInteger),
+        LocalService(
+          'withWorker?('workerRep -> LoadAwareWorker.TLoadAwareWorkerK(TInteger)),
+          Def('worker, TSrv(LoadAwareWorker.TLoadAwareWorkerK(TInteger)), Spawn('workerRep),
+            Task.mkFibTaskK!!(n,
               LocalService(
-                'whenDone?('res -> TInteger),
-                Par(PRINT_SERVER(TInteger)~>'PRINT!!('res), 'worker~>'getLoad!!(PRINT_SERVER(TInteger)~>'PRINT))))))))
+                'withTask?('task -> Task.TTaskK(TInteger)),
+                'worker~>'init!!() && 'worker~>'work!!('task,
+                  LocalService(
+                    'whenDone?('res -> TInteger),
+                    Par('Print!!('res), 'worker~>'getLoad!!('Print))))))))))
 
     testType(s"mkFibTaskK_$n", fibWorkerCall, Unit)
-    testInterp(s"mkFibTaskK_$n", fibWorkerCall, Set(Bag(PRINT(Fibonacci.fibAcc(n, 0)), PRINT(0)), Bag(PRINT(Fibonacci.fibAcc(n, 0)), PRINT(1))), send => send.rcv.asInstanceOf[Syntax.ServiceRef].srv != PRINT_SERVER_NO)
+    testInterp(s"mkFibTaskK_$n",
+      Par(fibWorkerCall),
+      Set(Bag(PRINT(Fibonacci.fibAcc(n, 0)), PRINT(0)), Bag(PRINT(Fibonacci.fibAcc(n, 0)), PRINT(1))),
+      send => send.rcv.asInstanceOf[Syntax.ServiceRef].srv != Syntax.Spawn(PRINT_SERVER_NO))
   }
 
   for (i <- 0 to max)
