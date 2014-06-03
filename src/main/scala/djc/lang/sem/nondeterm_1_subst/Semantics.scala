@@ -23,7 +23,9 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
 
   def newInstance() = this
 
-  def normalizeVal(v: Val) = v.asInstanceOf[UnitVal].sval map (_.toSend)
+  def normalizeVal(v: Val) = {
+    v.asInstanceOf[UnitVal].sval map (_.toSend)
+  }
 
   val isFullyNondeterministic = true
 
@@ -31,6 +33,8 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
   def resToSet[T](res: Res[T]) = res
 
   override def interp(p: Par) = interp(p, Bag())
+
+  private var nextServerID = 0
 
   def interp(p: Exp, sends: Bag[SendVal]): Res[Val] = p match {
     case BaseCall(b, es) =>
@@ -67,11 +71,23 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
     case ServiceRef(srv, x) =>
       nondeterministic[Val,Val](
         interp(srv, sends),
-        {case srv@ServerVal(_) => Set(ServiceVal(srv, x))}        //TODO check if service defined in srv
+        {case srv@ServerVal(_,_) => Set(ServiceVal(srv, x))
+         case v => throw new MatchError(s"Illegal ServiceRef for $x. Expected ServerVal(_,_) but got $v")
+        }
       )
 
-    case impl@ServerImpl(_,_) =>
-      Set(ServerVal(impl))
+    case impl@ServerImpl(_) =>
+      Set(ServerImplVal(impl))
+
+    case Spawn(_, e) =>
+      nondeterministic[Val,Val](
+        interp(e, sends),
+        {case impl@ServerImplVal(_) =>
+          val id = nextServerID
+          nextServerID += 1
+          Set(ServerVal(impl, id))
+        }
+      )
   }
 
   def interpSends(sends: Bag[SendVal]): Res[Val] = {
@@ -112,7 +128,7 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
     }
 
   def fireRule(server: ServerVal, rule: Rule, ma: Match, orig: Bag[SendVal]): (Exp, Bag[SendVal]) = {
-    var p = Substitution('this, server.toProg)(rule.p)
+    var p = Substitution('this, server)(rule.p)
     for ((x, v) <- ma.subst)
       p = Substitution(x, v.toProg)(p)
     val rest = orig diff ma.used
@@ -120,7 +136,7 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
   }
 
   def collectRules(s: SendVal): Bag[(ServerVal, Rule)] = {
-    val Send(ServiceRef(ServerImpl(rules, _), _), _) = s.toSend
+    val rules = s.rcv.srv.impl.impl.rules
     rules map ((s.rcv.srv, _))
   }
 }

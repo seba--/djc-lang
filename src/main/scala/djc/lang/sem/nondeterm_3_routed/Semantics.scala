@@ -42,9 +42,17 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
       case addr@ServerAddr(_) =>
         Set(ServerVal(addr))
 
-      case s@ServerImpl(_,_) =>
-        val addr = ServerAddr(router.registerServer(ServerClosure(s, env)))
-        Set(ServerVal(addr))
+      case s@ServerImpl(_) =>
+        Set(ServerClosure(s, env))
+
+      case Spawn(_, e) =>
+        nondeterministic[Val,Val](
+          interp(e, env, sends),
+          {case closure@ServerClosure(_,_) =>
+            val addr = router.registerServer(closure)
+            Set(ServerVal(ServerAddr(addr)))
+          }
+        )
 
       case ServiceRef(srv, x) =>
         nondeterministic[Val, Val](

@@ -22,15 +22,13 @@ object Syntax {
 
   case class ServiceRef(srv: Exp, x: Symbol) extends Exp
 
-  case class ServerImpl(rules: Bag[Rule], local: Boolean) extends Exp {
+  case class ServerImpl(rules: Bag[Rule]) extends Exp {
     lazy val services = rules flatMap (r => r.ps map (p => p.name))
   }
-  object ServerImpl {
-    def apply(rules: Bag[Rule]): ServerImpl = new ServerImpl(rules, false)
-    def apply(rules: Rule*): ServerImpl = new ServerImpl(Bag(rules:_*), false)
-  }
-  def LocalServerImpl(rules: Bag[Rule]) = ServerImpl(rules, true)
-  def LocalServerImpl(rules: Rule*) = ServerImpl(Bag(rules:_*), true)
+  object ServerImpl { def apply(rules: Rule*): ServerImpl = new ServerImpl(Bag(rules:_*)) }
+
+  case class Spawn(local: Boolean, e: Exp) extends Exp
+  object Spawn { def apply(e: Exp): Spawn = Spawn(false, e) }
 
   case class Rule(ps: Bag[Pattern], p: Exp)
 
@@ -75,8 +73,10 @@ object Syntax {
         Var(x)
       case ServiceRef(p1, x) =>
         ServiceRef(map(p1), x)
-      case ServerImpl(rs, local) =>
-        ServerImpl(rs map mapRule, local)
+      case ServerImpl(rs) =>
+        ServerImpl(rs map mapRule)
+      case Spawn(local, e) =>
+        Spawn(local, map(e))
       case BaseCall(b, es) =>
         BaseCall(b, es map map)
     }
@@ -99,8 +99,10 @@ object Syntax {
         init
       case ServiceRef(p1, x) =>
         fold(init)(p1)
-      case ServerImpl(rs, _) =>
+      case ServerImpl(rs) =>
         rs.foldLeft(init)(foldRule(_)(_))
+      case Spawn(local, e) =>
+        fold(init)(e)
       case BaseCall(b, es) =>
         es.foldLeft(init)(fold(_)(_))
     }

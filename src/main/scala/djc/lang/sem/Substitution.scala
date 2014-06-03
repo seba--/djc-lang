@@ -9,11 +9,11 @@ case class Substitution(x: Symbol, repl: Exp) extends Mapper {
   override def map(p: Exp): Exp = p match {
     case Var(`x`) => repl
 
-    case ServerImpl(rs, local) =>
+    case ServerImpl(rs) =>
       if (x == 'this)
-        ServerImpl(rs, local)
+        ServerImpl(rs)
       else
-        ServerImpl(rs map mapRule, local)
+        ServerImpl(rs map mapRule)
 
     case _ => super.map(p)
   }
@@ -49,7 +49,7 @@ object FreeVars extends Fold {
   def fold(init: Set[Symbol])(prog: Exp): Set[Symbol] = prog match {
     case Var(x) =>
       init + x
-    case ServerImpl(rs, _) =>
+    case ServerImpl(rs) =>
       rs.foldLeft(init)(foldRule(_)(_)) - 'this
     case _ => super.fold(init)(prog)
   }

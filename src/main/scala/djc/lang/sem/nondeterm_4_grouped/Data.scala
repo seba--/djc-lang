@@ -15,11 +15,9 @@ object Data {
     def toNormalizedResolvedProg: Exp
   }
 
-  case class ServerClosure(srv: ServerImpl, env: Env) {
-    private[this] var addr_ : ServerAddr = null
-    def addr_=(a: Router.Addr) = { addr_ = ServerAddr(a) }
-    def addr = addr_
-    def normalize = env.foldLeft(srv) {
+  case class ServerClosure(srv: ServerImpl, env: Env) extends Value {
+    def toNormalizedProg = toNormalizedResolvedProg
+    def toNormalizedResolvedProg = env.foldLeft(srv) {
       case (srv1, (x, value)) => Substitution(x, value.toNormalizedResolvedProg)(srv1).asInstanceOf[ServerImpl]
     }
   }
@@ -43,9 +41,9 @@ object Data {
   type BagMap[K,V] = Bag[(K,V)]
   type SetMap[K,V] = Set[(K,V)]
 
-  type Servers = BagMap[Router.Addr, ISendVal]
-  val emptyServers: Servers = Bag()
-  def sendToServer(servers: Servers, addr: Router.Addr, sv: ISendVal): Servers = {
+  type ServerSends = BagMap[Router.Addr, ISendVal]
+  val noSends: ServerSends = Bag()
+  def sendToServer(servers: ServerSends, addr: Router.Addr, sv: ISendVal): ServerSends = {
     servers + (addr -> sv)
   }
 }
@@ -63,7 +61,7 @@ class Data(router: Router) {
   }
   case class ServerVal(addr: ServerAddr) extends Value with IServerVal {
     def toNormalizedProg = addr
-    def toNormalizedResolvedProg = router.lookupAddr(addr).normalize
+    def toNormalizedResolvedProg = Spawn(router.lookupAddr(addr).toNormalizedResolvedProg)
   }
   case class ServiceVal(srv: ServerVal, x: Symbol) extends Value with IServiceVal {
     def toNormalizedProg = ServiceRef(srv.toNormalizedProg, x)

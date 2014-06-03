@@ -40,12 +40,11 @@ object Checker {
 
     case ServiceRef(srv, x) =>
       typeCheck(gamma, boundTv, srv) match {
-        case TSrv(svcs) if svcs.contains(x) =>
-          svcs(x)
+        case TSrv(rep) if rep.svcs.contains(x) => rep.svcs(x)
         case x => throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\nboundTv: $boundTv\nwith $x")
       }
 
-    case srv@ServerImpl(rules,_) => {
+    case srv@ServerImpl(rules) => {
       val ruleTypes = rules map (typecheckRule(gamma, boundTv, _, srv.signature))
 
       if (!(FreeTypeVars(srv.signature) subsetOf boundTv))
@@ -53,6 +52,12 @@ object Checker {
 
       srv.signature
     }
+
+    case sp@Spawn(_, e) =>
+      typeCheck(gamma, boundTv, e) match {
+        case t: TSrvRep => TSrv(t)
+        case t => throw TypeCheckException(s"Illegal spwan expression. Expected: TSvrRep(_), was $t\n  in $sp)}")
+      }
 
 
     case TApp(p2, t) =>
@@ -92,9 +97,8 @@ object Checker {
   }
 
 
-  def typecheckRule(gamma: Context, boundTv: Set[Symbol], r: Rule, srvSignature: TSrv): Type = {
-//    val t = typeCheck(gamma ++ srvSignature.svcs ++ r.rcvars, boundTv, r.p)
-    val ruleGamma = gamma ++ r.rcvars + ('this -> srvSignature)
+  def typecheckRule(gamma: Context, boundTv: Set[Symbol], r: Rule, srvSignature: TSrvRep): Type = {
+    val ruleGamma = gamma ++ r.rcvars + ('this -> TSrv(srvSignature))
 //    println(s"rule-pats: ${r.ps}")
 //    println(s"rule-gamma: ${ruleGamma.keys}")
     val t = typeCheck(ruleGamma, boundTv, r.p)

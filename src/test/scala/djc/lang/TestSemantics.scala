@@ -18,45 +18,41 @@ class TestSemantics_concurrent_thread extends TestSemantics(concurrent_6_thread.
 
 abstract class TestSemantics[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem) {
   // single message send
-  val s1 = ServerImpl(
-    Bag(Rule(
+  val s1 =
+    ServerImpl(Bag(Rule(
       Bag(Pattern('m1, 'x)),
-      Send(ServiceRef(PRINT_SERVER_NO, 'foo), Var('x)))))
+      Send(ServiceRef(Var('Print), 'foo), Var('x)))))
 
-  val p1 = Def('s1, s1, Send(ServiceRef(Var('s1), 'm1), ServiceRef(CONST_SERVER_NO, 'bar)))
-
-  Set(
-    Bag(
-      Send(
-        ServiceRef(PRINT_SERVER_NO,'foo),
-        List(ServiceRef(ServerImpl(Bag(Rule(Bag(Pattern('CONST,List())),Par()))),'bar)))),
-    Bag(
-      Send(
-        ServiceRef(s1,'m1),
-        List(ServiceRef(ServerImpl(Bag(Rule(Bag(Pattern('CONST,List())),Par()))),'bar)))),
-    Bag(
-      Send(ServiceRef(ServerImpl(Bag(Rule(Bag(Pattern('def,List('s1))),Send(ServiceRef(Var('s1),'m1),List(ServiceRef(ServerImpl(Bag(Rule(Bag(Pattern('CONST,List())),Par()))),'bar)))))),'def),List(ServerImpl(Bag(Rule(Bag(Pattern('m1,List('x))),Send(ServiceRef(ServerImpl(Bag(Rule(Bag(Pattern('PRINT,List())),Par()))),'foo),List(Var('x))))))))))
+  val p1 =
+    Def('Print, Spawn(PRINT_SERVER_NO),
+      Def('Const, Spawn(CONST_SERVER_NO),
+        Def('s1, Spawn(s1),
+          Send(ServiceRef(Var('s1), 'm1), ServiceRef(Var('Const), 'bar)))))
 
   testInterpUntyped("p1",
     Par(p1),
-    Set(Bag(Send(ServiceRef(PRINT_SERVER_NO, 'foo), ServiceRef(CONST_SERVER_NO, 'bar)))))
+    Set(Bag(Send(ServiceRef(Spawn(PRINT_SERVER_NO), 'foo), ServiceRef(Spawn(CONST_SERVER_NO), 'bar)))))
 
 
   // send message to self
   val s2 = ServerImpl(Bag(
     Rule(
       Bag(Pattern('m1, 'x)),
-      Send(ServiceRef(PRINT_SERVER_NO, 'foo), Var('x))),
+      Send(ServiceRef(Var('Print), 'foo), Var('x))),
     Rule(
       Bag(Pattern('m2, 'x)),
       Send(ServiceRef(Var('this),'m1), Var('x)))
     ))
 
-  val p2 = Def('s2, s2, Send(ServiceRef(Var('s2), 'm2), ServiceRef(CONST_SERVER_NO, 'bar)))
+  val p2 =
+    Def('Print, Spawn(PRINT_SERVER_NO),
+      Def('Const, Spawn(CONST_SERVER_NO),
+        Def('s2, Spawn(s2),
+          Send(ServiceRef(Var('s2), 'm2), ServiceRef(Var('Const), 'bar)))))
 
   testInterpUntyped("p2",
-    p2,
-    Set(Bag(Send(ServiceRef(PRINT_SERVER_NO, 'foo), ServiceRef(CONST_SERVER_NO, 'bar)))
+    Par(p2),
+    Set(Bag(Send(ServiceRef(Spawn(PRINT_SERVER_NO), 'foo), ServiceRef(Spawn(CONST_SERVER_NO), 'bar)))
     )
   )
 
@@ -67,12 +63,17 @@ abstract class TestSemantics[V](sem: ISemanticsFactory[V]) extends AbstractTest(
       Send(ServiceRef(Var('s1), 'm1), Var('x)))
     ))
 
-  val p3 = Def('s1, s1, Def('s3, s3, Send(ServiceRef(Var('s3), 'm2), ServiceRef(CONST_SERVER_NO, 'bar))))
+  val p3 =
+    Def('Print, Spawn(PRINT_SERVER_NO),
+      Def('Const, Spawn(CONST_SERVER_NO),
+        Def('s1, Spawn(s1),
+          Def('s3, Spawn(s3),
+            Send(ServiceRef(Var('s3), 'm2), ServiceRef(Var('Const), 'bar))))))
 
   testInterpUntyped("p3",
-    p3,
-    Set(Bag(Send(ServiceRef(PRINT_SERVER_NO, 'foo), ServiceRef(CONST_SERVER_NO, 'bar))),
-        Bag(Send(ServiceRef(PRINT_SERVER_NO, 'foo), ServiceRef(CONST_SERVER_NO, 'bar)))
+    Par(p3),
+    Set(Bag(Send(ServiceRef(Spawn(PRINT_SERVER_NO), 'foo), ServiceRef(Spawn(CONST_SERVER_NO), 'bar))),
+        Bag(Send(ServiceRef(Spawn(PRINT_SERVER_NO), 'foo), ServiceRef(Spawn(CONST_SERVER_NO), 'bar)))
     ))
 
 
@@ -80,69 +81,61 @@ abstract class TestSemantics[V](sem: ISemanticsFactory[V]) extends AbstractTest(
   val s4 = ServerImpl(
     Rule(
       Bag(Pattern('m1, 'x), Pattern('m2, 'y)),
-      Send(ServiceRef(PRINT_SERVER_NO, 'foo), Var('x), Var('y))))
+      Send(ServiceRef(Var('Print), 'foo), Var('x), Var('y))))
 
-  val p4 = Def('s4, s4, Par(
-    Send(ServiceRef(Var('s4), 'm1), ServiceRef(CONST_SERVER_NO, 'bar)),
-    Send(ServiceRef(Var('s4), 'm2), ServiceRef(CONST_SERVER_NO, 'baz))
-  ))
+  val p4 =
+    Def('Print, Spawn(PRINT_SERVER_NO),
+      Def('Const, Spawn(CONST_SERVER_NO),
+        Def('s4, Spawn(s4),
+          Par(
+            Send(ServiceRef(Var('s4), 'm1), ServiceRef(Var('Const), 'bar)),
+            Send(ServiceRef(Var('s4), 'm2), ServiceRef(Var('Const), 'baz))))))
 
   testInterpUntyped("p4",
-    p4,
-    Set(Bag(Send(ServiceRef(PRINT_SERVER_NO, 'foo), List(ServiceRef(CONST_SERVER_NO, 'bar), ServiceRef(CONST_SERVER_NO, 'baz))))
+    Par(p4),
+    Set(Bag(Send(ServiceRef(Spawn(PRINT_SERVER_NO), 'foo), List(ServiceRef(Spawn(CONST_SERVER_NO), 'bar), ServiceRef(Spawn(CONST_SERVER_NO), 'baz))))
   ))
-
-
-  Set(
-    Bag(
-      Send(
-        ServiceRef(
-          ServerImpl(Bag(Rule(Bag(Pattern('m1,List('x)), Pattern('m2,List('y))),Send(ServiceRef(ServerImpl(Bag(Rule(Bag(Pattern('PRINT,List())),Par()))),'foo),List(Var('x), Var('y)))))),
-          'm2),
-        List(ServiceRef(ServerImpl(Bag(Rule(Bag(Pattern('CONST,List())),Par()))),'baz))),
-      Send(
-        ServiceRef(
-          ServerImpl(Bag(Rule(Bag(Pattern('m1,List('x)), Pattern('m2,List('y))),Send(ServiceRef(ServerImpl(Bag(Rule(Bag(Pattern('PRINT,List())),Par()))),'foo),List(Var('x), Var('y)))))),
-          'm1),
-        List(ServiceRef(ServerImpl(Bag(Rule(Bag(Pattern('CONST,List())),Par()))),'bar)))),
-    Bag(
-      Send(
-        ServiceRef(
-          ServerImpl(Bag(Rule(Bag(Pattern('PRINT,List())),Par()))),
-          'foo),
-        List(ServiceRef(ServerImpl(Bag(Rule(Bag(Pattern('CONST,List())),Par()))),'bar), ServiceRef(ServerImpl(Bag(Rule(Bag(Pattern('CONST,List())),Par()))),'baz)))))
 
   // nondeterminism
   val s5 = ServerImpl(
     Bag(Rule(
       Bag(Pattern('m1, 'x), Pattern('token)),
-      Send(ServiceRef(PRINT_SERVER_NO, 'foo), Var('x)))))
+      Send(ServiceRef(Var('Print), 'foo), Var('x)))))
 
-  val p5 = Def('s5, s5, Par(
-    Send(ServiceRef(Var('s5), 'token)),
-    Send(ServiceRef(Var('s5), 'm1), ServiceRef(CONST_SERVER_NO, 'bar)),
-    Send(ServiceRef(Var('s5), 'm1), ServiceRef(CONST_SERVER_NO, 'baz))
-  ))
+  val p5 =
+    Def('Print, Spawn(PRINT_SERVER_NO),
+      Def('Const, Spawn(CONST_SERVER_NO),
+        Def('s5, Spawn(s5),
+          Par(
+            Send(ServiceRef(Var('s5), 'token)),
+            Send(ServiceRef(Var('s5), 'm1), ServiceRef(Var('Const), 'bar)),
+            Send(ServiceRef(Var('s5), 'm1), ServiceRef(Var('Const), 'baz))))))
 
   testInterpUntyped("p5",
-    p5,
+    Par(p5),
     Set(
-      Bag(Send(ServiceRef(PRINT_SERVER_NO, 'foo), List(ServiceRef(CONST_SERVER_NO, 'bar))), Send(ServiceRef(s5, 'm1), List(ServiceRef(CONST_SERVER_NO, 'baz)))),
-      Bag(Send(ServiceRef(PRINT_SERVER_NO, 'foo), List(ServiceRef(CONST_SERVER_NO, 'baz))), Send(ServiceRef(s5, 'm1), List(ServiceRef(CONST_SERVER_NO, 'bar))))
+      Bag(Send(ServiceRef(Spawn(PRINT_SERVER_NO), 'foo), List(ServiceRef(Spawn(CONST_SERVER_NO), 'bar))), Send(ServiceRef(Spawn(s5), 'm1), List(ServiceRef(Spawn(CONST_SERVER_NO), 'baz)))),
+      Bag(Send(ServiceRef(Spawn(PRINT_SERVER_NO), 'foo), List(ServiceRef(Spawn(CONST_SERVER_NO), 'baz))), Send(ServiceRef(Spawn(s5), 'm1), List(ServiceRef(Spawn(CONST_SERVER_NO), 'bar))))
   ))
+
 
 
   // server-variable shadowing
   val s6 = ServerImpl(
     Bag(Rule(
       Bag(Pattern('m1, 'x)),
-      Send(ServiceRef(PRINT_SERVER_NO, 'foo6), Var('x)))))
+      Send(ServiceRef(Var('Print), 'foo6), Var('x)))))
 
-  val p6 = Def('s6, s1, Def('s6, s6, Send(ServiceRef(Var('s6), 'm1), ServiceRef(CONST_SERVER_NO, 'bar))))
+  val p6 =
+    Def('Print, Spawn(PRINT_SERVER_NO),
+      Def('Const, Spawn(CONST_SERVER_NO),
+        Def('s6, Spawn(s1),
+          Def('s6, Spawn(s6),
+            Send(ServiceRef(Var('s6), 'm1), ServiceRef(Var('Const), 'bar))))))
 
   testInterpUntyped("p6",
-    p6,
-    Set(Bag(Send(ServiceRef(PRINT_SERVER_NO, 'foo6), ServiceRef(CONST_SERVER_NO, 'bar)))))
+    Par(p6),
+    Set(Bag(Send(ServiceRef(Spawn(PRINT_SERVER_NO), 'foo6), ServiceRef(Spawn(CONST_SERVER_NO), 'bar)))))
 
   // higher-order service: s7.m2(s1.m1, "bar") -> s1.m1("bar") -> Print.foo("bar")
   val s7 = ServerImpl(Bag(
@@ -151,20 +144,30 @@ abstract class TestSemantics[V](sem: ISemanticsFactory[V]) extends AbstractTest(
       Send(Var('f), Var('x)))
   ))
 
-  val p7 = Def('s1, s1, Def('s7, s7, Send(ServiceRef(Var('s7), 'm2), ServiceRef(Var('s1), 'm1), ServiceRef(CONST_SERVER_NO, 'bar))))
+  val p7 =
+    Def('Print, Spawn(PRINT_SERVER_NO),
+      Def('Const, Spawn(CONST_SERVER_NO),
+        Def('s1, Spawn(s1),
+          Def('s7, Spawn(s7),
+            Send(ServiceRef(Var('s7), 'm2), ServiceRef(Var('s1), 'm1), ServiceRef(Var('Const), 'bar))))))
 
   testInterpUntyped("p7",
-    p7,
-    Set(Bag(Send(ServiceRef(PRINT_SERVER_NO, 'foo), ServiceRef(CONST_SERVER_NO, 'bar)))
+    Par(p7),
+    Set(Bag(Send(ServiceRef(Spawn(PRINT_SERVER_NO), 'foo), ServiceRef(Spawn(CONST_SERVER_NO), 'bar)))
   ))
 
   //flattening of Par
-  val s8 = ServerImpl(Rule(Bag(Pattern('a)), Send(ServiceRef(PRINT_SERVER_NO, 'foo))),
-    Rule(Bag(Pattern('a),Pattern('b)), Send(ServiceRef(PRINT_SERVER_NO, 'bar))))
-  val p8 = Def('srv, s8,
-                     Par(Send(ServiceRef(Var('srv),'b)),  Par(Send(ServiceRef(Var('srv),'a)))))
+  val s8 = ServerImpl(
+    Rule(Bag(Pattern('a)), Send(ServiceRef(Var('Print), 'foo))),
+    Rule(Bag(Pattern('a),Pattern('b)), Send(ServiceRef(Var('Print), 'bar))))
+  val p8 =
+    Def('Print, Spawn(PRINT_SERVER_NO),
+      Def('Const, Spawn(CONST_SERVER_NO),
+        Def('srv, Spawn(s8),
+          Par(Send(ServiceRef(Var('srv),'b)),  Par(Send(ServiceRef(Var('srv),'a)))))))
 
-  testInterpUntyped("p8", p8,
-    Set(Bag(Send(ServiceRef(s8,'b)), Send(ServiceRef(PRINT_SERVER_NO, 'foo))),
-        Bag(Send(ServiceRef(PRINT_SERVER_NO, 'bar)))))
+  testInterpUntyped("p8",
+    Par(p8),
+    Set(Bag(Send(ServiceRef(Spawn(s8),'b)), Send(ServiceRef(Spawn(PRINT_SERVER_NO), 'foo))),
+        Bag(Send(ServiceRef(Spawn(PRINT_SERVER_NO), 'bar)))))
 }

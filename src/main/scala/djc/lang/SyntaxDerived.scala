@@ -6,13 +6,10 @@ import djc.lang.Syntax._
 object SyntaxDerived {
 
   implicit def makeParSend(s: Send) = Par(s)
-  
-  object Def {
-    def apply(x: Symbol, s: Exp, p: Exp) = {
-      val srv = ServerImpl(Rule(Bag(Pattern('def, x)), p))
-      val svc = ServiceRef(srv, 'def)
-      Send(svc, s)
-    }
+
+  def Def(x: Symbol, s: Exp, p: Exp): Exp = {
+    val srv = Spawn(ServerImpl(Rule(Bag(Pattern('def, x)), p)))
+    Send(ServiceRef(srv, 'def), s)
   }
 
 

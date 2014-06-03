@@ -57,22 +57,28 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
       case Var(y) if env.isDefinedAt(y) =>
         env(y)
 
-      case s@ServerImpl(rules, true) if currentThread != null => {
-        val server = new Server(this, s, env, currentThread)
-        val serverAddr = currentThread.registerServer(server)
-        ServerVal(serverAddr)
-      }
+      case impl@ServerImpl(_) =>
+        ServerClosure(impl, env)
 
-      case s@ServerImpl(rules, _) => {
-        val serverThread = new ServerThread
-        val addr = router.registerServer(serverThread)
-        serverThread.addr = addr
-        val server = new Server(this, s, env, serverThread)
-        val serverAddr = serverThread.registerServer(server)
+      case Spawn(local, e) =>
+        interp(e, env, currentThread) match {
+          case ServerClosure(impl, senv) =>
+            if (local && currentThread != null) {
+              val server = new Server(this, impl, senv, currentThread)
+              val serverAddr = currentThread.registerServer(server)
+              ServerVal(serverAddr)
+            }
+            else {
+              val serverThread = new ServerThread
+              val addr = router.registerServer(serverThread)
+              serverThread.addr = addr
+              val server = new Server(this, impl, senv, serverThread)
+              val serverAddr = serverThread.registerServer(server)
 
-        serverThread.start()
-        ServerVal(serverAddr)
-      }
+              serverThread.start()
+              ServerVal(serverAddr)
+            }
+        }
 
       case ServiceRef(srv, x) =>
         interp(srv, env, currentThread) match {

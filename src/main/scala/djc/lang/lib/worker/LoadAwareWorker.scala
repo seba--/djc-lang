@@ -10,13 +10,13 @@ import djc.lang.base.Integer._
 
 object LoadAwareWorker {
 
-  val TLoadAwareWorker = TSrv('work -> ?(TTask), 'getLoad -> ?(?(TInteger)))
-  val TLoadAwareWorkerK = TUniv('K, TSrv('work -> ?(TTaskK('K), ?('K)), 'getLoad -> ?(?(TInteger))))
+  val TLoadAwareWorker = TSrvRep('work -> ?(TTask), 'getLoad -> ?(?(TInteger)))
+  val TLoadAwareWorkerK = TUniv('K, TSrvRep('work -> ?(TTaskK('K), ?('K)), 'getLoad -> ?(?(TInteger))))
 
   val mkLoadAwareWorkerType = TUniv('K, TFun(TWorkerK('K), TLoadAwareWorkerK('K)))
   val mkLoadAwareWorker = TAbs('K, LocalService(
     'make?('worker -> TWorkerK('K), 'k -> ?(TLoadAwareWorkerK('K))),
-    Def('laWorker, TLoadAwareWorkerK('K) ++ TSrv('load -> ?(TInteger)), // internally we know that there is a 'load service
+    Def('laWorker, TLoadAwareWorkerK('K) ++ TSrvRep('load -> ?(TInteger)), // internally we know that there is a 'load service
       ServerImpl(
         Rule(
           'work?('task -> TTaskK('K), 'k -> ?('K)) && 'load?('n -> TInteger),

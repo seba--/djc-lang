@@ -14,7 +14,7 @@ object TypedSyntaxDerived {
   def TFun(t: Type, u: Type) = TSvc(t, TSvc(u))
 
   def Def(x: Symbol, xt: Type, s: Exp, p: Exp): Exp = {
-    val srv = LocalServerImpl(Rule(Bag(Pattern('def, x -> xt)), p))
+    val srv = LocalServer(Rule(Bag(Pattern('def, x -> xt)), p))
     Send(srv~>'def, s)
   }
 
@@ -24,9 +24,9 @@ object TypedSyntaxDerived {
   }
 
   def Service(p: Pattern, e: Exp) = ServiceRef(ServerImpl(Rule(Bag(p), e)), p.name)
-  def LocalService(p: Pattern, e: Exp) = ServiceRef(LocalServerImpl(Rule(Bag(p), e)), p.name)
+  def LocalService(p: Pattern, e: Exp) = ServiceRef(LocalServer(Rule(Bag(p), e)), p.name)
 
-  def LambdaServer(x: Symbol, xt: Type, e: Exp, resT: TSrv, init: Exp=Par()): Exp =
+  def LambdaServer(x: Symbol, xt: Type, e: Exp, resT: TSrvRep, init: Exp=Par()): Exp =
     ServiceRef(
       ServerImpl(
         Rule(
@@ -51,7 +51,7 @@ object TypedSyntaxDerived {
 
   def Thunk(e: Exp) =
     ServiceRef(
-      LocalServerImpl(Rule(
+      LocalServer(Rule(
         Bag(Pattern('force)),
         e)),
       'force)

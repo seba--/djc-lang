@@ -13,17 +13,14 @@ import djc.lang.sem.concurrent_6_thread.ServerThread
 
 abstract class AbstractTest[V](semFactory: ISemanticsFactory[V]) extends FunSuite {
   private[this] val _PRINT_SERVER = ServerImpl(Bag(Rule(Bag(Pattern('PRINT)), Par())))
-  val PRINT_SERVER = TAbs('V, UnsafeCast(_PRINT_SERVER, TSrv('PRINT -> ?(TVar('V)))))
-  val PRINT_SERVER_NO = PRINT_SERVER(?()).eraseType
-  val CONST_SERVER = ServerImpl(Bag(Rule(Bag(Pattern('CONST)), Par())))
+  val PRINT_SERVER = TAbs('V, UnsafeCast(_PRINT_SERVER, TSrvRep('PRINT -> ?(TVar('V)))))
+  val PRINT_SERVER_NO = PRINT_SERVER.eraseType
+  val CONST_SERVER = TAbs('V, UnsafeCast(ServerImpl(Bag(Rule(Bag(Pattern('CONST)), Par()))), TSrvRep('CONST -> ?(TVar('V)))))
   val CONST_SERVER_NO = CONST_SERVER.eraseType
-  val sigmap = Substitution('Print, _PRINT_SERVER.eraseType)
-  val sigmac = Substitution('Const, CONST_SERVER.eraseType)
+  val sigmap = Substitution('Print, Spawn(_PRINT_SERVER).eraseType)
+  val sigmac = Substitution('Const, Spawn(CONST_SERVER).eraseType)
 
   def PRINT(e: Exp) = PRINT_SERVER(?())~>'PRINT !! (e)
-
-  def withPrintServer(p: Exp) = Def('Print, TSrv('PRINT -> TSvc()), _PRINT_SERVER, p)
-  def withConstServer(p: Exp) = Def('Const, TSrv('CONST -> TSvc()), CONST_SERVER, p)
 
   def testInterp(s: String, p: TypedSyntax.Par, expected: AbstractSemantics.Res[Bag[TypedSyntax.Send]],
                  ignore: Syntax.Send => Boolean = (s => false)): Unit =

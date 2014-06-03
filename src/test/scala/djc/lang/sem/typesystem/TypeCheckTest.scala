@@ -13,8 +13,8 @@ class TypeCheckTest extends FunSuite {
 
   val gamma: Context = Map('n6 -> TBase('Int), 'n7 -> TBase('Int), 'echo -> TSvc(TBase('Int)))
 
-  def cellTypePrivate(t: Type) = TSrv('get -> TSvc(TSvc(t)), 'set -> TSvc(t), 's -> TSvc(t))
-  def cellTypePublic(t: Type) = TSrv('get -> TSvc(TSvc(t)), 'set -> TSvc(t))
+  def cellTypePrivate(t: Type) = TSrvRep('get -> TSvc(TSvc(t)), 'set -> TSvc(t), 's -> TSvc(t))
+  def cellTypePublic(t: Type) = TSrvRep('get -> TSvc(TSvc(t)), 'set -> TSvc(t))
 
   val cellServer =
     ServerImpl(
@@ -29,7 +29,7 @@ class TypeCheckTest extends FunSuite {
           Pattern('s, 'v -> TVar('V))),
         Send('this~>'s, 'u)))
 
-  val cellFactoryServerType = TUniv('V, TSrv('mkCell -> TSvc(TVar('V), TSvc(cellTypePrivate(TVar('V)))))) // should return cellTypePublic
+  val cellFactoryServerType = TUniv('V, TSrvRep('mkCell -> TSvc(TVar('V), TSvc(cellTypePrivate(TVar('V)))))) // should return cellTypePublic
   val cellFactoryServer =
     TAbs('V,
       ServerImpl(

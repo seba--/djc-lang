@@ -42,10 +42,18 @@ class Data(router: Router) {
     def toNormalizedProg = addr
     def toNormalizedResolvedProg = {
       val s = router.lookupServer(addr)
-      s.env.foldLeft(s.impl) {
-        case (srv, (x, value)) => Substitution(x, value.toNormalizedResolvedProg)(srv).asInstanceOf[ServerImpl]
+      s.env.foldLeft[Exp](Spawn(s.impl)) {
+        case (srv, (x, value)) => Substitution(x, value.toNormalizedResolvedProg)(srv)
       }
     }
+  }
+
+  case class ServerClosure(impl: ServerImpl, env: Env) extends Value {
+    def toNormalizedProg = toNormalizedResolvedProg
+    def toNormalizedResolvedProg =
+      env.foldLeft(impl) {
+        case (srv, (x, value)) => Substitution(x, value.toNormalizedResolvedProg)(srv).asInstanceOf[ServerImpl]
+      }
   }
 
   case class ServiceVal(srv: ServerVal, x: Symbol) extends Value {

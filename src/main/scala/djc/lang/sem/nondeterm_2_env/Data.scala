@@ -18,8 +18,13 @@ object Data {
   case class UnitVal(sends: Bag[SendVal]) extends Value {
     def toNormalizedProg = Par(Bag[Exp]() ++ sends.map(_.toNormalizedProg))
   }
-  case class ServerVal(impl: ServerImpl, env : Env) extends Value {
+  case class ServerClosure(impl: ServerImpl, env: Env) extends Value {
     def toNormalizedProg = env.foldLeft[Exp](impl) {
+      case (srv, (x, value)) => Substitution(x, value.toNormalizedProg)(srv)
+    }
+  }
+  case class ServerVal(closure: ServerClosure, n: Int) extends Value {
+    def toNormalizedProg = closure.env.foldLeft[Exp](Spawn(closure.impl)) {
       case (srv, (x, value)) => Substitution(x, value.toNormalizedProg)(srv)
     }
   }

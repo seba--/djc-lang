@@ -7,9 +7,9 @@ import djc.lang.lib.worker.Task._
 
 object Worker {
 
-  val TWorker = TSrv('work -> ?(TTask))
-  val TWorkerK = TUniv('K, TSrv('work -> ?(TTaskK('K), ?('K))))
-  val TWorkerN = TUniv('K, TSrv('work -> ?(TTaskK('K), ?())))
+  val TWorker = TSrvRep('work -> ?(TTask))
+  val TWorkerK = TUniv('K, TSrvRep('work -> ?(TTaskK('K), ?('K))))
+  val TWorkerN = TUniv('K, TSrvRep('work -> ?(TTaskK('K), ?())))
 
   val worker = ServerImpl(
     Rule(

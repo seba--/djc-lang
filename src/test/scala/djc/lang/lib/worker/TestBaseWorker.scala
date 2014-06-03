@@ -43,7 +43,7 @@ class TestBaseWorker[V](max: Int, semFactory : ISemanticsFactory[V]) extends Abs
         Task.mkFibTaskK,
         n,
         ServiceRef(
-          LocalServerImpl(Rule(
+          LocalServer(Rule(
             Bag(Pattern('cont, 'task -> Task.TTaskK(TInteger))),
             Worker.workerK(TInteger)~>'work!!('task, PRINT_SERVER(TInteger)~>'PRINT))),
           'cont))

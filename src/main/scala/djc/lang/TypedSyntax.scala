@@ -38,8 +38,8 @@ object TypedSyntax {
     override def eraseType = Syntax.ServiceRef(srv.eraseType, x)
   }
 
-  case class ServerImpl(rules: Bag[Rule], local: Boolean) extends Exp {
-    override def eraseType = Syntax.ServerImpl(rules map (_.eraseType), local)
+  case class ServerImpl(rules: Bag[Rule]) extends Exp {
+    override def eraseType = Syntax.ServerImpl(rules map (_.eraseType))
 
     lazy val signature = {
       import collection.mutable.{HashMap, MultiMap, Set}
@@ -55,15 +55,27 @@ object TypedSyntax {
               throw SyntaxException(s"inconsistent type annotations for service $svcname : $types")
             m + (svcname -> types.last)
         }
-      TSrv(m)
+      TSrvRep(m)
     }
   }
   object ServerImpl {
-    def apply(rules: Bag[Rule]) = new ServerImpl(rules, false)
-    def apply(rules: Rule*) = new ServerImpl(Bag(rules: _*), false)
+    def apply(rules: Rule*): ServerImpl = ServerImpl(Bag(rules: _*))
   }
-  def LocalServerImpl(rules: Bag[Rule]) = ServerImpl(rules, true)
-  def LocalServerImpl(rules: Rule*) = ServerImpl(Bag(rules:_*), true)
+
+  case class Spawn(local: Boolean, e: Exp) extends Exp {
+    override def eraseType = Syntax.Spawn(local, e.eraseType)
+  }
+  object Spawn {
+    def apply(e: Exp): Spawn = Spawn(false, e)
+  }
+  object Server {
+    def apply(rules: Bag[Rule]): Spawn = Spawn(false, ServerImpl(rules))
+    def apply(rules: Rule*): Spawn = Spawn(false, ServerImpl(Bag(rules: _*)))
+  }
+  object LocalServer {
+    def apply(rules: Bag[Rule]): Spawn = Spawn(true, ServerImpl(rules))
+    def apply(rules: Rule*): Spawn = Spawn(true, ServerImpl(Bag(rules: _*)))
+  }
 
   case class TApp(p: Exp, t: Type) extends Exp {
     override def eraseType = p.eraseType
@@ -161,11 +173,11 @@ object TypedSyntax {
     def apply(t2s: Type*): Type = t2s.foldLeft(this)((t, t2) => InfixType(t.apply(t2))).t
 
     def ++(t2: Type): Type = (t, t2) match {
-      case (TSrv(svcs1), TSrv(svcs2)) =>
+      case (TSrvRep(svcs1), TSrvRep(svcs2)) =>
         if (!svcs1.keySet.intersect(svcs2.keySet).isEmpty)
           throw new IllegalArgumentException(s"Cannot build union of server types: Overlapping service declarations.")
         else
-          TSrv(svcs1 ++ svcs2)
+          TSrvRep(svcs1 ++ svcs2)
       case _ => throw new IllegalArgumentException(s"Cannot build union of server types: Expected server types but got ${(t,t2)}")
     }
   }
@@ -187,8 +199,10 @@ object TypedSyntax {
         Var(x)
       case ServiceRef(p1, x) =>
         ServiceRef(map(p1), x)
-      case ServerImpl(rs, local) =>
-        ServerImpl(rs map mapRule, local)
+      case ServerImpl(rs) =>
+        ServerImpl(rs map mapRule)
+      case Spawn(local, e) =>
+        Spawn(local, map(e))
       case TApp(p1, t) =>
         TApp(map(p1), mapType(t))
       case TAbs(alpha, bound1, p1) =>
@@ -204,8 +218,8 @@ object TypedSyntax {
     def mapType(tpe: Type): Type = tpe match {
       case Unit => Unit
       case TSvc(ts) => TSvc((ts map mapType))
-      case TSrv(svcs) =>
-        TSrv(svcs mapValues mapType)
+      case TSrvRep(svcs) =>
+        TSrvRep(svcs mapValues mapType)
       case TVar(alpha) => TVar(alpha)
       case TBase(name) => TBase(name)
       case TUniv(alpha, bound, tpe1) => TUniv(alpha, bound.map(mapType(_)), mapType(tpe1))
@@ -236,8 +250,10 @@ object TypedSyntax {
         init
       case ServiceRef(p1, x) =>
         fold(init)(p1)
-      case ServerImpl(rs, _) =>
+      case ServerImpl(rs) =>
         rs.foldLeft(init)(foldRule(_)(_))
+      case Spawn(local, e) =>
+        fold(init)(e)
       case TApp(p1, t) =>
         fold(foldType(init)(t))(p1)
       case TAbs(alpha, bound1, p1) =>
@@ -255,7 +271,7 @@ object TypedSyntax {
         init
       case TSvc(ts) =>
         ts.foldLeft(init)(foldType(_)(_))
-      case TSrv(svcs) =>
+      case TSrvRep(svcs) =>
         svcs.foldLeft(init) {
           (i, kv) => foldType(i)(kv._2)
         }

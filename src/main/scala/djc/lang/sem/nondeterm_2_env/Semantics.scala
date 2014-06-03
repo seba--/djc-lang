@@ -18,6 +18,8 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
   type Res[T] = Set[T]
   def resToSet[T](res: Res[T]) = res
 
+  private var nextServerID = 0
+
   override def interp(p: Par) = interp(p, Map(), Bag())
 
   def interp(p: Exp, env: Env, sends: Bag[SendVal]): Res[Val] = p match {
@@ -30,17 +32,24 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
     case Var(y) if env.isDefinedAt(y) =>
       Set(env(y))
 
-    case s@ServerImpl(_, _) =>
-      Set(ServerVal(s, env))
+    case s@ServerImpl(_) =>
+      Set(ServerClosure(s, env))
+
+    case Spawn(_, e) =>
+      nondeterministic[Val,Val](
+        interp(e, env, sends),
+        {case closure@ServerClosure(_, _) =>
+          val id = nextServerID
+          nextServerID += 1
+          Set(ServerVal(closure, id))
+        }
+      )
 
     case ServiceRef(srv, x) =>
       nondeterministic[Val,Val](
         interp(srv, env, sends),
-        { case sval@ServerVal(impl, env1)  =>
-       //   if impl.rules.exists(_.ps.exists(_.name == x)) =>
-            Set(ServiceVal(sval, x))
-
-       //   case ServerVal(impl, _) => throw SemanticException(s"service $x not defined in server $impl")
+        {case sval@ServerVal(impl, env1)  =>
+          Set(ServiceVal(sval, x))
         }
       )
 
@@ -106,12 +115,12 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
     }
 
   def fireRule(server: ServerVal, rule: Rule, ma: Match, orig: Bag[SendVal]): (Exp, Env, Bag[SendVal]) = {
-    val env = server.env ++ ma.subst + ('this -> server)
+    val env = server.closure.env ++ ma.subst + ('this -> server)
     val rest = orig diff ma.used
     (Par(rule.p), env, rest)
   }
 
   def collectRules(s: SendVal): Bag[(ServerVal, Rule)] = {
-    s.rcv.srv.impl.rules map ((s.rcv.srv, _))
+    s.rcv.srv.closure.impl.rules map ((s.rcv.srv, _))
   }
 }

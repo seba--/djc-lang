@@ -32,24 +32,36 @@ object Types {
     def apply(params: Type*): TSvc = TSvc(List(params: _*))
   }
 
-  case class TSrv(svcs: Map[Symbol, Type]) extends Type {
+  case class TSrvRep(svcs: Map[Symbol, Type]) extends Type {
     override def ===(that: Type) = that match {
-      case TSrv(svcs1) => svcs.keySet == svcs1.keySet && svcs.forall {
+      case TSrvRep(svcs1) => svcs.keySet == svcs1.keySet && svcs.forall {
         case (s, tpe) => tpe === svcs1(s)
       }
       case _ => false
     }
 
     override def <:<(that: Type) = that match {
-      case TSrv(svcs1) => svcs1 forall {
+      case TSrvRep(svcs1) => svcs1 forall {
         case(s, tpe) => svcs.contains(s) && svcs(s) <:< tpe
       }
       case _ => false
     }
   }
-  object TSrv {
-    def apply(svcs: (Symbol, Type)*): TSrv = TSrv(Map(svcs: _*))
+  object TSrvRep {
+    def apply(svcs: (Symbol, Type)*): TSrvRep = TSrvRep(Map(svcs: _*))
   }
+
+  case class TSrv(rep: TSrvRep) extends Type {
+    override def ===(that: Type) = that match {
+      case TSrv(rep2) => rep === rep2
+      case _ => false
+    }
+    override def <:<(that: Type) = that match {
+      case TSrv(rep2) => rep <:< rep2
+      case _ => false
+    }
+  }
+  
 
   case class TVar(alpha: Symbol) extends Type
 
