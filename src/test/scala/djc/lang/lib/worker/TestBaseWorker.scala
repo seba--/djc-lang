@@ -26,7 +26,7 @@ class TestBaseWorker[V](max: Int, semFactory : ISemanticsFactory[V]) extends Abs
 
   testType("mkFibTask", Task.mkFibTask, Task.mkFibTaskType)
   def testFibTask(n: Int) {
-    val mkFibTaskCall = Send(Task.mkFibTask, n, Worker.worker~>'work)
+    val mkFibTaskCall = Send(Task.mkFibTask, n, Spawn(Worker.worker)~>'work)
     testType(s"mkFibTask_$n", mkFibTaskCall, Unit)
     testInterp(s"mkFibTask_$n", mkFibTaskCall, Set(Bag()))
   }
@@ -45,7 +45,7 @@ class TestBaseWorker[V](max: Int, semFactory : ISemanticsFactory[V]) extends Abs
         ServiceRef(
           LocalServer(Rule(
             Bag(Pattern('cont, 'task -> Task.TTaskK(TInteger))),
-            Worker.workerK(TInteger)~>'work!!('task, PRINT_SERVER(TInteger)~>'PRINT))),
+            Spawn(Worker.workerK(TInteger))~>'work!!('task, Spawn(PRINT_SERVER(TInteger))~>'PRINT))),
           'cont))
     testType(s"mkFibTaskK_$n", fibWokrerCall, Unit)
     testInterp(s"mkFibTaskK_$n", fibWokrerCall, Set(Bag(PRINT(Fibonacci.fibAcc(n, 0)))))

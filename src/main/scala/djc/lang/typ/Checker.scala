@@ -38,9 +38,10 @@ object Checker {
     case Var(x) =>
       gamma.getOrElse(x, throw TypeCheckException(s"Unbound variable $x\ngamma: $gamma\nboundTv: $boundTv"))
 
-    case ServiceRef(srv, x) =>
+    case ref@ServiceRef(srv, x) =>
       typeCheck(gamma, boundTv, srv) match {
         case TSrv(TSrvRep(svcs)) if svcs.contains(x) => svcs(x)
+        case TSrvRep(_) => throw TypeCheckException(s"Cannot refer to service of non-running server in $ref")
         case x => throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\nboundTv: $boundTv\nwith $x")
       }
 
