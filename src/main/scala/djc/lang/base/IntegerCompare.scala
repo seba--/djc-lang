@@ -49,6 +49,6 @@ object IntegerCompare {
     def <(e2: Exp) = BaseCall(Lt, e1, e2)
     def <==(e2: Exp) = BaseCall(Le, e1, e2)
     def >(e2: Exp) = BaseCall(Gt, e1, e2)
-    def ==>(e2: Exp) = BaseCall(Ge, e1, e2)
+    def >==(e2: Exp) = BaseCall(Ge, e1, e2)
   }
 }

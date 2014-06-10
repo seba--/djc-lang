@@ -36,6 +36,7 @@ object TypedSyntaxDerived {
       'app)
 
 
+  def Lambda(x: Symbol, t: (Type,Type), e: Exp): Exp = Lambda(x, t._1, e, t._2)
   def Lambda(x: Symbol, xt: Type, e: Exp, resT: Type): Exp =
     ServiceRef(
       LocalServer(

@@ -17,7 +17,7 @@ object Checker {
       if (ts.corresponds(b.ts)(_ <:< _)) // actual arguments have subtypes of declared parameters
         b.res
       else
-        throw TypeCheckException(s"Arguments of base call mismatch. Was: $ts, Expected: ${b.ts}")
+        throw TypeCheckException(s"Arguments of base call mismatch. Was: $ts, Expected: ${b.ts}\n  in ${BaseCall(b, es)}")
     }
 
     case Par(ps)

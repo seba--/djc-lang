@@ -6,7 +6,7 @@ import djc.lang.TypedSyntaxDerived._
 
 import djc.lang.sem._
 import djc.lang.base.Integer._
-import djc.lang.AbstractTest
+import djc.lang.{Syntax, AbstractTest}
 import djc.lang.typ.Types._
 import djc.lang.lib.Fibonacci
 
@@ -29,7 +29,7 @@ class TestBaseWorker[V](max: Int, semFactory : ISemanticsFactory[V]) extends Abs
   def testFibTask(n: Int) {
     val mkFibTaskCall = Send(Task.mkFibTask, n, Spawn(Worker.worker)~>'work)
     testType(s"mkFibTask_$n", mkFibTaskCall, Unit)
-    testInterp(s"mkFibTask_$n", mkFibTaskCall, Set(Bag()))
+    testInterp(s"mkFibTask_$n", mkFibTaskCall, Set(Bag[Syntax.Send]()))
   }
 
   for (i <- 0 to max)

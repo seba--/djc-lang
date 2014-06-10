@@ -22,6 +22,19 @@ abstract class AbstractTest[V](semFactory: ISemanticsFactory[V]) extends FunSuit
 
   def PRINT(e: Exp) = Spawn(PRINT_SERVER(?()))~>'PRINT !! (e)
 
+  def testInterp(s: String, p: TypedSyntax.Par, expected: Bag[Syntax.Send] => Boolean): Unit =
+    testInterp(s, p.eraseType, expected)
+
+  def testInterp(s: String, p: Syntax.Par, expected: Bag[Syntax.Send] => Boolean): Unit =
+    test(s ++ "-interp") {
+      val sem = semFactory.newInstance()
+      val res = sem.resToSet[V](sem.interp(p))
+      val norm = res map (sem.normalizeVal(_))
+//      val normExpected = expected map (bag => bag.map(s => sigmap(sigmac(s)).asInstanceOf[Syntax.Send]))
+      norm map (bag => assert(expected(bag)))
+    }
+//    testInterpUntyped(s, p.eraseType, expected map (_.map(_.eraseType)), ignore)
+
   def testInterp(s: String, p: TypedSyntax.Par, expected: AbstractSemantics.Res[Bag[TypedSyntax.Send]],
                  ignore: Syntax.Send => Boolean = (s => false)): Unit =
     testInterpUntyped(s, p.eraseType, expected map (_.map(_.eraseType)), ignore)

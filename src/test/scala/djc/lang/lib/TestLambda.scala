@@ -5,6 +5,7 @@ import util.Bag
 import djc.lang.sem._
 import djc.lang.AbstractTest
 
+import djc.lang.Syntax
 import djc.lang.TypedSyntax._
 import djc.lang.TypedSyntaxDerived._
 import djc.lang.typ.Types._
@@ -45,7 +46,7 @@ class TestLambda[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem) {
   val app1 = App(lam1, fooService, resultService)
 
   testType("app1", app1, Unit)
-  testInterp("app1", app1, Set(Bag()))
+  testInterp("app1", app1, Set(Bag[Syntax.Send]()))
 
 
   val fooPrintService = ServiceRef(

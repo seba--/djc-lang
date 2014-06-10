@@ -1,0 +1,80 @@
+package djc.lang.base
+
+import djc.lang.TypedSyntax._
+import djc.lang.typ.Types._
+import djc.lang.sem.SemanticException
+import djc.lang.base.Integer.IntValue
+
+object Double {
+
+  val TDouble = TBase('Double)
+
+  case class DoubleValue(i: Double) extends BaseValue {
+    def toExp = BaseCall(DoubleLit(i), Nil).eraseType
+  }
+
+  case class DoubleLit(i: Double) extends BaseOp(Nil, TDouble) {
+    def reduce(es: List[BaseValue]) = DoubleValue(i)
+  }
+  implicit def mkDoubleLit(n: Double): Exp = BaseCall(DoubleLit(n))
+
+  case object Plus extends BaseOp(List(TDouble, TDouble), TDouble) {
+    def reduce(es: List[BaseValue]) = es match {
+      case DoubleValue(i1)::DoubleValue(i2)::Nil => DoubleValue(i1 + i2)
+      case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
+    }
+  }
+
+  case object Sub extends BaseOp(List(TDouble, TDouble), TDouble) {
+    def reduce(es: List[BaseValue]) = es match {
+      case DoubleValue(i1)::DoubleValue(i2)::Nil => DoubleValue(i1 - i2)
+      case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
+    }
+  }
+
+  case object Mul extends BaseOp(List(TDouble, TDouble), TDouble) {
+    def reduce(es: List[BaseValue]) = es match {
+      case DoubleValue(i1)::DoubleValue(i2)::Nil => DoubleValue(i1 * i2)
+      case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
+    }
+  }
+
+  case object Div extends BaseOp(List(TDouble, TDouble), TDouble) {
+    def reduce(es: List[BaseValue]) = es match {
+      case DoubleValue(i1)::DoubleValue(i2)::Nil => DoubleValue(i1 / i2)
+      case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
+    }
+  }
+
+  case object Pow extends BaseOp(List(TDouble, TDouble), TDouble) {
+    def reduce(es: List[BaseValue]) = es match {
+      case DoubleValue(i1)::DoubleValue(i2)::Nil => DoubleValue(Math.pow(i1, i2).toDouble)
+      case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
+    }
+  }
+
+  case object ToDouble extends BaseOp(List(Integer.TInteger), TDouble) {
+    def reduce(es: List[BaseValue]) = es match {
+      case IntValue(i1)::Nil => DoubleValue(i1.toDouble)
+      case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
+    }
+  }
+
+  implicit def infixExpDoubleVar(e: Symbol) = InfixExp(Var(e))
+  implicit def infixExpDoubleLit(e: Double) = InfixExp(BaseCall(DoubleLit(e)))
+  implicit def infixExpDouble(e: Exp) = InfixExp(e)
+  implicit def infixExpBaseCall(e: BaseCall) = InfixExp(e)
+  case class InfixExp(e1: Exp) {
+    def d = this
+    def +(e2: Exp) = BaseCall(Plus, e1, e2)
+    def +(e2: Int) = BaseCall(Plus, e1, e2)
+    def +(e2: Symbol) = BaseCall(Plus, e1, e2)
+    def -(e2: Exp) = BaseCall(Sub, e1, e2)
+    def /(e2: Exp) = BaseCall(Div, e1, e2)
+    def *(e2: Exp) = BaseCall(Mul, e1, e2)
+    def pow(e2: Exp) = BaseCall(Pow, e1, e2)
+    def toDouble = BaseCall(ToDouble, e1)
+//    def pow(e2: InfixExp) = InfixExp(BaseCall(Pow, e1, e2.e1))
+  }
+
+}
