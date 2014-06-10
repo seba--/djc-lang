@@ -136,7 +136,7 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
       (Par(rule.p), env, rest)
     }
 
-    def collectRules(s: SendVal): Bag[(ServerVal, Rule)] = {
+    def collectRules(s: SendVal): List[(ServerVal, Rule)] = {
       val ServerClosure(impl, _) = router.lookupAddr(s.rcv.srv.addr)
       impl.rules map ((s.rcv.srv, _))
     }

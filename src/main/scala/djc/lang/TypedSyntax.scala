@@ -38,7 +38,7 @@ object TypedSyntax {
     override def eraseType = Syntax.ServiceRef(srv.eraseType, x)
   }
 
-  case class ServerImpl(rules: Bag[Rule]) extends Exp {
+  case class ServerImpl(rules: List[Rule]) extends Exp {
     override def eraseType = Syntax.ServerImpl(rules map (_.eraseType))
 
     lazy val signature = {
@@ -59,7 +59,7 @@ object TypedSyntax {
     }
   }
   object ServerImpl {
-    def apply(rules: Rule*): ServerImpl = ServerImpl(Bag(rules: _*))
+    def apply(rules: Rule*): ServerImpl = ServerImpl(List(rules: _*))
   }
 
   case class Spawn(local: Boolean, e: Exp) extends Exp {
@@ -72,12 +72,12 @@ object TypedSyntax {
     def apply(e: Exp): Spawn = Spawn(true, e)
   }
   object Server {
-    def apply(rules: Bag[Rule]): Spawn = Spawn(false, ServerImpl(rules))
-    def apply(rules: Rule*): Spawn = Spawn(false, ServerImpl(Bag(rules: _*)))
+    def apply(rules: List[Rule]): Spawn = Spawn(false, ServerImpl(rules))
+    def apply(rules: Rule*): Spawn = Spawn(false, ServerImpl(List(rules: _*)))
   }
   object LocalServer {
-    def apply(rules: Bag[Rule]): Spawn = Spawn(true, ServerImpl(rules))
-    def apply(rules: Rule*): Spawn = Spawn(true, ServerImpl(Bag(rules: _*)))
+    def apply(rules: List[Rule]): Spawn = Spawn(true, ServerImpl(rules))
+    def apply(rules: Rule*): Spawn = Spawn(true, ServerImpl(List(rules: _*)))
   }
 
   case class TApp(p: Exp, t: Type) extends Exp {

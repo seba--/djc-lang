@@ -17,7 +17,7 @@ import djc.lang.typ.Types._
 //class TestConcurrentPi3 extends TestConcurrentPi(3, 1, nondeterm_3_routed.SemanticsFactory)
 //class TestConcurrentPi4 extends TestConcurrentPi(3, 1, nondeterm_4_grouped.SemanticsFactory)
 //class TestConcurrentPi5 extends TestConcurrentPi(3, 1, nondeterm_5_parallel.SemanticsFactory)
-class TestConcurrentPi6 extends TestConcurrentPi(1000, 250, concurrent_6_thread.SemanticsFactory)
+class TestConcurrentPi6 extends TestConcurrentPi(2000, 500, concurrent_6_thread.SemanticsFactory)
 
 
 class TestConcurrentPi[V](max: Int, step: Int, semFactory : ISemanticsFactory[V]) extends AbstractTest(semFactory) {
@@ -38,7 +38,7 @@ class TestConcurrentPi[V](max: Int, step: Int, semFactory : ISemanticsFactory[V]
              Syntax.BaseCall(DoubleLit(pi), Nil)::Nil)
         => val actualDeviation = Math.abs(pi - referencePi)
            println(s"Computed pi for n=$n: $pi")
-           println(s"deviation: $actualDeviation")
+           println(s"deviation from sequential aprox: $actualDeviation")
            actualDeviation < maximalDeviation
       case s => println(s"Was $s"); false
     }))

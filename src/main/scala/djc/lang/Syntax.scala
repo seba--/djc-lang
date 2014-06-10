@@ -22,10 +22,10 @@ object Syntax {
 
   case class ServiceRef(srv: Exp, x: Symbol) extends Exp
 
-  case class ServerImpl(rules: Bag[Rule]) extends Exp {
+  case class ServerImpl(rules: List[Rule]) extends Exp {
     lazy val services = rules flatMap (r => r.ps map (p => p.name))
   }
-  object ServerImpl { def apply(rules: Rule*): ServerImpl = new ServerImpl(Bag(rules:_*)) }
+  object ServerImpl { def apply(rules: Rule*): ServerImpl = new ServerImpl(List(rules:_*)) }
 
   case class Spawn(local: Boolean, e: Exp) extends Exp {
     override def equals(a: Any) = a.isInstanceOf[SpawnAny] && a == this || a.isInstanceOf[Spawn] && {

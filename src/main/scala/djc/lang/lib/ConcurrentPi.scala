@@ -64,7 +64,7 @@ object ConcurrentPi {
   val mapperType = ?(TDouble)
   val mkMapper =
     LocalService('mkMapper?('reducer -> sumReducerType, 'k -> ?(mapperType)),
-      'k!!(LocalService('map?('f -> TDouble), formula!!('reducer, 'f)))
+      'k!!(Service('map?('f -> TDouble), formula!!('reducer, 'f)))
     )
 
   val piServerType = TSrvRep('pi -> TFun(TInteger, TDouble))

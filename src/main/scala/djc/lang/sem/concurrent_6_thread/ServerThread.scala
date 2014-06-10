@@ -42,7 +42,7 @@ class ServerThread extends Thread {
           servers.values
         }
         ss map (_.tryFireRules())
-        //      Thread.sleep(3)
+        Thread.sleep(0)
       }
       if (!terminate)
         throw new IllegalStateException(s"Unexpected server termination")

@@ -19,9 +19,9 @@ class TestSemantics_concurrent_thread extends TestSemantics(concurrent_6_thread.
 abstract class TestSemantics[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem) {
   // single message send
   val s1 =
-    ServerImpl(Bag(Rule(
+    ServerImpl(Rule(
       Bag(Pattern('m1, 'x)),
-      Send(ServiceRef(Var('Print), 'foo), Var('x)))))
+      Send(ServiceRef(Var('Print), 'foo), Var('x))))
 
   val p1 =
     Def('Print, Spawn(PRINT_SERVER_NO),
@@ -35,14 +35,14 @@ abstract class TestSemantics[V](sem: ISemanticsFactory[V]) extends AbstractTest(
 
 
   // send message to self
-  val s2 = ServerImpl(Bag(
+  val s2 = ServerImpl(
     Rule(
       Bag(Pattern('m1, 'x)),
       Send(ServiceRef(Var('Print), 'foo), Var('x))),
     Rule(
       Bag(Pattern('m2, 'x)),
       Send(ServiceRef(Var('this),'m1), Var('x)))
-    ))
+    )
 
   val p2 =
     Def('Print, Spawn(PRINT_SERVER_NO),
@@ -57,11 +57,11 @@ abstract class TestSemantics[V](sem: ISemanticsFactory[V]) extends AbstractTest(
   )
 
   // send message to other server
-  val s3 = ServerImpl(Bag(
+  val s3 = ServerImpl(
     Rule(
       Bag(Pattern('m2, 'x)),
       Send(ServiceRef(Var('s1), 'm1), Var('x)))
-    ))
+    )
 
   val p3 =
     Def('Print, Spawn(PRINT_SERVER_NO),
@@ -98,9 +98,9 @@ abstract class TestSemantics[V](sem: ISemanticsFactory[V]) extends AbstractTest(
 
   // nondeterminism
   val s5 = ServerImpl(
-    Bag(Rule(
+    Rule(
       Bag(Pattern('m1, 'x), Pattern('token)),
-      Send(ServiceRef(Var('Print), 'foo), Var('x)))))
+      Send(ServiceRef(Var('Print), 'foo), Var('x))))
 
   val p5 =
     Def('Print, Spawn(PRINT_SERVER_NO),
@@ -122,9 +122,9 @@ abstract class TestSemantics[V](sem: ISemanticsFactory[V]) extends AbstractTest(
 
   // server-variable shadowing
   val s6 = ServerImpl(
-    Bag(Rule(
+    Rule(
       Bag(Pattern('m1, 'x)),
-      Send(ServiceRef(Var('Print), 'foo6), Var('x)))))
+      Send(ServiceRef(Var('Print), 'foo6), Var('x))))
 
   val p6 =
     Def('Print, Spawn(PRINT_SERVER_NO),
@@ -138,11 +138,11 @@ abstract class TestSemantics[V](sem: ISemanticsFactory[V]) extends AbstractTest(
     Set(Bag(Send(ServiceRef(Spawn(PRINT_SERVER_NO), 'foo6), ServiceRef(Spawn(CONST_SERVER_NO), 'bar)))))
 
   // higher-order service: s7.m2(s1.m1, "bar") -> s1.m1("bar") -> Print.foo("bar")
-  val s7 = ServerImpl(Bag(
+  val s7 = ServerImpl(
     Rule(
       Bag(Pattern('m2, 'f, 'x)),
       Send(Var('f), Var('x)))
-  ))
+  )
 
   val p7 =
     Def('Print, Spawn(PRINT_SERVER_NO),

@@ -135,7 +135,7 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
     (Par(p), rest)
   }
 
-  def collectRules(s: SendVal): Bag[(ServerVal, Rule)] = {
+  def collectRules(s: SendVal): List[(ServerVal, Rule)] = {
     val rules = s.rcv.srv.impl.impl.rules
     rules map ((s.rcv.srv, _))
   }
