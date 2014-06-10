@@ -21,7 +21,7 @@ object ConcurrentPi {
   )
 
   val forType = ?(TInteger, //init
-                  TFun(TInteger, TBool), // termination condition
+                  TFun(TInteger, TBool), // continuation condition
                   TFun(TInteger, TInteger), // counter modifier
                   ?(TInteger)) // body
   val forService = LocalService(
