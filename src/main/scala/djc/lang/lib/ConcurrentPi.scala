@@ -23,15 +23,15 @@ object ConcurrentPi {
   val forType = ?(TInteger, //init
                   TFun(TInteger, TBool), // continuation condition
                   TFun(TInteger, TInteger), // counter modifier
-                  ?(TInteger)) // body
+                  TFun(TInteger, Unit)) // body
   val forService = LocalService(
-    'for?('current -> TInteger, 'cond -> TFun(TInteger, TBool), 'mod -> TFun(TInteger, TInteger), 'body -> ?(TInteger)),
+    'for?('current -> TInteger, 'cond -> TFun(TInteger, TBool), 'mod -> TFun(TInteger, TInteger), 'body -> TFun(TInteger, Unit)),
     Def('outer, TSrv(TSrvRep('for -> forType)), 'this,
       'cond!!('current,
         LocalService(
           'kfor?('shouldContinue -> TBool),
           Ifc('shouldContinue,
-            'body!!('current) && 'mod!!('current, LocalService('k?('next -> TInteger), 'outer~>'for!!('next, 'cond, 'mod, 'body))),
+            'body!!('current, Function.consume(Unit)) && 'mod!!('current, LocalService('k?('next -> TInteger), 'outer~>'for!!('next, 'cond, 'mod, 'body))),
             Par()
           )
         ))
@@ -77,7 +77,7 @@ object ConcurrentPi {
             0,
             Lambda('i, TInteger->TBool, 'i <== 'n),
             Lambda('i, TInteger->TInteger, 'i.i + 1),
-            LocalService('ki?('i -> TInteger), 'mapper!!('i.toDouble))
+            Lambda('i, TInteger->Unit, 'mapper!!('i.toDouble))
           )
         ))
       ))
@@ -93,7 +93,7 @@ object ConcurrentPi {
             0,
             Lambda('i, TInteger->TBool, 'i <== 'n),
             Lambda('i, TInteger->TInteger, 'i.i + 1),
-            LocalService('ki?('i -> TInteger), 'mapper!!('i.toDouble))
+            Lambda('i, TInteger->Unit, 'mapper!!('i.toDouble))
           )
         )
       )
