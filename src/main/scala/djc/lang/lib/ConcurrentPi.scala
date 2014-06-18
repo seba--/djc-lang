@@ -84,6 +84,21 @@ object ConcurrentPi {
     )
   )
 
+  val piServer2 = ServerImpl(
+    Rule(
+      'pi?('n -> TInteger, 'k -> ?(TDouble)),
+      Defk('reducer, sumReducerType, mkSumReducer!!('n.i + 1, 'k),
+        Defk('mapper, mapperType, mkMapper!!('reducer),
+          forService!!(
+            0,
+            Lambda('i, TInteger->TBool, 'i <== 'n),
+            Lambda('i, TInteger->TInteger, 'i.i + 1),
+            LocalService('ki?('i -> TInteger), 'mapper!!('i.toDouble))
+          )
+        )
+      )
+    )
+  )
 
 
   def concurrentPi(n: Int): Double = {

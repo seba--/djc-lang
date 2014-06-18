@@ -27,7 +27,7 @@ object TypedSyntax {
   }
 
   object Send {
-    def apply(rcv: Exp, args: Exp*) = new Send(rcv, List(args: _*))
+    def apply(rcv: Exp, args: Exp*): Send = Send(rcv, List(args: _*))
   }
 
   case class Var(x: Symbol) extends Exp {

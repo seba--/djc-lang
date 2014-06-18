@@ -23,6 +23,15 @@ object TypedSyntaxDerived {
     Def(x, xt, s, p)
   }
 
+  def Defk(x: Symbol, xt: Type, s: Exp, p: Exp): Exp = {
+    val cont = SpawnLocal(ServerImpl(Rule('k?(x -> xt), p)))~>'k
+    s match {
+      case Send(svc, args) => Send(svc, args :+ cont)
+      case e => Send(e, cont)
+    }
+  }
+
+
   def Service(p: Pattern, e: Exp) = ServiceRef(Server(Rule(Bag(p), e)), p.name)
   def LocalService(p: Pattern, e: Exp) = ServiceRef(LocalServer(Rule(Bag(p), e)), p.name)
 

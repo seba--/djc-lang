@@ -25,12 +25,12 @@ class TestConcurrentPi[V](max: Int, step: Int, semFactory : ISemanticsFactory[V]
   testType("formula", ConcurrentPi.formula, ConcurrentPi.formulaType)
   testType("for", ConcurrentPi.forService, ConcurrentPi.forType)
   testType("mkSumReducer", ConcurrentPi.mkSumReducer, ?(TInteger, ?(TDouble), ?(ConcurrentPi.sumReducerType)))
-  testType("piServer", ConcurrentPi.piServer, ConcurrentPi.piServerType)
+  testType("piServer", ConcurrentPi.piServer2, ConcurrentPi.piServerType)
 
   val maximalDeviation = Math.pow(10, -14)
 
   def testPi(n: Int) {
-    val piCall = Spawn(ConcurrentPi.piServer)~>'pi!!(n, Spawn(PRINT_SERVER(TDouble))~>'PRINT)
+    val piCall = Spawn(ConcurrentPi.piServer2)~>'pi!!(n, Spawn(PRINT_SERVER(TDouble))~>'PRINT)
     testType(s"pi_$n", piCall, Unit)
     val referencePi = ConcurrentPi.concurrentPi(n)
     testInterp(s"pi_$n", piCall, (res: Bag[Syntax.Send]) => res.size == 1 && (res.head match {
