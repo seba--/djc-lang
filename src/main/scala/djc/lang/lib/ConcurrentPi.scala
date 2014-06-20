@@ -16,8 +16,8 @@ object ConcurrentPi {
 
   val plus = Lambda(List('x -> TDouble, 'y -> TDouble), BaseCall(djc.lang.base.Double.Plus, Var('x), Var('y)), TDouble)
 
-  val formulaType = TFun(TInteger, TDouble)
-  val formula = Lambda('i, TInteger, (4.0 * ((-1.0 pow Var('f)) / (2.0 * Var('f) + 1.0))), TDouble)
+  val formulaType = TFun(TDouble, TDouble)
+  val formula = Lambda('i, TDouble->TDouble, (4.0 * ((-1.0 pow Var('i)) / (2.0 * Var('i) + 1.0))))
 
 
   val forType = ?(TInteger, //init
@@ -38,51 +38,54 @@ object ConcurrentPi {
     )
   )
 
-  val reducerType = TSrv(TSrvRep('reduce -> ?(TDouble), 'waitFor -> ?(TInteger)))
+  //TODO make everything polymorphic
+  val reducerType = TSrv(TSrvRep('reduce -> ?(TDouble), 'wait -> ?(TInteger)))
+  val mkReducerType = TSrv(TSrvRep('make -> ?(TInteger, ?(TDouble), TFun(TDouble, TDouble, TDouble), ?(reducerType))))
   val mkReducer =
-    Server(Rule('make?('numResults -> TInteger, 'finalK -> ?(TDouble), 'op -> TFun(TDouble, TDouble, TDouble), 'kred -> ?(reducerType)),
+    LocalServer(Rule('make?('numResults -> TInteger, 'finalK -> ?(TDouble), 'op -> TFun(TDouble, TDouble, TDouble), 'kred -> ?(reducerType)),
       Def('res, reducerType,
         Server(
           Rule(
-            'waitFor?('n -> TInteger) && 'reduce?('v1 -> TDouble) && 'reduce?('v2 -> TDouble),
-            'this~>'waitFor!!('n - 1) && 'op!!('v1, 'v2, 'this~>'reduce)
+            'wait?('n -> TInteger) && 'reduce?('v1 -> TDouble) && 'reduce?('v2 -> TDouble),
+            'this~>'wait!!('n - 1) && 'op!!('v1, 'v2, 'this~>'reduce)
           ),
           Rule(
-            'waitFor?('n -> TInteger) && 'reduce?('v -> TDouble),
-            Def('reducer, TSrv(TSrvRep('reduce -> ?(TDouble), 'waitFor -> ?(TInteger))), 'this,
+            'wait?('n -> TInteger) && 'reduce?('v -> TDouble),
+            Def('reducer, reducerType, 'this,
               Ifc('n <== 1,
                 'finalK!!('v),
-                'reducer~>'waitFor!!('n) && 'reducer~>'reduce!!('v)
+                'reducer~>'wait!!('n) && 'reducer~>'reduce!!('v)
               )
             )
           )
         ),
-        'res~>'waitFor!!('numResults) && 'kred!!('res~>'reduce)
+        'res~>'wait!!('numResults) && 'kred!!('res)
       )
     ))
 
-  val mapperType = TSrv(TSrvRep( 'map -> ?(TInteger)  ))
+  val mapperType = TSrv(TSrvRep( 'map -> ?(TDouble)  ))
   val mkMapper =
-    Server(Rule('make?('reducer -> reducerType, 'f -> TFun(TInteger, TDouble), 'k -> ?(mapperType)),
-      'k!!Server(Rule('map?('i -> TInteger), 'f!!('i, 'reducer~>'reduce)))
+    LocalServer(Rule('make?('reducer -> reducerType, 'f -> TFun(TDouble, TDouble), 'k -> ?(mapperType)),
+      'k!!Server(Rule('map?('i -> TDouble), 'f!!('i, 'reducer~>'reduce)))
     ))
 
   val piServerType = TSrvRep('pi -> TFun(TInteger, TDouble))
-
   val piServer = ServerImpl(
     Rule(
       'pi?('n -> TInteger, 'k -> ?(TDouble)),
-      Defk('reducer, reducerType, mkReducer~>'make!!('n.i + 1, plus, 'k),
-        Defk('mapper, mapperType, mkMapper~>'make!!('reducer, formula),
+      Def('summand, TFun(TDouble,TDouble), formula,
+      Defk('reducer, reducerType, mkReducer~>'make!!('n.i + 1, 'k, plus),
+        Defk('mapper, mapperType, mkMapper~>'make!!('reducer, 'summand),
           forService!!(
             0,
             Lambda('i, TInteger->TBool, 'i <== 'n),
             Lambda('i, TInteger->TInteger, 'i.i + 1),
-            Lambda('i, TInteger->Unit, 'mapper!!('i.toDouble))
+            Lambda('i, TInteger->Unit, 'mapper~>'map!!('i.toDouble))
           )
         )
       )
     )
+  )
   )
 
 

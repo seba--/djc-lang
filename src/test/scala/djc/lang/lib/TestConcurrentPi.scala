@@ -24,7 +24,7 @@ class TestConcurrentPi[V](max: Int, step: Int, semFactory : ISemanticsFactory[V]
 
   testType("formula", ConcurrentPi.formula, ConcurrentPi.formulaType)
   testType("for", ConcurrentPi.forService, ConcurrentPi.forType)
-  testType("mkSumReducer", ConcurrentPi.mkReducer,  ConcurrentPi.reducerType)
+  testType("mkReducer", ConcurrentPi.mkReducer,  ConcurrentPi.mkReducerType)
   testType("piServer", ConcurrentPi.piServer, ConcurrentPi.piServerType)
 
   val maximalDeviation = Math.pow(10, -14)
