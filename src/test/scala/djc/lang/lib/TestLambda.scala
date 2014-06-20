@@ -2,35 +2,26 @@ package djc.lang.lib
 
 import util.Bag
 
+import djc.lang.base.Bool
 import djc.lang.sem._
 import djc.lang.AbstractTest
 
-import djc.lang.Syntax
-import djc.lang.TypedSyntax._
-import djc.lang.TypedSyntaxDerived._
-import djc.lang.typ.Types._
-import djc.lang.TypedSyntax.Var
-import djc.lang.TypedSyntax.ServiceRef
-import djc.lang.TypedSyntax.Rule
-import djc.lang.TypedSyntaxDerived._
+import djc.lang.Syntax._
+import djc.lang.SyntaxDerived._
 
 
 class TestLambda1 extends TestLambda(nondeterm_1_subst.Semantics)
-class TestLambda2 extends TestLambda(nondeterm_2_env.Semantics)
-class TestLambda3 extends TestLambda(nondeterm_3_routed.SemanticsFactory)
-class TestLambda4 extends TestLambda(nondeterm_4_grouped.SemanticsFactory)
-class TestLambda5 extends TestLambda(nondeterm_5_parallel.SemanticsFactory)
-class TestLambda6 extends TestLambda(concurrent_6_thread.SemanticsFactory)
+//class TestLambda2 extends TestLambda(nondeterm_2_env.Semantics)
+//class TestLambda3 extends TestLambda(nondeterm_3_routed.SemanticsFactory)
+//class TestLambda4 extends TestLambda(nondeterm_4_grouped.SemanticsFactory)
+//class TestLambda5 extends TestLambda(nondeterm_5_parallel.SemanticsFactory)
+//class TestLambda6 extends TestLambda(concurrent_6_thread.SemanticsFactory)
 
 
 class TestLambda[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem) {
 
 
-  val xt1 = ?()
-  val rt1 = xt1
-  val lam1 = Lambda('x, xt1, Var('x), rt1)
-
-  testType("lam1", lam1, TFun(xt1, rt1))
+  val lam1 = Lambda('x, Var('x))
 
   val fooService = ServiceRef(
     LocalServer(Rule(
@@ -39,48 +30,39 @@ class TestLambda[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem) {
     'foo)
   val resultService = ServiceRef(
     LocalServer(Rule(
-      Bag(Pattern('bar, 'result -> rt1)),
-      'result!!())),
+      Bag(Pattern('bar, 'result)),
+      Send(Var('result)))),
     'bar
   )
-  val app1 = App(lam1, fooService, resultService)
+  val app1 = Send(ServiceRef(lam1, 'app), fooService, resultService)
 
-  testType("app1", app1, Unit)
-  testInterp("app1", app1, Set(Bag[Syntax.Send]()))
+  testInterpUntyped("app1", app1, Set(Bag[Send]()))
 
 
   val fooPrintService = ServiceRef(
     LocalServer(Rule(
       Bag(Pattern('foo)),
-      Send(Spawn(PRINT_SERVER(?()))~>'PRINT, 'this~>'foo))),
+      Send(ServiceRef(Spawn(PRINT_SERVER_NO), 'PRINT), ServiceRef(Var('this), 'foo)))),
     'foo)
-  val app2 = App(lam1, fooPrintService, resultService)
-  testType("app2", app2, Unit)
-  testInterp("app2", app2, Set(Bag(PRINT(fooPrintService))))
+  val app2 = Send(ServiceRef(lam1, 'app), fooPrintService, resultService)
+  testInterpUntyped("app2", app2, Set(Bag(PRINT_NO(fooPrintService))))
 
 
-//  Set(
-//    Bag(
-//      Send(
-//        ServiceRef(
-//          Spawn(false,ServerImpl(Bag(
-//            Rule(Bag(Pattern('PRINT)),Par())))),
-//          'PRINT),
-//        List(
-//          ServiceRef(
-//            Spawn(false,ServerImpl(Bag(
-//              Rule(Bag(Pattern('foo)),Send(ServiceRef(Spawn(false,ServerImpl(Bag(Rule(Bag(Pattern('PRINT)),Par())))),'PRINT),List(ServiceRef(Var('this),'foo))))))),
-//            'foo)))))
-//
-//  Set(
-//    Bag(
-//      Send(
-//        ServiceRef(
-//          Spawn(false,ServerImpl(Bag(
-//            Rule(Bag(Pattern('PRINT)),Par())))),
-//          'PRINT),
-//        List(
-//          ServiceRef(
-//            Spawn(true,ServerImpl(Bag(Rule(Bag(Pattern('foo)),Send(ServiceRef(Spawn(false,ServerImpl(Bag(Rule(Bag(Pattern('PRINT,List())),Par())))),'PRINT),List(ServiceRef(Var('this),'foo))))))),'foo)))))
+  val tru = Lambda('t, Lambda('f, 't))
+  val fal = Lambda('t, Lambda('f, 'f))
+
+  val toBool = LocalService('trans ?('b, 'k), App(App('b, Bool.tru.eraseType), Bool.fal.eraseType, 'k))
+
+  testInterpUntyped("toBool tru = true", Par(toBool !!(tru, Spawn(PRINT_SERVER_NO) ~> 'PRINT)), Set(Bag(PRINT_NO(Bool.tru.eraseType))))
+  testInterpUntyped("toBool fal = false", Par(toBool !!(fal, Spawn(PRINT_SERVER_NO) ~> 'PRINT)), Set(Bag(PRINT_NO(Bool.fal.eraseType))))
+
+
+  val or = Lambda('p, Lambda('q, App(App('p, tru), 'q)))
+  def or(p: Exp, q: Exp): Exp = App(App(or, p), q, Spawn(PRINT_SERVER_NO) ~> 'PRINT)
+
+  testInterpUntyped("T or T", Par(or(tru, tru)), Set(Bag(PRINT_NO(tru))))
+  testInterpUntyped("T or F", Par(or(tru, fal)), Set(Bag(PRINT_NO(tru))))
+  testInterpUntyped("F or T", Par(or(fal, tru)), Set(Bag(PRINT_NO(tru))))
+  testInterpUntyped("F or F", Par(or(fal, fal)), Set(Bag(PRINT_NO(fal))))
 
 }

@@ -68,23 +68,8 @@ object ConcurrentPi {
     )
 
   val piServerType = TSrvRep('pi -> TFun(TInteger, TDouble))
-  val piServer = ServerImpl(
-    Rule(
-      'pi?('n -> TInteger, 'k -> ?(TDouble)),
-      mkSumReducer!!('n.i + 1, 'k, LocalService('k?('reducer -> sumReducerType),
-        mkMapper!!('reducer, LocalService('k?('mapper -> mapperType),
-          forService!!(
-            0,
-            Lambda('i, TInteger->TBool, 'i <== 'n),
-            Lambda('i, TInteger->TInteger, 'i.i + 1),
-            Lambda('i, TInteger->Unit, 'mapper!!('i.toDouble))
-          )
-        ))
-      ))
-    )
-  )
 
-  val piServer2 = ServerImpl(
+  val piServer = ServerImpl(
     Rule(
       'pi?('n -> TInteger, 'k -> ?(TDouble)),
       Defk('reducer, sumReducerType, mkSumReducer!!('n.i + 1, 'k),

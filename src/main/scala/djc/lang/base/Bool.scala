@@ -57,7 +57,8 @@ object Bool {
     }
   }
 
-
+  def tru = BaseCall(True, Nil)
+  def fal = BaseCall(False, Nil)
   implicit def infixExpBoolVar(e: Symbol) = InfixExp(Var(e))
   implicit def infixExpBool(e: Exp) = InfixExp(e)
   case class InfixExp(e1: Exp) {

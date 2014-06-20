@@ -26,6 +26,10 @@ object Syntax {
     lazy val services = rules flatMap (r => r.ps map (p => p.name))
   }
   object ServerImpl { def apply(rules: Rule*): ServerImpl = new ServerImpl(List(rules:_*)) }
+  object LocalServer {
+    def apply(rules: List[Rule]): Spawn = Spawn(true, ServerImpl(rules))
+    def apply(rules: Rule*): Spawn = Spawn(true, ServerImpl(List(rules: _*)))
+  }
 
   case class Spawn(local: Boolean, e: Exp) extends Exp {
     override def equals(a: Any) = a.isInstanceOf[SpawnAny] && a == this || a.isInstanceOf[Spawn] && {
@@ -67,7 +71,31 @@ object Syntax {
 
 
 
-
+  implicit def varSymbol(s: Symbol) = Var(s)
+  implicit def varSymbolInfixExp(s: Symbol) = new InfixExp(Var(s))
+  implicit def varSymbolInfixPattern(s: Symbol) = PatternSymbol(s)
+  implicit def patternBag(p: Pattern) = Bag(p)
+  implicit def infixPattern(p: Pattern) = InfixPattern(Bag(p))
+  implicit def infixPattern(ps: Bag[Pattern]) = InfixPattern(ps)
+  //  implicit def infixSend(e: Send) = new InfixSend(e)
+  implicit def infixExp(e: Exp) = new InfixExp(e)
+  implicit def infixSendExp(e: Send) = new InfixExp(e)
+  class InfixExp(val e1: Exp) {
+    def ~>(s: Symbol) = ServiceRef(e1, s)
+    def !!(es: Exp*) = Send(e1, List(es:_*))
+    def &&(e2: Exp): Exp = Par(e1, e2)
+    def &&(e2s: Bag[Exp]): Exp = Par(e2s + e1)
+  }
+  //  class InfixSend(e1: Send) extends InfixExp(e1) {
+  //    def >>(e2: Send) = TypedSyntaxDerived.SendSeq(e1, e2)
+  //  }
+  case class PatternSymbol(s: Symbol) {
+    def ?(ps: Symbol*) = Pattern(s, List(ps:_*))
+  }
+  case class InfixPattern(p1: Bag[Pattern]) {
+    def &&(ps: Bag[Pattern]): Bag[Pattern] = p1 ++ ps
+    def &&(p2: Pattern): Bag[Pattern] = p1 + p2
+  }
 
 
 

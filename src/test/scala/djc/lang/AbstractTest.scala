@@ -21,6 +21,7 @@ abstract class AbstractTest[V](semFactory: ISemanticsFactory[V]) extends FunSuit
   val sigmac = Substitution('Const, Spawn(CONST_SERVER).eraseType)
 
   def PRINT(e: Exp) = Spawn(PRINT_SERVER(?()))~>'PRINT !! (e)
+  def PRINT_NO(e: Syntax.Exp) = Syntax.Send(Syntax.ServiceRef(Syntax.Spawn(PRINT_SERVER_NO), 'PRINT), e)
 
   def testInterp(s: String, p: TypedSyntax.Par, expected: Bag[Syntax.Send] => Boolean): Unit =
     testInterp(s, p.eraseType, expected)

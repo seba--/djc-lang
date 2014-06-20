@@ -35,29 +35,12 @@ object TypedSyntaxDerived {
   def Service(p: Pattern, e: Exp) = ServiceRef(Server(Rule(Bag(p), e)), p.name)
   def LocalService(p: Pattern, e: Exp) = ServiceRef(LocalServer(Rule(Bag(p), e)), p.name)
 
-  def LambdaServer(x: Symbol, xt: Type, e: Exp, resT: TSrvRep, init: Exp=Par()): Exp =
-    ServiceRef(
-      LocalServer(
-        Rule(
-          Bag(Pattern('app, x -> xt, 'result-> ?(resT))),
-          Def('SERVER, resT, e,
-            Par(init!!'SERVER, 'result!!'SERVER)))),
-      'app)
-
-
   def Lambda(x: Symbol, t: (Type,Type), e: Exp): Exp = Lambda(x, t._1, e, t._2)
   def Lambda(x: Symbol, xt: Type, e: Exp, resT: Type): Exp =
-    ServiceRef(
-      LocalServer(
+      SpawnLocal(ServerImpl(
         Rule(
-          Bag(Pattern('app, x -> xt, 'result-> ?(resT))),
-          'result!!e)),
-      'app)
-
-
-
-  def App(f: Exp, arg: Exp, cont: Exp) =
-    Send(f, arg, cont)
+          'app?(x -> xt, 'k-> ?(resT)),
+          'k!!(e))))~>'app
 
   val TThunk = TSrvRep('force -> ?())
   def Thunk(e: Exp) =

@@ -12,5 +12,24 @@ object SyntaxDerived {
     Send(ServiceRef(srv, 'def), s)
   }
 
+  def LocalService(p: Pattern, e: Exp) = ServiceRef(Spawn(true,ServerImpl(Rule(Bag(p), e))), p.name)
+
+  def Lambda(x: Symbol, e: Exp): Exp =
+    Spawn(true, ServerImpl(
+      Rule(
+        Bag(Pattern('app, x, 'k)),
+        CPS(e, Var('k)))))
+
+  def CPS(e: Exp, k: Exp): Exp = e match {
+    case App(f, a) => App(f, a, k)
+    case _ => Send(k, e)
+  }
+
+  case class App(f: Exp, arg: Exp) extends Exp
+  def App(f: Exp, a: Exp, k: Exp) =
+    CPS(f, LocalService(Pattern('k, 'vf),
+      CPS(a, LocalService(Pattern('k, 'va),
+        Send(ServiceRef(Var('vf), 'app), Var('va), k)))))
+
 
 }
