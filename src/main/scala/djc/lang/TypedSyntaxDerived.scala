@@ -12,6 +12,7 @@ object TypedSyntaxDerived {
   // undelimited CPS function type:
   //   t * (u -> Unit) -> Unit
   def TFun(t: Type, u: Type) = TSvc(t, TSvc(u))
+  def TFun(t1: Type, t2: Type, u: Type) = TSvc(t1, t2, TSvc(u))
 
   def Def(x: Symbol, xt: Type, s: Exp, p: Exp): Exp = {
     val srv = LocalServer(Rule(Bag(Pattern('def, x -> xt)), p))
@@ -41,6 +42,13 @@ object TypedSyntaxDerived {
         Rule(
           'app?(x -> xt, 'k-> ?(resT)),
           'k!!(e))))~>'app
+  def Lambda(xs: List[(Symbol,Type)], e: Exp, resT: Type): Exp = {
+    val args = (xs :+ ('k -> ?(resT))).toSeq
+    SpawnLocal(ServerImpl(
+      Rule(
+        'app ?(args:_*),
+        'k !! (e)))) ~> 'app
+  }
 
   val TThunk = TSrvRep('force -> ?())
   def Thunk(e: Exp) =
