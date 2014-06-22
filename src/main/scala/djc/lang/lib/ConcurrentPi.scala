@@ -38,20 +38,19 @@ object ConcurrentPi {
     )
   )
 
-  //TODO make everything polymorphic
-  val reducerType = TSrv(TSrvRep('reduce -> ?(TDouble), 'wait -> ?(TInteger)))
-  val mkReducerType = TSrv(TSrvRep('make -> ?(TInteger, ?(TDouble), TFun(TDouble, TDouble, TDouble), ?(reducerType))))
+  def reducerType(tpe: Type) = TSrv(TSrvRep('reduce -> ?(tpe), 'wait -> ?(TInteger)))
+  val mkReducerType = TUniv('A, TSrv(TSrvRep('make -> ?(TInteger, ?('A), TFun('A, 'A, 'A), ?(reducerType('A))))))
   val mkReducer =
-    LocalServer(Rule('make?('numResults -> TInteger, 'finalK -> ?(TDouble), 'op -> TFun(TDouble, TDouble, TDouble), 'kred -> ?(reducerType)),
-      Def('res, reducerType,
+    TAbs('A ,LocalServer(Rule('make?('numResults -> TInteger, 'finalK -> ?('A), 'op -> TFun('A, 'A, 'A), 'kred -> ?(reducerType('A))),
+      Def('res, reducerType('A),
         Server(
           Rule(
-            'wait?('n -> TInteger) && 'reduce?('v1 -> TDouble) && 'reduce?('v2 -> TDouble),
+            'wait?('n -> TInteger) && 'reduce?('v1 -> 'A) && 'reduce?('v2 -> 'A),
             'this~>'wait!!('n - 1) && 'op!!('v1, 'v2, 'this~>'reduce)
           ),
           Rule(
-            'wait?('n -> TInteger) && 'reduce?('v -> TDouble),
-            Def('reducer, reducerType, 'this,
+            'wait?('n -> TInteger) && 'reduce?('v -> 'A),
+            Def('reducer, reducerType('A), 'this,
               Ifc('n <== 1,
                 'finalK!!('v),
                 'reducer~>'wait!!('n) && 'reducer~>'reduce!!('v)
@@ -61,21 +60,21 @@ object ConcurrentPi {
         ),
         'res~>'wait!!('numResults) && 'kred!!('res)
       )
-    ))
+    )))
 
-  val mapperType = TSrv(TSrvRep( 'map -> ?(TDouble)  ))
+  def mapperType(tpe: Type) = TSrv(TSrvRep( 'map -> ?(tpe)  ))
   val mkMapper =
-    LocalServer(Rule('make?('reducer -> reducerType, 'f -> TFun(TDouble, TDouble), 'k -> ?(mapperType)),
-      'k!!Server(Rule('map?('i -> TDouble), 'f!!('i, 'reducer~>'reduce)))
-    ))
+    TAbs('A, TAbs('B, LocalServer(Rule('make?('reducer -> reducerType('B), 'f -> TFun('A, 'B), 'k -> ?(mapperType('A))),
+      'k!!Server(Rule('map?('i -> 'A), 'f!!('i, 'reducer~>'reduce)))
+    ))))
 
   val piServerType = TSrvRep('pi -> TFun(TInteger, TDouble))
   val piServer = ServerImpl(
     Rule(
       'pi?('n -> TInteger, 'k -> ?(TDouble)),
       Def('summand, TFun(TDouble,TDouble), formula,
-      Defk('reducer, reducerType, mkReducer~>'make!!('n.i + 1, 'k, plus),
-        Defk('mapper, mapperType, mkMapper~>'make!!('reducer, 'summand),
+      Defk('reducer, reducerType(TDouble), TApp(mkReducer, TDouble)~>'make!!('n.i + 1, 'k, plus),
+        Defk('mapper, mapperType(TDouble), TApp(mkMapper, TDouble, TDouble)~>'make!!('reducer, 'summand),
           forService!!(
             0,
             Lambda('i, TInteger->TBool, 'i <== 'n),

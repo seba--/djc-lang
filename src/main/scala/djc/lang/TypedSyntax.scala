@@ -83,6 +83,9 @@ object TypedSyntax {
   case class TApp(p: Exp, t: Type) extends Exp {
     override def eraseType = p.eraseType
   }
+  object TApp {
+    def apply(e: Exp, ts: Type*) = ts.foldLeft(e){case (e1, t) => new TApp(e1, t) }
+  }
 
   case class TAbs(alpha: Symbol, bound: Option[Type], p: Exp) extends Exp {
     override def eraseType = p.eraseType

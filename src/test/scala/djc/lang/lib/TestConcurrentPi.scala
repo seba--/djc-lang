@@ -27,7 +27,7 @@ class TestConcurrentPi[V](max: Int, step: Int, semFactory : ISemanticsFactory[V]
   testType("mkReducer", ConcurrentPi.mkReducer,  ConcurrentPi.mkReducerType)
   testType("piServer", ConcurrentPi.piServer, ConcurrentPi.piServerType)
 
-  val maximalDeviation = Math.pow(10, -14)
+  val maximalDeviation = 1e-14
 
   def testPi(n: Int) {
     val piCall = Spawn(ConcurrentPi.piServer)~>'pi!!(n, Spawn(PRINT_SERVER(TDouble))~>'PRINT)
