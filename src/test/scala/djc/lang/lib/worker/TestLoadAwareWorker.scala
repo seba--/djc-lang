@@ -26,11 +26,11 @@ class TestLoadAwareWorker[V](max: Int, semFactory : ISemanticsFactory[V]) extend
 
   def testLoadAwareFibTaskK(n: Int) {
     val fibWorkerCall =
-    Def('Print, ?(TInteger), Spawn(PRINT_SERVER(TInteger))~>'PRINT,
+    Let('Print, ?(TInteger), Spawn(PRINT_SERVER(TInteger))~>'PRINT,
       LoadAwareWorker.mkLoadAwareWorker(TInteger)!!(Worker.workerK(TInteger),
         LocalService(
           'withWorker?('workerRep -> LoadAwareWorker.TLoadAwareWorkerK(TInteger)),
-          Def('worker, TSrv(LoadAwareWorker.TLoadAwareWorkerK(TInteger)), Spawn('workerRep),
+          Let('worker, TSrv(LoadAwareWorker.TLoadAwareWorkerK(TInteger)), Spawn('workerRep),
             Task.mkFibTaskK!!(n,
               LocalService(
                 'withTask?('task -> Task.TTaskK(TInteger)),

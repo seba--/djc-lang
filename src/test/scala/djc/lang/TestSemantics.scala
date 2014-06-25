@@ -24,9 +24,9 @@ abstract class TestSemantics[V](sem: ISemanticsFactory[V]) extends AbstractTest(
       Send(ServiceRef(Var('Print), 'foo), Var('x))))
 
   val p1 =
-    Def('Print, Spawn(PRINT_SERVER_NO),
-      Def('Const, Spawn(CONST_SERVER_NO),
-        Def('s1, Spawn(s1),
+    Let('Print, Spawn(PRINT_SERVER_NO),
+      Let('Const, Spawn(CONST_SERVER_NO),
+        Let('s1, Spawn(s1),
           Send(ServiceRef(Var('s1), 'm1), ServiceRef(Var('Const), 'bar)))))
 
   testInterpUntyped("p1",
@@ -45,9 +45,9 @@ abstract class TestSemantics[V](sem: ISemanticsFactory[V]) extends AbstractTest(
     )
 
   val p2 =
-    Def('Print, Spawn(PRINT_SERVER_NO),
-      Def('Const, Spawn(CONST_SERVER_NO),
-        Def('s2, Spawn(s2),
+    Let('Print, Spawn(PRINT_SERVER_NO),
+      Let('Const, Spawn(CONST_SERVER_NO),
+        Let('s2, Spawn(s2),
           Send(ServiceRef(Var('s2), 'm2), ServiceRef(Var('Const), 'bar)))))
 
   testInterpUntyped("p2",
@@ -64,10 +64,10 @@ abstract class TestSemantics[V](sem: ISemanticsFactory[V]) extends AbstractTest(
     )
 
   val p3 =
-    Def('Print, Spawn(PRINT_SERVER_NO),
-      Def('Const, Spawn(CONST_SERVER_NO),
-        Def('s1, Spawn(s1),
-          Def('s3, Spawn(s3),
+    Let('Print, Spawn(PRINT_SERVER_NO),
+      Let('Const, Spawn(CONST_SERVER_NO),
+        Let('s1, Spawn(s1),
+          Let('s3, Spawn(s3),
             Send(ServiceRef(Var('s3), 'm2), ServiceRef(Var('Const), 'bar))))))
 
   testInterpUntyped("p3",
@@ -84,9 +84,9 @@ abstract class TestSemantics[V](sem: ISemanticsFactory[V]) extends AbstractTest(
       Send(ServiceRef(Var('Print), 'foo), Var('x), Var('y))))
 
   val p4 =
-    Def('Print, Spawn(PRINT_SERVER_NO),
-      Def('Const, Spawn(CONST_SERVER_NO),
-        Def('s4, Spawn(s4),
+    Let('Print, Spawn(PRINT_SERVER_NO),
+      Let('Const, Spawn(CONST_SERVER_NO),
+        Let('s4, Spawn(s4),
           Par(
             Send(ServiceRef(Var('s4), 'm1), ServiceRef(Var('Const), 'bar)),
             Send(ServiceRef(Var('s4), 'm2), ServiceRef(Var('Const), 'baz))))))
@@ -103,9 +103,9 @@ abstract class TestSemantics[V](sem: ISemanticsFactory[V]) extends AbstractTest(
       Send(ServiceRef(Var('Print), 'foo), Var('x))))
 
   val p5 =
-    Def('Print, Spawn(PRINT_SERVER_NO),
-      Def('Const, Spawn(CONST_SERVER_NO),
-        Def('s5, Spawn(s5),
+    Let('Print, Spawn(PRINT_SERVER_NO),
+      Let('Const, Spawn(CONST_SERVER_NO),
+        Let('s5, Spawn(s5),
           Par(
             Send(ServiceRef(Var('s5), 'token)),
             Send(ServiceRef(Var('s5), 'm1), ServiceRef(Var('Const), 'bar)),
@@ -127,10 +127,10 @@ abstract class TestSemantics[V](sem: ISemanticsFactory[V]) extends AbstractTest(
       Send(ServiceRef(Var('Print), 'foo6), Var('x))))
 
   val p6 =
-    Def('Print, Spawn(PRINT_SERVER_NO),
-      Def('Const, Spawn(CONST_SERVER_NO),
-        Def('s6, Spawn(s1),
-          Def('s6, Spawn(s6),
+    Let('Print, Spawn(PRINT_SERVER_NO),
+      Let('Const, Spawn(CONST_SERVER_NO),
+        Let('s6, Spawn(s1),
+          Let('s6, Spawn(s6),
             Send(ServiceRef(Var('s6), 'm1), ServiceRef(Var('Const), 'bar))))))
 
   testInterpUntyped("p6",
@@ -145,10 +145,10 @@ abstract class TestSemantics[V](sem: ISemanticsFactory[V]) extends AbstractTest(
   )
 
   val p7 =
-    Def('Print, Spawn(PRINT_SERVER_NO),
-      Def('Const, Spawn(CONST_SERVER_NO),
-        Def('s1, Spawn(s1),
-          Def('s7, Spawn(s7),
+    Let('Print, Spawn(PRINT_SERVER_NO),
+      Let('Const, Spawn(CONST_SERVER_NO),
+        Let('s1, Spawn(s1),
+          Let('s7, Spawn(s7),
             Send(ServiceRef(Var('s7), 'm2), ServiceRef(Var('s1), 'm1), ServiceRef(Var('Const), 'bar))))))
 
   testInterpUntyped("p7",
@@ -161,9 +161,9 @@ abstract class TestSemantics[V](sem: ISemanticsFactory[V]) extends AbstractTest(
     Rule(Bag(Pattern('a)), Send(ServiceRef(Var('Print), 'foo))),
     Rule(Bag(Pattern('a),Pattern('b)), Send(ServiceRef(Var('Print), 'bar))))
   val p8 =
-    Def('Print, Spawn(PRINT_SERVER_NO),
-      Def('Const, Spawn(CONST_SERVER_NO),
-        Def('srv, Spawn(s8),
+    Let('Print, Spawn(PRINT_SERVER_NO),
+      Let('Const, Spawn(CONST_SERVER_NO),
+        Let('srv, Spawn(s8),
           Par(Send(ServiceRef(Var('srv),'b)),  Par(Send(ServiceRef(Var('srv),'a)))))))
 
   testInterpUntyped("p8",

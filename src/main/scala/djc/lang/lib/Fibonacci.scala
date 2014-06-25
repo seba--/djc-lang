@@ -38,7 +38,7 @@ object Fibonacci {
   val fib =
     LocalService(
       'fib?('n -> TBase('Int), 'k -> ?(TBase('Int))),
-      Def('FIB, fibType, 'this~>'fib,
+      Let('FIB, fibType, 'this~>'fib,
         Ifc(
           'n <== 1,
           'k!!(1),

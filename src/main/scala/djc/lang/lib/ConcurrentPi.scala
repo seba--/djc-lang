@@ -26,7 +26,7 @@ object ConcurrentPi {
                   TFun(TInteger, Unit)) // body
   val forService = LocalService(
     'for?('current -> TInteger, 'cond -> TFun(TInteger, TBool), 'mod -> TFun(TInteger, TInteger), 'body -> TFun(TInteger, Unit)),
-    Def('outer, TSrv(TSrvRep('for -> forType)), 'this,
+    Let('outer, TSrv(TSrvRep('for -> forType)), 'this,
       'cond!!('current,
         LocalService(
           'kfor?('shouldContinue -> TBool),
@@ -42,7 +42,7 @@ object ConcurrentPi {
   val mkReducerType = TUniv('A, TSrv(TSrvRep('make -> ?(TInteger, ?('A), TFun('A, 'A, 'A), ?(reducerType('A))))))
   val mkReducer =
     TAbs('A ,LocalServer(Rule('make?('numResults -> TInteger, 'finalK -> ?('A), 'op -> TFun('A, 'A, 'A), 'kred -> ?(reducerType('A))),
-      Def('res, reducerType('A),
+      Let('res, reducerType('A),
         Server(
           Rule(
             'wait?('n -> TInteger) && 'reduce?('v1 -> 'A) && 'reduce?('v2 -> 'A),
@@ -50,7 +50,7 @@ object ConcurrentPi {
           ),
           Rule(
             'wait?('n -> TInteger) && 'reduce?('v -> 'A),
-            Def('reducer, reducerType('A), 'this,
+            Let('reducer, reducerType('A), 'this,
               Ifc('n <== 1,
                 'finalK!!('v),
                 'reducer~>'wait!!('n) && 'reducer~>'reduce!!('v)
@@ -72,9 +72,9 @@ object ConcurrentPi {
   val piServer = ServerImpl(
     Rule(
       'pi?('n -> TInteger, 'k -> ?(TDouble)),
-      Def('summand, TFun(TDouble,TDouble), formula,
-      Defk('reducer, reducerType(TDouble), TApp(mkReducer, TDouble)~>'make!!('n.i + 1, 'k, plus),
-        Defk('mapper, mapperType(TDouble), TApp(mkMapper, TDouble, TDouble)~>'make!!('reducer, 'summand),
+      Let('summand, TFun(TDouble,TDouble), formula,
+      Letk('reducer, reducerType(TDouble), TApp(mkReducer, TDouble)~>'make!!('n.i + 1, 'k, plus),
+        Letk('mapper, mapperType(TDouble), TApp(mkMapper, TDouble, TDouble)~>'make!!('reducer, 'summand),
           forService!!(
             0,
             Lambda('i, TInteger->TBool, 'i <== 'n),

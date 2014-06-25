@@ -14,17 +14,17 @@ object TypedSyntaxDerived {
   def TFun(t: Type, u: Type) = TSvc(t, TSvc(u))
   def TFun(t1: Type, t2: Type, u: Type) = TSvc(t1, t2, TSvc(u))
 
-  def Def(x: Symbol, xt: Type, s: Exp, p: Exp): Exp = {
+  def Let(x: Symbol, xt: Type, s: Exp, p: Exp): Exp = {
     val srv = LocalServer(Rule(Bag(Pattern('def, x -> xt)), p))
     Send(srv~>'def, s)
   }
 
-  def Def(x: Symbol, s: Exp, p: Exp, gamma: Context, boundTv: Set[Symbol]): Exp = {
+  def Let(x: Symbol, s: Exp, p: Exp, gamma: Context, boundTv: Set[Symbol]): Exp = {
     val xt = typeCheck(gamma, boundTv, s)
-    Def(x, xt, s, p)
+    Let(x, xt, s, p)
   }
 
-  def Defk(x: Symbol, xt: Type, s: Exp, p: Exp): Exp = {
+  def Letk(x: Symbol, xt: Type, s: Exp, p: Exp): Exp = {
     val cont = SpawnLocal(ServerImpl(Rule('k?(x -> xt), p)))~>'k
     s match {
       case Send(svc, args) => Send(svc, args :+ cont)

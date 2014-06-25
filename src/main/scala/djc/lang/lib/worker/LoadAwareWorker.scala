@@ -16,7 +16,7 @@ object LoadAwareWorker {
   val mkLoadAwareWorkerType = TUniv('K, TFun(TWorkerK('K), TLoadAwareWorkerK('K)))
   val mkLoadAwareWorker = TAbs('K, LocalService(
     'make?('workerRep -> TWorkerK('K), 'k -> ?(TLoadAwareWorkerK('K))),
-    Def('laWorker, TLoadAwareWorkerK('K) ++ TSrvRep('load -> ?(TInteger), 'worker -> ?(TSrv(TWorkerK('K)))), // internally we know that there is a 'load service
+    Let('laWorker, TLoadAwareWorkerK('K) ++ TSrvRep('load -> ?(TInteger), 'worker -> ?(TSrv(TWorkerK('K)))), // internally we know that there is a 'load service
       ServerImpl(
         Rule(
           'init?(),
@@ -28,7 +28,7 @@ object LoadAwareWorker {
             && 'load?('n -> TInteger)),
           'this~>'load!!('n + 1)
             && ('this~>'worker!!('worker)
-            && Def('notifyDone, ?(), 'this~>'done,
+            && Let('notifyDone, ?(), 'this~>'done,
                 'worker~>'work!!('task,
                    LocalService('cont?('res -> 'K),'notifyDone!!() && 'k!!('res)))))
         ),

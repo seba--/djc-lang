@@ -7,7 +7,7 @@ object SyntaxDerived {
 
   implicit def makeParSend(s: Send) = Par(s)
 
-  def Def(x: Symbol, s: Exp, p: Exp): Exp = {
+  def Let(x: Symbol, s: Exp, p: Exp): Exp = {
     val srv = Spawn(ServerImpl(Rule(Bag(Pattern('def, x)), p)))
     Send(ServiceRef(srv, 'def), s)
   }
