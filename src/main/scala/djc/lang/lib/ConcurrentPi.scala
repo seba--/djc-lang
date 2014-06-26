@@ -26,16 +26,17 @@ object ConcurrentPi {
                   TFun(TInteger, Unit)) // body
   val forService = LocalService(
     'for?('current -> TInteger, 'cond -> TFun(TInteger, TBool), 'mod -> TFun(TInteger, TInteger), 'body -> TFun(TInteger, Unit)),
-    Let('outer, TSrv(TSrvRep('for -> forType)), 'this,
-      'cond!!('current,
+    This(TSrv(TSrvRep('for -> forType))) {
+      'cond !!('current,
         LocalService(
-          'kfor?('shouldContinue -> TBool),
-          Ifc('shouldContinue,
-            'body!!('current, Function.consume(Unit)) && 'mod!!('current, LocalService('k?('next -> TInteger), 'outer~>'for!!('next, 'cond, 'mod, 'body))),
+          '$kfor ? ('shouldContinue -> TBool),
+          Ifc(Var('shouldContinue)) {
+            'body !!('current, Function.consume(Unit)) && 'mod !!('current, LocalService('$k ? ('next -> TInteger), 'this ~> 'for !!('next, 'cond, 'mod, 'body)))
+          } Else {
             Par()
-          )
+          }
         ))
-    )
+    }
   )
 
   def reducerType(tpe: Type) = TSrv(TSrvRep('reduce -> ?(tpe), 'wait -> ?(TInteger)))
@@ -50,16 +51,17 @@ object ConcurrentPi {
           ),
           Rule(
             'wait?('n -> TInteger) && 'reduce?('v -> 'A),
-            Let('reducer, reducerType('A), 'this,
-              Ifc('n <== 1,
-                'finalK!!('v),
-                'reducer~>'wait!!('n) && 'reducer~>'reduce!!('v)
-              )
-            )
+            Let('reducer, reducerType('A), 'this) {
+              Ifc('n <== 1) {
+                'finalK !! ('v)
+              } Else {
+                'reducer ~> 'wait !! ('n) && 'reducer ~> 'reduce !! ('v)
+              }
+            }
           )
-        ),
-        'res~>'wait!!('numResults) && 'kred!!('res)
-      )
+        )) {
+        'res ~> 'wait !! ('numResults) && 'kred !! ('res)
+       }
     )))
 
   def mapperType(tpe: Type) = TSrv(TSrvRep( 'map -> ?(tpe)  ))
@@ -72,9 +74,9 @@ object ConcurrentPi {
   val piServer = ServerImpl(
     Rule(
       'pi?('n -> TInteger, 'k -> ?(TDouble)),
-      Let('summand, TFun(TDouble,TDouble), formula,
-      Letk('reducer, reducerType(TDouble), TApp(mkReducer, TDouble)~>'make!!('n.i + 1, 'k, plus),
-        Letk('mapper, mapperType(TDouble), TApp(mkMapper, TDouble, TDouble)~>'make!!('reducer, 'summand),
+      Let('summand, TFun(TDouble,TDouble), formula)(
+      Letk('reducer, reducerType(TDouble), TApp(mkReducer, TDouble)~>'make!!('n.i + 1, 'k, plus))(
+        Letk('mapper, mapperType(TDouble), TApp(mkMapper, TDouble, TDouble)~>'make!!('reducer, 'summand))(
           forService!!(
             0,
             Lambda('i, TInteger->TBool, 'i <== 'n),

@@ -7,8 +7,8 @@ import djc.lang.TypedSyntax._
 case class SubstType(alpha: Symbol, repl: Type) extends Mapper {
   lazy val replTVars = FreeTypeVars(repl)
 
-  override def map(prog: Exp): Exp = prog match {
-    case TAbs(alpha1, bound1, p1) =>
+  override def map: TMapE = {
+    case prog@TAbs(alpha1, bound1, p1) =>
       val captureAvoiding = !replTVars(alpha1)
       lazy val alpha1fresh = gensym(alpha1, replTVars)
       lazy val p1fresh = SubstType(alpha1, TVar(alpha1fresh))(p1)
@@ -19,14 +19,14 @@ case class SubstType(alpha: Symbol, repl: Type) extends Mapper {
       else
         TAbs(alpha1res, bound1.map(mapType(_)), map(p1res))
 
-    case _ => super.map(prog)
+    case prog => super.map(prog)
   }
 
-  override def mapType(tpe: Type): Type = tpe match {
+  override def mapType: TMapT = {
     case TVar(alpha1) if alpha == alpha1 =>
       repl
 
-    case TUniv(alpha1, bound1, tpe1) =>
+    case tpe@TUniv(alpha1, bound1, tpe1) =>
       val captureAvoiding = !replTVars(alpha1)
       lazy val alpha1fresh = gensym(alpha1, replTVars)
       lazy val tpe1fresh = SubstType(alpha1, TVar(alpha1fresh))(tpe1)
@@ -37,17 +37,17 @@ case class SubstType(alpha: Symbol, repl: Type) extends Mapper {
       else
         TUniv(alpha1res, bound1.map(mapType(_)), mapType(tpe1res))
 
-    case _ => super.mapType(tpe)
+    case tpe => super.mapType(tpe)
   }
 
 
 }
 
-case class SubstProg(x: Symbol, repl: Exp) extends Mapper {
+abstract class SubstTemplate(x: Symbol, repl: Exp) extends Mapper {
   lazy val replVars = FreeVars(repl)
   lazy val replTVars = FreeTypeVars(repl)
 
-  override def map(prog: Exp): Exp = prog match {
+  override def map: TMapE = {
     case Var(y) if x == y =>
       repl
 
@@ -65,7 +65,7 @@ case class SubstProg(x: Symbol, repl: Exp) extends Mapper {
 
       TAbs(alphares, bound1.map(mapType(_)), map(p1res))
 
-    case _ =>
+    case prog =>
       super.map(prog)
   }
 
@@ -96,18 +96,20 @@ case class SubstProg(x: Symbol, repl: Exp) extends Mapper {
       Rule(psres, map(progres))
   }
 
-  override def mapType(tpe: Type): Type = tpe
+  override def mapType: TMapT = { case t => t }
 }
 
-object FreeVars extends Fold {
+case class SubstProg(x: Symbol, repl: Exp) extends SubstTemplate(x,repl)
+
+trait FreeVarsTemplate extends Fold {
   def apply(prog: Exp): Set[Symbol] = fold(Set[Symbol]())(prog)
 
-  def fold(init: Set[Symbol])(prog: Exp): Set[Symbol] = prog match {
+  def fold(init: Set[Symbol]): FoldE[Set[Symbol]] = {
     case Var(x) =>
       init + x
     case ServerImpl(rs) =>
       rs.foldLeft(init)(foldRule(_)(_)) - 'this
-    case _ => super.fold(init)(prog)
+    case prog => super.fold(init)(prog)
   }
 
   def foldType(init: Set[Symbol])(tpe: Type) = init
@@ -119,22 +121,24 @@ object FreeVars extends Fold {
   }
 }
 
+object FreeVars extends FreeVarsTemplate
+
 object FreeTypeVars extends Fold {
   def apply(prog: Exp): Set[Symbol] = fold(Set[Symbol]())(prog)
 
   def apply(tpe: Type): Set[Symbol] = foldType(Set[Symbol]())(tpe)
 
-  def fold(init: Set[Symbol])(prog: Exp): Set[Symbol] = prog match {
+  def fold(init: Set[Symbol]): FoldE[Set[Symbol]] = {
     case TAbs(alpha, bound1, p1) =>
       fold(bound1.map(foldType(init)(_)).getOrElse(init))(p1) - alpha
-    case _ => super.fold(init)(prog)
+    case prog => super.fold(init)(prog)
   }
 
-  def foldType(init: Set[Symbol])(tpe: Type): Set[Symbol] = tpe match {
+  def foldType(init: Set[Symbol]): FoldT[Set[Symbol]] = {
     case TVar(alpha) =>
       init + alpha
     case TUniv(alpha, bound1, tpe1) =>
       foldType(bound1.map(foldType(init)(_)).getOrElse(init))(tpe1) - alpha
-    case _ => super.foldType(init)(tpe)
+    case tpe => super.foldType(init)(tpe)
   }
 }

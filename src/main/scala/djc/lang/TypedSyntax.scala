@@ -195,11 +195,14 @@ object TypedSyntax {
 
 
   trait Mapper {
+    final type TMapE = PartialFunction[Exp,Exp]
+    final type TMapT = PartialFunction[Type,Type]
+
     def apply(prog: Exp): Exp = map(prog)
 
     def apply(tpe: Type): Type = mapType(tpe)
 
-    def map(prog: Exp): Exp = prog match {
+    def map: TMapE = {
       case Par(ps) =>
         Par(ps map map)
       case Send(p, args) =>
@@ -224,7 +227,7 @@ object TypedSyntax {
         BaseCall(b, ps map map)
     }
 
-    def mapType(tpe: Type): Type = tpe match {
+    def mapType: TMapT = {
       case Unit => Unit
       case TSvc(ts) => TSvc((ts map mapType))
       case TSrvRep(svcs) => TSrvRep(svcs mapValues mapType)
@@ -250,7 +253,10 @@ object TypedSyntax {
   }
 
   trait Fold {
-    def fold[T](init: T)(prog: Exp): T = prog match {
+    final type FoldE[T] = PartialFunction[Exp, T]
+    final type FoldT[T] = PartialFunction[Type, T]
+
+    def fold[T](init: T): FoldE[T] = {
       case Par(ps) =>
         ps.foldLeft(init)(fold(_)(_))
       case Send(p, args) =>
@@ -275,7 +281,7 @@ object TypedSyntax {
         ps.foldLeft(init)(fold(_)(_))
     }
 
-    def foldType[T](init: T)(tpe: Type): T = tpe match {
+    def foldType[T](init: T): FoldT[T] = {
       case Unit =>
         init
       case TSvc(ts) =>

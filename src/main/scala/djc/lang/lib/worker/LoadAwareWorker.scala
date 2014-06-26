@@ -28,7 +28,7 @@ object LoadAwareWorker {
             && 'load?('n -> TInteger)),
           'this~>'load!!('n + 1)
             && ('this~>'worker!!('worker)
-            && Let('notifyDone, ?(), 'this~>'done,
+            && Let('notifyDone, ?(), 'this~>'done)(
                 'worker~>'work!!('task,
                    LocalService('cont?('res -> 'K),'notifyDone!!() && 'k!!('res)))))
         ),
@@ -40,7 +40,7 @@ object LoadAwareWorker {
           'getLoad?('notifyLoad -> ?(TInteger)) && 'load?('n -> TInteger),
           'notifyLoad!!('n) && 'this~>'load!!('n)
         )
-      ),
+      ))(
       'k!!('laWorker cast (TLoadAwareWorkerK('K)))
     )
   ))

@@ -38,11 +38,9 @@ object Fibonacci {
   val fib =
     LocalService(
       'fib?('n -> TBase('Int), 'k -> ?(TBase('Int))),
-      Let('FIB, fibType, 'this~>'fib,
-        Ifc(
-          'n <== 1,
-          'k!!(1),
-          'FIB!!(
+      Let('FIB, fibType, 'this~>'fib) {
+        Ifc('n <== 1) {'k!!(1)
+        } Else { 'FIB!!(
             'n - 1,
             LocalService(
               'k1?('v1->TBase('Int)),
@@ -50,5 +48,26 @@ object Fibonacci {
                 'n - 2,
                 LocalService(
                   'k2?('v2->TBase('Int)),
-                  'k!!('v1+'v2))))))))
+                  'k!!('v1+'v2)))))
+        }
+      })
+
+  val fibAlt =
+    LocalService(
+      'fib?('n -> TBase('Int), 'k -> ?(TBase('Int))),
+      Let('FIB, fibType, 'this~>'fib) {
+        Ifc('n <== 1) {
+          'k !! (1)
+        } Else {
+          'FIB !!(
+            'n - 1,
+            LocalService(
+              'k1 ? ('v1 -> TBase('Int)),
+              'FIB !!(
+                'n - 2,
+                LocalService(
+                  'k2 ? ('v2 -> TBase('Int)),
+                  'k !! ('v1 + 'v2)))))
+        }
+      })
 }
