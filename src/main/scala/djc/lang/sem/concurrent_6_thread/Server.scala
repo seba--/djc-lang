@@ -27,12 +27,14 @@ class Server(sem: ISemantics, val impl: ServerImpl, val env: Env, currentThread:
   def tryFireRules() {
     if (dirty) {
       synchronized {
-        //          newMessages map (m => println(s"**PROCESS: $m"))
         inbox ++= newMessages
         newMessages = Bag()
         dirty = false
       }
-      sem.interpSends(this, currentThread)
+      val matched = sem.interpSends(this, currentThread)
+      synchronized{
+        dirty = matched
+      }
     }
   }
 

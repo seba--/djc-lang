@@ -14,7 +14,7 @@ import djc.lang.FlattenPar.flattenPars
  */
 
 trait ISemantics {
-  def interpSends(server: Server, currentThread: ServerThread)
+  def interpSends(server: Server, currentThread: ServerThread): Boolean
 }
 
 object SemanticsFactory extends ISemanticsFactory[Value] {
@@ -74,7 +74,6 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
               serverThread.addr = addr
               val server = new Server(this, impl, senv, serverThread)
               val serverAddr = serverThread.registerServer(server)
-
               serverThread.start()
               ServerVal(serverAddr)
             }
@@ -99,7 +98,7 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
         }
     }
 
-    def interpSends(server: Server, currentThread: ServerThread) {
+    def interpSends(server: Server, currentThread: ServerThread): Boolean = {
       for (r <- server.impl.rules) {
         val canSend = matchRule(ServerVal(server.addr), r.ps, server.inbox)
         if (!canSend.isEmpty) {
@@ -107,9 +106,10 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
           val (newProg, env, newQueue) = fireRule(ServerVal(server.addr), r, ma, server.inbox)
           server.inbox = newQueue
           interp(newProg, env, currentThread)
-          return
+          return true
         }
       }
+      false
     }
 
     def matchRule(server: ServerVal, pats: Bag[Pattern], sends: Bag[ISendVal]): Option[Match] =

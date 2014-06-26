@@ -20,15 +20,17 @@ class TestDesugarings[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem)  {
 
   val TTestSrv = TSrv(TSrvRep('echo -> ?(TInteger), 'test -> ?()))
   def testSrv(testBody: Exp) = {
-    LocalServer(Rule(Bag(Pattern('echo, 'n -> TInteger)),
-      Spawn(TApp(PRINT_SERVER, TInteger)) ~> 'PRINT !! 'n),
-       Rule(Bag(Pattern('test)), testBody)) ~> 'test !!()
+    Let('print, TSrv(TSrvRep('PRINT -> ?(TInteger))), Spawn(TApp(PRINT_SERVER, TInteger))) {
+      Server(Rule(Bag(Pattern('echo, 'n -> TInteger)),
+        'print~>'PRINT !! 'n),
+        Rule(Bag(Pattern('test)), testBody)) ~> 'test !!()
+    }
   }
 
   val testLetSingle = testSrv(Let(TTestSrv)('x, TInteger, 1) {
     'this ~> 'echo !! 'x
   })
-  testInterp("let single", testLetSingle,  Set(Bag(PRINT(1))))
+  testInterp("let single", Par(testLetSingle),  Set(Bag(PRINT(1))))
   testType("let single type", testLetSingle, Unit)
 
   val testLetNested = testSrv(Let(TTestSrv)('x, TInteger, 1) {
@@ -45,7 +47,7 @@ class TestDesugarings[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem)  {
   })
 
   val testLetNestedRes: AbstractSemantics.Res[Bag[Send]] = Set(Bag((for(i <- 1 to 4) yield PRINT(i)):_*))
-  testInterp("let nested", testLetNested, testLetNestedRes)
+  testInterp("let nested", Par(testLetNested), testLetNestedRes)
   testType("let nested type", testLetNested, Unit)
 
   val plus = Lambda(List('x -> TInteger, 'y -> TInteger), BaseCall(djc.lang.base.Integer.Plus, Var('x), Var('y)), TInteger)
@@ -92,8 +94,8 @@ class TestDesugarings[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem)  {
       'this~>'echo!!(0)
     }
   )
-  testInterp("Ifc simple then", testIfc, Set(Bag(PRINT(1))))
-  testInterp("Ifc simple else", testIfc2, Set(Bag(PRINT(0))))
+  testInterp("Ifc simple then", Par(testIfc), Set(Bag(PRINT(1))))
+  testInterp("Ifc simple else", Par(testIfc2), Set(Bag(PRINT(0))))
   testType("Ifc simple type", testIfc, Unit)
 
   def testIfcNested(i: Int) = testSrv(
@@ -113,7 +115,7 @@ class TestDesugarings[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem)  {
   )
 
   for(i <- List(1, 3, 5, 6))
-    testInterp(s"Ifc nested $i", testIfcNested(i), Set(Bag(PRINT(i))))
+    testInterp(s"Ifc nested $i", Par(testIfcNested(i)), Set(Bag(PRINT(i))))
   testType("Ifc nested type", testIfcNested(1), Unit)
 
   def testMixed(i: Int) = testSrvWithPlus(
