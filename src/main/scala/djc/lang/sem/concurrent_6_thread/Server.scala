@@ -31,10 +31,7 @@ class Server(sem: ISemantics, val impl: ServerImpl, val env: Env, currentThread:
         newMessages = Bag()
         dirty = false
       }
-      val matched = sem.interpSends(this, currentThread)
-      synchronized{
-        dirty = matched
-      }
+      while(sem.interpSends(this, currentThread)) {}
     }
   }
 
