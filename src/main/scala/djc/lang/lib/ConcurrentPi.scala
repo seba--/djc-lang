@@ -75,11 +75,11 @@ object ConcurrentPi {
     Rule(
       'pi?('n -> TInteger, 'k -> ?(TDouble)),
       Let('summand, TFun(TDouble,TDouble), formula)(
-      Letk('reducer, reducerType(TDouble), TApp(mkReducer, TDouble)~>'make!!('n, 'k, plus))(
+      Letk('reducer, reducerType(TDouble), TApp(mkReducer, TDouble)~>'make!!('n.i + 1, 'k, plus))(
         Letk('mapper, mapperType(TDouble), TApp(mkMapper, TDouble, TDouble)~>'make!!('reducer, 'summand))(
           forService!!(
             0,
-            Lambda('i, TInteger->TBool, 'i < 'n),
+            Lambda('i, TInteger->TBool, 'i <== 'n),
             Lambda('i, TInteger->TInteger, 'i.i + 1),
             Lambda('i, TInteger->Unit, 'mapper~>'map!!('i.toDouble))
           )
