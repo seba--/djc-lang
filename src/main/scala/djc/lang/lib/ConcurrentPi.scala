@@ -52,7 +52,7 @@ object ConcurrentPi {
           Rule(
             'wait?('n -> TInteger) && 'reduce?('v -> 'A),
             Let('reducer, reducerType('A), 'this) {
-              Ifc('n <== 1) {
+              Ifc('n <== 0) {
                 'finalK !! ('v)
               } Else {
                 'reducer ~> 'wait !! ('n) && 'reducer ~> 'reduce !! ('v)
@@ -75,7 +75,7 @@ object ConcurrentPi {
     Rule(
       'pi?('n -> TInteger, 'k -> ?(TDouble)),
       Let('summand, TFun(TDouble,TDouble), formula)(
-      Letk('reducer, reducerType(TDouble), TApp(mkReducer, TDouble)~>'make!!('n.i + 1, 'k, plus))(
+      Letk('reducer, reducerType(TDouble), TApp(mkReducer, TDouble)~>'make!!('n, 'k, plus))(
         Letk('mapper, mapperType(TDouble), TApp(mkMapper, TDouble, TDouble)~>'make!!('reducer, 'summand))(
           forService!!(
             0,
