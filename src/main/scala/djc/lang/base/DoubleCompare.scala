@@ -3,48 +3,48 @@ package djc.lang.base
 import djc.lang.TypedSyntax._
 import djc.lang.sem.SemanticException
 
-object IntegerCompare {
+object DoubleCompare {
   import Bool._
-  import Integer._
+  import Double._
 
-  case object Eq extends BaseOp(List(TInteger, TInteger), TBool) {
+  case object Eq extends BaseOp(List(TDouble, TDouble), TBool) {
     def reduce(es: List[Value]) = es match {
-      case IntValue(i1)::IntValue(i2)::Nil => BoolValue(i1 == i2)
+      case DoubleValue(i1)::DoubleValue(i2)::Nil => BoolValue(i1 == i2)
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
     }
   }
 
-  case object Lt extends BaseOp(List(TInteger, TInteger), TBool) {
+  case object Lt extends BaseOp(List(TDouble, TDouble), TBool) {
     def reduce(es: List[Value]) = es match {
-      case IntValue(i1)::IntValue(i2)::Nil => BoolValue(i1 < i2)
+      case DoubleValue(i1)::DoubleValue(i2)::Nil => BoolValue(i1 < i2)
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
     }
   }
 
-  case object Le extends BaseOp(List(TInteger, TInteger), TBool) {
+  case object Le extends BaseOp(List(TDouble, TDouble), TBool) {
     def reduce(es: List[Value]) = es match {
-      case IntValue(i1)::IntValue(i2)::Nil => BoolValue(i1 <= i2)
+      case DoubleValue(i1)::DoubleValue(i2)::Nil => BoolValue(i1 <= i2)
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
     }
   }
 
-  case object Gt extends BaseOp(List(TInteger, TInteger), TBool) {
+  case object Gt extends BaseOp(List(TDouble, TDouble), TBool) {
     def reduce(es: List[Value]) = es match {
-      case IntValue(i1)::IntValue(i2)::Nil => BoolValue(i1 > i2)
+      case DoubleValue(i1)::DoubleValue(i2)::Nil => BoolValue(i1 > i2)
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
     }
   }
 
-  case object Ge extends BaseOp(List(TInteger, TInteger), TBool) {
+  case object Ge extends BaseOp(List(TDouble, TDouble), TBool) {
     def reduce(es: List[Value]) = es match {
-      case IntValue(i1)::IntValue(i2)::Nil => BoolValue(i1 >= i2)
+      case DoubleValue(i1)::DoubleValue(i2)::Nil => BoolValue(i1 >= i2)
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
     }
   }
 
-  implicit def infixExpIntegerCompareLit(e: Int) = InfixExp(e)
-  implicit def infixExpIntegerCompareVar(e: Symbol) = InfixExp(Var(e))
-  implicit def infixExpIntegerCompare(e: Exp) = InfixExp(e)
+  implicit def infixExpIntegerCompareLit(e: Double) = InfixExp(e)
+  implicit def infixExpDoubleCompareVar(e: Symbol) = InfixExp(Var(e))
+  implicit def infixExpDoubleCompare(e: Exp) = InfixExp(e)
   case class InfixExp(e1: Exp) {
     def ===(e2: Exp) = BaseCall(Eq, e1, e2)
     def <(e2: Exp) = BaseCall(Lt, e1, e2)

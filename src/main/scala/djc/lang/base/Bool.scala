@@ -9,7 +9,7 @@ object Bool {
 
   val TBool = TBase('Bool)
 
-  case class BoolValue(b: Boolean) extends BaseValue {
+  case class BoolValue(b: Boolean) extends Value {
     def toExp =
       if (b)
         BaseCall(True, Nil).eraseType
@@ -18,36 +18,36 @@ object Bool {
   }
 
   case object True extends BaseOp(Nil, TBool) {
-    def reduce(es: List[BaseValue]) = BoolValue(true)
+    def reduce(es: List[Value]) = BoolValue(true)
   }
 
   case object False extends BaseOp(Nil, TBool) {
-    def reduce(es: List[BaseValue]) = BoolValue(false)
+    def reduce(es: List[Value]) = BoolValue(false)
   }
 
   case object And extends BaseOp(List(TBool, TBool), TBool) {
-    def reduce(es: List[BaseValue]) = es match {
+    def reduce(es: List[Value]) = es match {
       case BoolValue(b1)::BoolValue(b2)::Nil => BoolValue(b1 && b2)
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
     }
   }
 
   case object Or extends BaseOp(List(TBool, TBool), TBool) {
-    def reduce(es: List[BaseValue]) = es match {
+    def reduce(es: List[Value]) = es match {
       case BoolValue(b1)::BoolValue(b2)::Nil => BoolValue(b1 || b2)
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
     }
   }
 
   case object Not extends BaseOp(List(TBool), TBool) {
-    def reduce(es: List[BaseValue]) = es match {
+    def reduce(es: List[Value]) = es match {
       case BoolValue(b)::Nil => BoolValue(!b)
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
     }
   }
 
   case object If extends BaseOp(List(TBool, TThunk, TThunk), TThunk) {
-    def reduce(es: List[BaseValue]) = es(0) match {
+    def reduce(es: List[Value]) = es(0) match {
       case BoolValue(b) =>
         if (b)
           es(1)

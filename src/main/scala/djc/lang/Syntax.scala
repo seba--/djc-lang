@@ -52,18 +52,13 @@ object Syntax {
 
 
 
-//  case class WrappedNonBaseValue[T <: {def toProg: Exp}](t: T) extends BaseValue {
-//    def toExp = t.toProg
-//  }
-  abstract class BaseValue {
+  trait Value {
     def toExp: Exp
   }
-  case class WrappedBaseValue[V](v: V) extends BaseValue {
-    def toExp = throw new UnsupportedOperationException
-  }
-
-  abstract class BaseOp {
-    def reduce(vs: List[BaseValue]): BaseValue
+  trait BaseOp {
+    implicit def valueResult(v: Value): Either[Value, Exp] = Left(v)
+    implicit def expResult(v: Exp): Either[Value, Exp] = Right(v)
+    def reduce(vs: List[Value]): Either[Value, Exp]
   }
   case class BaseCall(b: BaseOp, es: List[Exp]) extends Exp
 

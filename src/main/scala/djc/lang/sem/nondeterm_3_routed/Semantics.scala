@@ -20,7 +20,7 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
   class Semantics(val router: Router, val data: Data) extends AbstractSemantics[Value] {
     import data._
 
-    def normalizeVal(v: Val) = v.asInstanceOf[UnitVal].sends map (_.toNormalizedResolvedProg)
+    def normalizeVal(v: Val) = v.asInstanceOf[UnitVal].sends map (s => resolveExp(s.toExp).asInstanceOf[Send])
 
     val isFullyNondeterministic = true
 
@@ -31,9 +31,12 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
 
     def interp(p: Exp, env: Env, sends: Bag[SendVal]): Res[Val] = p match {
       case BaseCall(b, es) =>
-        nondeterministic[List[BaseValue], Val](
-          crossProductList(es map (interp(_, env, Bag()) map (makeBaseValue(_)))),
-          vs => Set(unmakeBaseValue(b.reduce(vs)))
+        nondeterministic[List[Value], Val](
+          crossProductList(es map (interp(_, env, Bag()))),
+          vs => b.reduce(vs) match {
+            case Left(v) => Set(v)
+            case Right(e) => interp(e, env, sends)
+          }
         )
 
       case Var(y) if env.isDefinedAt(y) =>

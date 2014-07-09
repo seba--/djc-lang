@@ -126,13 +126,8 @@ object TypedSyntax {
 
 
 
-
-
-
-  type BaseValue = Syntax.BaseValue
-  abstract class BaseOp(val ts: List[Type], val res: Type) extends Syntax.BaseOp {
-    def reduce(vs: List[Syntax.BaseValue]): Syntax.BaseValue
-  }
+  type Value = Syntax.Value
+  abstract class BaseOp(val ts: List[Type], val res: Type) extends Syntax.BaseOp
 
   case class BaseCall(b: BaseOp, es: List[Exp]) extends Exp {
     def eraseType = Syntax.BaseCall(b, es map (_.eraseType))
@@ -159,6 +154,7 @@ object TypedSyntax {
     def &&(e2: Exp): Exp = Par(e1, e2)
     def &&(e2s: Bag[Exp]): Exp = Par(e2s + e1)
     def cast(t: Type) = UpCast(e1, t)
+    def as(t: Type) = UpCast(e1, t)
   }
 //  class InfixSend(e1: Send) extends InfixExp(e1) {
 //    def >>(e2: Send) = TypedSyntaxDerived.SendSeq(e1, e2)

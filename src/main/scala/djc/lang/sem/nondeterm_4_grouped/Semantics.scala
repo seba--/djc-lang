@@ -28,7 +28,7 @@ object SemanticsFactory extends ISemanticsFactory[(Value, ServerSends)] {
         val sends = servers.foldLeft(Bag[ISendVal]()) {
           case (b, b1) => b + b1._2
         }
-        sends.map(sval => sval.toNormalizedResolvedProg)
+        sends.map(s => resolveExp(s.toExp).asInstanceOf[Send])
     }
 
     val isFullyNondeterministic = true
@@ -40,9 +40,13 @@ object SemanticsFactory extends ISemanticsFactory[(Value, ServerSends)] {
 
     def interp(p: Exp, env: Env, serverSends: ServerSends): Res[Val] = p match {
       case BaseCall(b, es) =>
-        nondeterministic[List[BaseValue], Val](
-          crossProductList(es.map (interp(_, env, serverSends).map (p => makeBaseValue(p._1)))),
-          vs => Set((unmakeBaseValue(b.reduce(vs)), noSends)))
+        nondeterministic[List[Value], Val](
+          crossProductList(es.map (interp(_, env, noSends) map {case (v, `noSends`) => v})),
+          vs => b.reduce(vs) match {
+            case Left(v) => Set((v, noSends))
+            case Right(e) => interp(e, env, serverSends)
+          }
+        )
 
       case Var(y) if env.isDefinedAt(y) =>
         Set((env(y), noSends))

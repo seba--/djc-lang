@@ -11,7 +11,7 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
 
   def newInstance() = this
 
-  def normalizeVal(v: Val) = v.asInstanceOf[UnitVal].sends map (_.toNormalizedProg)
+  def normalizeVal(v: Val) = v.asInstanceOf[UnitVal].sends map (_.toExp)
 
   val isFullyNondeterministic = true
 
@@ -24,9 +24,12 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
 
   def interp(p: Exp, env: Env, sends: Bag[SendVal]): Res[Val] = p match {
     case BaseCall(b, es) =>
-      nondeterministic[List[BaseValue], Val](
-        crossProductList(es map (interp(_, env, Bag()) map (makeBaseValue(_)))),
-        vs => Set(unmakeBaseValue(b.reduce(vs)))
+      nondeterministic[List[Value], Val](
+        crossProductList(es map (interp(_, env, Bag()))),
+        vs => b.reduce(vs) match {
+          case Left(v) => Set(v)
+          case Right(e) => interp(e, env, sends)
+        }
       )
 
     case Var(y) if env.isDefinedAt(y) =>
