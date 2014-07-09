@@ -9,59 +9,59 @@ object Double {
 
   val TDouble = TBase('Double)
 
-  case class DoubleValue(i: Double) extends BaseValue {
+  case class DoubleValue(i: Double) extends Value {
     def toExp = BaseCall(DoubleLit(i), Nil).eraseType
   }
 
   case class DoubleLit(i: Double) extends BaseOp(Nil, TDouble) {
-    def reduce(es: List[BaseValue]) = DoubleValue(i)
+    def reduce(es: List[Value]) = DoubleValue(i)
   }
   implicit def mkDoubleLit(n: Double): Exp = BaseCall(DoubleLit(n))
 
   case object Plus extends BaseOp(List(TDouble, TDouble), TDouble) {
-    def reduce(es: List[BaseValue]) = es match {
+    def reduce(es: List[Value]) = es match {
       case DoubleValue(i1)::DoubleValue(i2)::Nil => DoubleValue(i1 + i2)
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
     }
   }
 
   case object Sub extends BaseOp(List(TDouble, TDouble), TDouble) {
-    def reduce(es: List[BaseValue]) = es match {
+    def reduce(es: List[Value]) = es match {
       case DoubleValue(i1)::DoubleValue(i2)::Nil => DoubleValue(i1 - i2)
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
     }
   }
 
   case object Mul extends BaseOp(List(TDouble, TDouble), TDouble) {
-    def reduce(es: List[BaseValue]) = es match {
+    def reduce(es: List[Value]) = es match {
       case DoubleValue(i1)::DoubleValue(i2)::Nil => DoubleValue(i1 * i2)
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
     }
   }
 
   case object Div extends BaseOp(List(TDouble, TDouble), TDouble) {
-    def reduce(es: List[BaseValue]) = es match {
+    def reduce(es: List[Value]) = es match {
       case DoubleValue(i1)::DoubleValue(i2)::Nil => DoubleValue(i1 / i2)
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
     }
   }
 
   case object Pow extends BaseOp(List(TDouble, TDouble), TDouble) {
-    def reduce(es: List[BaseValue]) = es match {
+    def reduce(es: List[Value]) = es match {
       case DoubleValue(i1)::DoubleValue(i2)::Nil => DoubleValue(Math.pow(i1, i2).toDouble)
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
     }
   }
 
   case object ToDouble extends BaseOp(List(Integer.TInteger), TDouble) {
-    def reduce(es: List[BaseValue]) = es match {
+    def reduce(es: List[Value]) = es match {
       case IntValue(i1)::Nil => DoubleValue(i1.toDouble)
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
     }
   }
 
   case object Random extends BaseOp(List(), TDouble) {
-    def reduce(es: List[BaseValue]) = es match {
+    def reduce(es: List[Value]) = es match {
       case Nil => DoubleValue(Math.random())
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
     }

@@ -126,13 +126,8 @@ object TypedSyntax {
 
 
 
-
-
-
-  type BaseValue = Syntax.BaseValue
-  abstract class BaseOp(val ts: List[Type], val res: Type) extends Syntax.BaseOp {
-    def reduce(vs: List[Syntax.BaseValue]): Syntax.BaseValue
-  }
+  type Value = Syntax.Value
+  abstract class BaseOp(val ts: List[Type], val res: Type) extends Syntax.BaseOp
 
   case class BaseCall(b: BaseOp, es: List[Exp]) extends Exp {
     def eraseType = Syntax.BaseCall(b, es map (_.eraseType))

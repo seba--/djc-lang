@@ -38,9 +38,12 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
 
   def interp(p: Exp, sends: Bag[SendVal]): Res[Val] = p match {
     case BaseCall(b, es) =>
-      nondeterministic[List[BaseValue], Val](
-        crossProductList(es map (interp(_, Bag()) map (makeBaseValue(_)))),
-        vs => Set(unmakeBaseValue(b.reduce(vs)))
+      nondeterministic[List[Value], Val](
+        crossProductList(es map (interp(_, Bag()))),
+        vs => b.reduce(vs) match {
+          case Left(v) => Set(v)
+          case Right(e) => interp(e, sends)
+        }
       )
 
     case Par(ps) =>
@@ -130,7 +133,7 @@ object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] 
   def fireRule(server: ServerVal, rule: Rule, ma: Match, orig: Bag[SendVal]): (Exp, Bag[SendVal]) = {
     var p = Substitution('this, server)(rule.p)
     for ((x, v) <- ma.subst)
-      p = Substitution(x, v.toProg)(p)
+      p = Substitution(x, v.toExp)(p)
     val rest = orig diff ma.used
     (Par(p), rest)
   }

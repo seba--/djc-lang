@@ -32,7 +32,10 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
     def resToSet[T](res: Res[T]) = Set(res)
 
     // all data is in the global state
-    def normalizeVal(v: Val) = ((Bag() ++ router.runningServers) map (_.normalizeVal)).flatten
+    def normalizeVal(v: Val) = {
+      val sends = ((Bag() ++ router.runningServers) map (_.normalizeVal)).flatten
+      sends.map(s => resolveExp(s).asInstanceOf[Send])
+    }
 
     val isFullyNondeterministic = false
 
@@ -50,8 +53,11 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
 
     def interp(p: Exp, env: Env, currentThread: ServerThread): Res[Val] = p match {
       case BaseCall(b, es) => {
-        val vs = es map (interp(_, env, currentThread)) map (makeBaseValue(_))
-        unmakeBaseValue(b.reduce(vs))
+        val vs = es map (interp(_, env, currentThread))
+        b.reduce(vs) match {
+          case Left(v) => v
+          case Right(e) => interp(e, env, currentThread)
+        }
       }
 
       case Var(y) if env.isDefinedAt(y) =>

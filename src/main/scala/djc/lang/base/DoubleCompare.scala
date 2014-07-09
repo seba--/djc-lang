@@ -8,35 +8,35 @@ object DoubleCompare {
   import Double._
 
   case object Eq extends BaseOp(List(TDouble, TDouble), TBool) {
-    def reduce(es: List[BaseValue]) = es match {
+    def reduce(es: List[Value]) = es match {
       case DoubleValue(i1)::DoubleValue(i2)::Nil => BoolValue(i1 == i2)
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
     }
   }
 
   case object Lt extends BaseOp(List(TDouble, TDouble), TBool) {
-    def reduce(es: List[BaseValue]) = es match {
+    def reduce(es: List[Value]) = es match {
       case DoubleValue(i1)::DoubleValue(i2)::Nil => BoolValue(i1 < i2)
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
     }
   }
 
   case object Le extends BaseOp(List(TDouble, TDouble), TBool) {
-    def reduce(es: List[BaseValue]) = es match {
+    def reduce(es: List[Value]) = es match {
       case DoubleValue(i1)::DoubleValue(i2)::Nil => BoolValue(i1 <= i2)
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
     }
   }
 
   case object Gt extends BaseOp(List(TDouble, TDouble), TBool) {
-    def reduce(es: List[BaseValue]) = es match {
+    def reduce(es: List[Value]) = es match {
       case DoubleValue(i1)::DoubleValue(i2)::Nil => BoolValue(i1 > i2)
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
     }
   }
 
   case object Ge extends BaseOp(List(TDouble, TDouble), TBool) {
-    def reduce(es: List[BaseValue]) = es match {
+    def reduce(es: List[Value]) = es match {
       case DoubleValue(i1)::DoubleValue(i2)::Nil => BoolValue(i1 >= i2)
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
     }
