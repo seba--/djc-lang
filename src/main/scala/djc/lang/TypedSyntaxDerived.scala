@@ -20,16 +20,12 @@ object TypedSyntaxDerived {
   //    Send(srv~>'def, s)
   //  }
 
-  def Letk(x: Symbol, xt: Type, s: Exp)(p: Exp): Exp = {
+  def Letk(x: Symbol, xt: Type, s: Send)(p: Exp): Exp = {
     val cont = SpawnLocal(ServerImpl(Rule('$letkont ? (x -> xt), p))) ~> '$letkont
-    s match {
-      case Send(svc, args) =>
-        Send(svc, args :+ cont)
-      // case e => Send(e, cont)
-    }
+    Send(s.rcv, s.args :+ cont)
   }
 
-  def Letk(thisType: Type)(x: Symbol, xt: Type, s: Exp)(p: Exp): Exp =
+  def Letk(thisType: Type)(x: Symbol, xt: Type, s: Send)(p: Exp): Exp =
     This(thisType)(Letk(x, xt, s)(p))
 
   def Let(x: Symbol, xt: Type, e1: Exp)(e2: Exp): Exp =
@@ -86,6 +82,7 @@ object TypedSyntaxDerived {
 
   //can write Ifc(cond) { thenexp } Else { elseexp }
   def Ifc(c: Exp)(t: Exp) = new PartialIf(c,t)
+  def Ifc(c: Symbol)(t: Exp) = new PartialIf(c,t)
 
   class PartialIf(c: Exp, t: Exp) {
     def Else(e: Exp): Exp =

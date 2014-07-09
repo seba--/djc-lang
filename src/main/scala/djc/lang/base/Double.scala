@@ -60,6 +60,14 @@ object Double {
     }
   }
 
+  case object Random extends BaseOp(List(), TDouble) {
+    def reduce(es: List[BaseValue]) = es match {
+      case Nil => DoubleValue(Math.random())
+      case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
+    }
+  }
+  def NextRandom = BaseCall(Random)
+
   implicit def infixExpDoubleVar(e: Symbol) = InfixExp(Var(e))
   implicit def infixExpDoubleLit(e: Double) = InfixExp(BaseCall(DoubleLit(e)))
   implicit def infixExpDouble(e: Exp) = InfixExp(e)
