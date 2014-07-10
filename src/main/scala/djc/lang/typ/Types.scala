@@ -7,7 +7,7 @@ object Types {
      */
     def ===(that: Type): Boolean = this == that
 
-    def <:<(that: Type): Boolean = this === that
+    def <:<(that: Type): Boolean = this === that || that == Top
     def <:<(that: Option[Type]): Boolean = that match {
       case None => true
       case Some(that) => this === that
@@ -15,6 +15,7 @@ object Types {
     def >:>(that: Type) = that <:< this
   }
 
+  case object Top extends Type
   case object Unit extends Type
 
   case class TSvc(params: List[Type]) extends Type {
@@ -25,7 +26,7 @@ object Types {
 
     override def <:<(that: Type) = that match {
       case TSvc(params1) => params.corresponds(params1)(_ >:> _) // contra-variant in arguments
-      case _ => false
+      case _ => super.<:<(that)
     }
   }
   object TSvc {
@@ -44,7 +45,7 @@ object Types {
       case TSrvRep(svcs1) => svcs1 forall {
         case(s, tpe) => svcs.contains(s) && svcs(s) <:< tpe
       }
-      case _ => false
+      case _ => super.<:<(that)
     }
   }
   object TSrvRep {
@@ -58,7 +59,7 @@ object Types {
     }
     override def <:<(that: Type) = that match {
       case TSrv(rep2) => rep <:< rep2
-      case _ => false
+      case _ => super.<:<(that)
     }
   }
   
@@ -75,7 +76,7 @@ object Types {
 
     override def <:<(that: Type) = that match {
       case TUniv(beta, bound1, tpe1) => boundSub(bound, bound1) && tpe <:< SubstType(beta, TVar(alpha))(tpe1)
-      case _ => false
+      case _ => super.<:<(that)
     }
 
     def boundEq(t1: Option[Type], t2: Option[Type]) = (t1, t2) match {
