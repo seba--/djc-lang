@@ -11,11 +11,13 @@ object String {
   case class StringValue(i: String) extends Value {
     def toExp = BaseCall(StringLit(i)).eraseType
   }
+  implicit def mkStringVal(i: String) = StringValue(i)
 
   case class StringLit(i: String) extends BaseOp(Nil, TString) {
     def reduce(es: List[Value]) = StringValue(i)
   }
   implicit def mkStringLit(n: String): Exp = BaseCall(StringLit(n))
+  implicit def mkStringLitP(p: (String, Type)): (Exp, Type) = (p._1, p._2)
 
   case object Plus extends BaseOp(List(TString, TString), TString) {
     def reduce(es: List[Value]) = es match {

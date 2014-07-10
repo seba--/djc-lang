@@ -129,18 +129,20 @@ object TypedSyntax {
   type Value = Syntax.Value
   abstract class BaseOp(val targs: List[(Symbol, Option[Type])], val ts: List[Type], val res: Type) extends Syntax.BaseOp {
     def this(ts: List[Type], res: Type) = this(Nil, ts, res)
+    def this(targs: (Symbol, Option[Type])*)(ts: List[Type], res: Type) = this(List(targs:_*), ts, res)
+    def eraseType: Syntax.BaseOp = this
   }
 
   case class BaseCall(b: BaseOp, ts: List[Type], es: List[Exp]) extends Exp {
     def this(b: BaseOp, es: List[Exp]) = this(b, Nil, es)
-    def eraseType = Syntax.BaseCall(b, es map (_.eraseType))
+    def eraseType = Syntax.BaseCall(b.eraseType, es map (_.eraseType))
   }
   object BaseCall {
+  //  def apply(b: BaseOp, ts: Type*)(es: Exp*): BaseCall = BaseCall(b, List(ts:_*), List(es:_*))
     def apply(b: BaseOp, ts: List[Type], es: Exp*): BaseCall = BaseCall(b, ts, List(es:_*))
     def apply(b: BaseOp, es: Exp*): BaseCall = BaseCall(b, Nil, List(es:_*))
     def apply(b: BaseOp, es: List[Exp]): BaseCall = BaseCall(b, Nil, List(es:_*))
   }
-
 
 
   implicit def varSymbol(s: Symbol) = Var(s)
@@ -191,6 +193,10 @@ object TypedSyntax {
           TSrvRep(svcs1 ++ svcs2)
       case _ => throw new IllegalArgumentException(s"Cannot build union of server types: Expected server types but got ${(t,t2)}")
     }
+  }
+
+  implicit class VarsConstraint(alpha: Symbol) {
+    def <<(bound: Option[Type]) = (alpha, bound)
   }
 
 

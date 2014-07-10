@@ -16,6 +16,7 @@ object Bool {
       else
         BaseCall(False).eraseType
   }
+  implicit def mkBoolValue(b: Boolean) = BoolValue(b)
 
   case object True extends BaseOp(Nil, TBool) {
     def reduce(es: List[Value]) = BoolValue(true)
