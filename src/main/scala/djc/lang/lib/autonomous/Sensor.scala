@@ -13,20 +13,20 @@ object Sensor {
   def makeSensor(sensorType: Type, default: Exp, dist: Map[Double, Exp]): Exp =
     ServerImpl(
       Rule(
-        'sensor?('k -> sensorType),
+        'sense?('k -> ?(sensorType)),
         Let('rnd, TDouble, NextRandom) {
-          makeDistExp('rnd, default, dist)
+          makeDistExp('k, 'rnd, default, dist)
         }
       )
     )
 
-  def makeDistExp(rnd: Exp, default: Exp, dist: Map[Double, Exp]): Exp = {
+  def makeDistExp(k: Exp, rnd: Exp, default: Exp, dist: Map[Double, Exp]): Exp = {
     val sum = dist.keys.sum
     val normDist = dist map (kv => (kv._1 + sum, kv._2))
     val sortedNormDist = dist.toList.sortBy(p => -p._1)
-    var e = default
-    for ((k,v) <- sortedNormDist)
-      e = Ifc(k <== rnd)(v)Else(e)
+    var e: Exp = k!!(default)
+    for ((d,v) <- sortedNormDist)
+      e = Ifc(d <== rnd)(k!!(v))Else(e)
     e
   }
 }

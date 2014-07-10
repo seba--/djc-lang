@@ -63,6 +63,8 @@ object SemanticsFactory extends ISemanticsFactory[Value] {
       case Var(y) if env.isDefinedAt(y) =>
         env(y)
 
+      case addr@ServerAddr(_,_) => ServerVal(addr)
+
       case impl@ServerImpl(_) =>
         ServerClosure(impl, env)
 
