@@ -10,13 +10,15 @@ object Double {
   val TDouble = TBase('Double)
 
   case class DoubleValue(i: Double) extends Value {
-    def toExp = BaseCall(DoubleLit(i), Nil).eraseType
+    def toExp = BaseCall(DoubleLit(i)).eraseType
   }
+  implicit def mkDoubleValue(i: Double): Value = DoubleValue(i)
 
   case class DoubleLit(i: Double) extends BaseOp(Nil, TDouble) {
     def reduce(es: List[Value]) = DoubleValue(i)
   }
   implicit def mkDoubleLit(n: Double): Exp = BaseCall(DoubleLit(n))
+  implicit def mkDoubleListP(p: (Double, Type)): (Exp, Type) = (p._1, p._2)
 
   case object Plus extends BaseOp(List(TDouble, TDouble), TDouble) {
     def reduce(es: List[Value]) = es match {

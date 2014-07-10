@@ -12,9 +12,9 @@ object Bool {
   case class BoolValue(b: Boolean) extends Value {
     def toExp =
       if (b)
-        BaseCall(True, Nil).eraseType
+        BaseCall(True).eraseType
       else
-        BaseCall(False, Nil).eraseType
+        BaseCall(False).eraseType
   }
 
   case object True extends BaseOp(Nil, TBool) {
@@ -57,8 +57,8 @@ object Bool {
     }
   }
 
-  def tru = BaseCall(True, Nil)
-  def fal = BaseCall(False, Nil)
+  def tru = BaseCall(True)
+  def fal = BaseCall(False)
   implicit def infixExpBoolVar(e: Symbol) = InfixExp(Var(e))
   implicit def infixExpBool(e: Exp) = InfixExp(e)
   case class InfixExp(e1: Exp) {

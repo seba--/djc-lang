@@ -127,13 +127,19 @@ object TypedSyntax {
 
 
   type Value = Syntax.Value
-  abstract class BaseOp(val ts: List[Type], val res: Type) extends Syntax.BaseOp
+  abstract class BaseOp(val targs: List[(Symbol, Option[Type])], val ts: List[Type], val res: Type) extends Syntax.BaseOp {
+    def this(ts: List[Type], res: Type) = this(Nil, ts, res)
+  }
 
-  case class BaseCall(b: BaseOp, es: List[Exp]) extends Exp {
+  case class BaseCall(b: BaseOp, ts: List[Type], es: List[Exp]) extends Exp {
+    def this(b: BaseOp, es: List[Exp]) = this(b, Nil, es)
     def eraseType = Syntax.BaseCall(b, es map (_.eraseType))
   }
-  object BaseCall { def apply(b: BaseOp, es: Exp*): BaseCall = BaseCall(b, List(es:_*)) }
-
+  object BaseCall {
+    def apply(b: BaseOp, ts: List[Type], es: Exp*): BaseCall = BaseCall(b, ts, List(es:_*))
+    def apply(b: BaseOp, es: Exp*): BaseCall = BaseCall(b, Nil, List(es:_*))
+    def apply(b: BaseOp, es: List[Exp]): BaseCall = BaseCall(b, Nil, List(es:_*))
+  }
 
 
 
@@ -219,8 +225,8 @@ object TypedSyntax {
         UnsafeCast(map(e), mapType(t))
       case UpCast(e, t) =>
         UpCast(map(e), mapType(t))
-      case BaseCall(b, ps) =>
-        BaseCall(b, ps map map)
+      case BaseCall(b, ts, es) =>
+        BaseCall(b, ts map mapType, es map map)
     }
 
     def mapType: TMapT = {
@@ -229,7 +235,7 @@ object TypedSyntax {
       case TSrvRep(svcs) => TSrvRep(svcs mapValues mapType)
       case TSrv(t) => TSrv(mapType(t))
       case TVar(alpha) => TVar(alpha)
-      case TBase(name) => TBase(name)
+      case TBase(name, ts) => TBase(name, ts map mapType)
       case TUniv(alpha, bound, tpe1) => TUniv(alpha, bound.map(mapType(_)), mapType(tpe1))
     }
 
@@ -273,8 +279,8 @@ object TypedSyntax {
         fold(foldType(init)(t))(e)
       case UpCast(e, t) =>
         fold(foldType(init)(t))(e)
-      case BaseCall(b, ps) =>
-        ps.foldLeft(init)(fold(_)(_))
+      case BaseCall(b, ts, es) =>
+        es.foldLeft(ts.foldLeft(init)(foldType(_)(_)))(fold(_)(_))
     }
 
     def foldType[T](init: T): FoldT[T] = {
@@ -289,8 +295,8 @@ object TypedSyntax {
       case TSrv(t) => foldType(init)(t)
       case TVar(alpha) =>
         init
-      case TBase(name) =>
-        init
+      case TBase(name, ts) =>
+        ts.foldLeft(init)(foldType(_)(_))
       case TUniv(alpha, bound1, tpe1) =>
         foldType(bound1.map(foldType(init)(_)).getOrElse(init))(tpe1)
     }

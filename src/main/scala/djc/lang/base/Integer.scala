@@ -9,13 +9,16 @@ object Integer {
   val TInteger = TBase('Int)
 
   case class IntValue(i: Int) extends Value {
-    def toExp = BaseCall(IntLit(i), Nil).eraseType
+    def toExp = BaseCall(IntLit(i)).eraseType
   }
+  implicit def mkIntValue(i: Int): Value = IntValue(i)
 
   case class IntLit(i: Int) extends BaseOp(Nil, TInteger) {
     def reduce(es: List[Value]) = IntValue(i)
   }
   implicit def mkIntLit(n: Int): Exp = BaseCall(IntLit(n))
+  implicit def mkIntLitPair(p: (Int, Type)): (Exp, Type) = (p._1, p._2)
+  implicit def mkIntList(ints: List[Int]): List[Exp] = ints map mkIntLit
 
   case object Plus extends BaseOp(List(TInteger, TInteger), TInteger) {
     def reduce(es: List[Value]) = es match {

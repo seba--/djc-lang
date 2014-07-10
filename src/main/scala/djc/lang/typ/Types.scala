@@ -65,7 +65,16 @@ object Types {
 
   case class TVar(alpha: Symbol) extends Type
 
-  case class TBase(name: Symbol) extends Type
+  case class TBase(name: Symbol, ts: List[Type]) extends Type {
+    override def ===(that: Type) = that match {
+      case TBase(`name`, ts1) =>
+        ts.corresponds(ts1)(_ === _)
+      case _ => false
+    }
+  }
+  object TBase {
+    def apply(name: Symbol, ts: Type*): TBase = TBase(name, List(ts:_*))
+  }
 
   case class TUniv(alpha: Symbol, bound: Option[Type], tpe: Type) extends Type {
     override def ===(that: Type) = that match {

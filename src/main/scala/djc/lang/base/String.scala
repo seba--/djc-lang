@@ -9,7 +9,7 @@ object String {
   val TString = TBase('String)
 
   case class StringValue(i: String) extends Value {
-    def toExp = BaseCall(StringLit(i), Nil).eraseType
+    def toExp = BaseCall(StringLit(i)).eraseType
   }
 
   case class StringLit(i: String) extends BaseOp(Nil, TString) {

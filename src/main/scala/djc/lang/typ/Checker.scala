@@ -12,12 +12,23 @@ object Checker {
   def typeCheck(gamma: Context, boundTv: Set[Symbol], p: Exp): Type = p match {
 //    case _ if {println(s"gammma: ${gamma.keys}");false} => ?()
 
-    case BaseCall(b, es) => {
-      val ts = es map (typeCheck(gamma, boundTv, _))
-      if (ts.corresponds(b.ts)(_ <:< _)) // actual arguments have subtypes of declared parameters
-        b.res
+    case BaseCall(b, ts, es) => {
+      val argTs = es map (typeCheck(gamma, boundTv, _))
+      val (tArgs, bounds) = b.targs.unzip
+      if (!ts.corresponds(bounds)(_ <:< _))
+         throw TypeCheckException(s"Type arguments do not match type parameters. Applied $ts to $b.targs\n in $p")
+
+      val substs = (tArgs zip ts) map { case (alpha, t) =>
+        val f: Type => Type = SubstType(alpha, t).apply
+        f
+      }
+      val sigma = Function.chain(substs)  //TODO extend substitutions to be simultaneous
+
+      val bSig = b.ts map sigma
+      if (argTs.corresponds(bSig)(_ <:< _)) // actual arguments have subtypes of declared parameters
+        sigma(b.res)
       else
-        throw TypeCheckException(s"Arguments of base call mismatch. Was: $ts, Expected: ${b.ts}\n  in ${BaseCall(b, es)}")
+        throw TypeCheckException(s"Arguments of base call mismatch. Was: $argTs, Expected: ${b.ts}\n  in ${BaseCall(b, ts, es)}")
     }
 
     case Par(ps)
