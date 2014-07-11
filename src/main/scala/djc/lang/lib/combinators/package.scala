@@ -14,4 +14,5 @@ package object combinators {
   val TLaWorker = TUniv('alpha, TWorker('alpha) ++ TSrvRep('getLoad -> ?(?(TInteger))))
   val THost = TUniv('alpha, Some(TStop), TSrvRep('host -> ?('alpha, ?(TInteger)), 'resolve -> ?(TInteger, ?(TInteger), ?(TSrv('alpha)))))
   val TMigrate = TUniv('alpha, Some(TStop), TSrvRep('migrate -> ?(TInteger, TSrv(THost('alpha)), ?(TInteger), ?(TInteger))))
+  val THostM = TUniv('alpha, Some(TStop), THost('alpha) ++ TMigrate('alpha))
 }
