@@ -93,6 +93,16 @@ object TypedSyntax {
   object TAbs {
     def apply(alpha: Symbol, p: Exp): TAbs = TAbs(alpha, None, p)
     def apply(alpha: Symbol, bound: Type, p: Exp): TAbs = TAbs(alpha, Some(bound), p)
+    def apply(alpha1: Symbol, alpha2: Symbol, alphas: Symbol*)(p: Exp): TAbs = {
+      (alpha1 +: alpha2 +: alphas).foldRight(p) {
+        case (a, e) => TAbs(a, Top, e)
+      }.asInstanceOf[TAbs]
+    }
+    def apply(alpha: (Symbol,Type), alphas: (Symbol,Type)*)(p: Exp): TAbs = {
+      (alpha +: alphas).foldRight(p) {
+        case ((a,t), e) => TAbs(a, t, e)
+      }.asInstanceOf[TAbs]
+    }
   }
 
   case class UnsafeCast(e: Exp, t: Type) extends Exp {
@@ -112,6 +122,9 @@ object TypedSyntax {
     }
 
     override def toString = s"Rule($ps  =>  $p)"
+  }
+  object Rule {
+    def apply(ps: Pattern*)(p: Exp): Rule = Rule(Bag(ps:_*), p)
   }
 
   case class Pattern(name: Symbol, params: ListMap[Symbol, Type]) {
@@ -144,7 +157,7 @@ object TypedSyntax {
     def apply(b: BaseOp, es: List[Exp]): BaseCall = BaseCall(b, Nil, List(es:_*))
   }
 
-
+  implicit def symbolBound(s: Symbol): (Symbol, Type) = (s, Top)
   implicit def varSymbol(s: Symbol) = Var(s)
   implicit def varSymbolInfixExp(s: Symbol) = new InfixExp(Var(s))
   implicit def varSymbolInfixPattern(s: Symbol) = PatternSymbol(s)
@@ -197,6 +210,7 @@ object TypedSyntax {
 
   implicit class VarsConstraint(alpha: Symbol) {
     def <<(bound: Option[Type]) = (alpha, bound)
+    def <<(bound: Type) = (alpha, bound)
   }
 
 

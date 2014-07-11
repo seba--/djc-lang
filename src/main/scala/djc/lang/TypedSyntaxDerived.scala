@@ -11,6 +11,7 @@ object TypedSyntaxDerived {
 
   // undelimited CPS function type:
   //   t * (u -> Unit) -> Unit
+  def TFun(p: (Type,Type)): TSvc = TFun(p._1, p._2)
   def TFun(t: Type, u: Type) = TSvc(t, TSvc(u))
 
   def TFun(t1: Type, t2: Type, u: Type) = TSvc(t1, t2, TSvc(u))
