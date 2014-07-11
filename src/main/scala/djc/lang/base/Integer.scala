@@ -48,7 +48,12 @@ object Integer {
     }
   }
 
-
+  case object Mod extends BaseOp(List(TInteger, TInteger), TInteger) {
+    def reduce(es: List[Value]) = es match {
+      case IntValue(i1)::IntValue(i2)::Nil => IntValue(i1 % i2)
+      case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
+    }
+  }
 
   implicit def infixExpIntegerVar(e: Symbol) = InfixExp(Var(e))
   implicit def infixExpInteger(e: Exp) = InfixExp(e)
@@ -61,6 +66,7 @@ object Integer {
     def -(e2: Int) = BaseCall(Sub, e1, e2)
     def /(e2: Exp) = BaseCall(Div, e1, e2)
     def *(e2: Exp) = BaseCall(Mul, e1, e2)
+    def mod(e2: Exp) = BaseCall(Mod, e1, e1)
   }
 
 }

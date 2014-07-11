@@ -1,6 +1,5 @@
 package djc.lang.base
 
-import djc.lang.Syntax
 import djc.lang.TypedSyntax._
 import djc.lang.base.Integer._
 import djc.lang.sem.SemanticException
