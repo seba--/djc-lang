@@ -1,5 +1,6 @@
 package djc.lang.base
 
+import djc.lang.Syntax
 import djc.lang.TypedSyntax._
 import djc.lang.base.Bool._
 import djc.lang.sem.SemanticException
@@ -9,19 +10,22 @@ object Pairs {
 
   val TPair = TUniv('A, TUniv('B, TBase('Pair, 'A, 'B)))
 
-
   case class PairVal(fst: Value, snd: Value) extends Value {
-    def toExp = BaseCall(PairLit(fst, Top, snd, Top)).eraseType
+    def toExp = Syntax.BaseCall(Pair.eraseType, fst.toExp, snd.toExp)
   }
 
-  case class PairLit(fst: Value, fstT: Type, snd: Value, sndT: Type) extends BaseOp(Nil, TPair(fstT,sndT)) {
-    def reduce(vs: List[Value]) = PairVal(fst, snd)
+  case object Pair extends BaseOp('A << None, 'B << None)(List('A,'B), TPair('A,'B)) {
+    def reduce(vs: List[Value]) = vs match {
+      case v1 :: v2 :: Nil => PairVal(v1, v2)
+      case _ => throw new SemanticException(s"wrong argument types for $getClass: $vs")
+    }
   }
 
-
-  implicit def mkPair(p: (Value, Type, Value, Type)): Exp = {
-    val (v1,t1,v2,t2) = p
-    BaseCall(PairLit(v1,t1,v2,t2))
+  def pair(p1: (Exp, Type), p2: (Exp, Type), ps: (Exp, Type)*): Exp = {
+      val pall = p1 +: p2 +: ps
+      pall.dropRight(1).foldRight(pall.last) {
+        case ((e,t), (ep, tp)) => (BaseCall(Pair, List(t, tp), e, ep), TPair(t, tp))
+      }._1
   }
 
   case object Fst extends BaseOp('A << None, 'B << None)(List(TPair('A,'B)), 'A) {
@@ -38,11 +42,27 @@ object Pairs {
     }
   }
 
+  case object Thrd extends BaseOp('A << None, 'B << None, 'C << None)(List(TPair('A, TPair('B, 'C))), 'C) {
+    def reduce(vs: List[Value]) = vs match {
+      case PairVal(_, PairVal(_, thrd)) :: Nil => thrd
+      case _ => throw new SemanticException(s"wrong argument types for $getClass: $vs")
+    }
+  }
+
+  case object Frth extends BaseOp('A << None, 'B << None, 'C << None, 'D << None)(List(TPair('A, TPair('B, TPair('D)))), 'D) {
+    def reduce(vs: List[Value]) = vs match {
+      case PairVal(_, PairVal(_, PairVal(_, frth))) :: Nil => frth
+      case _ => throw new SemanticException(s"wrong argument types for $getClass: $vs")
+    }
+  }
+
   implicit def infixExpPairVar(e: Symbol) = InfixExp(Var(e))
   implicit def infixExpPair(e: Exp) = InfixExp(e)
   case class InfixExp(e1: Exp) {
     def i = this
     def fst(t1: Type, t2: Type) = BaseCall(Fst, List(t1,t2), e1)
-    def and(t1: Type, t2: Type) = BaseCall(Snd, List(t1,t2), e1)
+    def snd(t1: Type, t2: Type) = BaseCall(Snd, List(t1,t2), e1)
+    def thrd(t1: Type, t2: Type, t3: Type) = BaseCall(Thrd, List(t1,t2,t3), e1)
+    def frth(t1: Type, t2: Type, t3: Type, t4: Type) = BaseCall(Frth, List(t1,t2,t3,t4), e1)
   }
 }

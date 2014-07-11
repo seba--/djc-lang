@@ -61,7 +61,9 @@ object Syntax {
     def reduce(vs: List[Value]): Either[Value, Exp]
   }
   case class BaseCall(b: BaseOp, es: List[Exp]) extends Exp
-
+  object BaseCall {
+    def apply(b: BaseOp, es: Exp*): BaseCall = BaseCall(b, List(es:_*))
+  }
 
 
 
