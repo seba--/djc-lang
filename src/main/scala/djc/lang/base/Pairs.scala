@@ -61,6 +61,8 @@ object Pairs {
     }
   }
 
+
+
   implicit def infixExpPairVar(e: Symbol) = InfixExp(Var(e))
   implicit def infixExpPair(e: Exp) = InfixExp(e)
   case class InfixExp(e1: Exp) {
@@ -69,5 +71,18 @@ object Pairs {
     def snd(t1: Type, t2: Type) = BaseCall(Snd, List(t1,t2), e1)
     def thrd(t1: Type, t2: Type, t3: Type) = BaseCall(Thrd, List(t1,t2,t3), e1)
     def frth(t1: Type, t2: Type, t3: Type, t4: Type) = BaseCall(Frth, List(t1,t2,t3,t4), e1)
+  }
+
+  def fst(t: Type, e: Exp) = t match {
+    case TBase('Pair, t1 :: t2 :: Nil) => e.fst(t1,t2)
+  }
+  def snd(t: Type, e: Exp) = t match {
+    case TBase('Pair, t1 :: t2 :: Nil) => e.snd(t1,t2)
+  }
+  def thrd(t: Type, e: Exp) = t match {
+    case TBase('Pair, t1 :: TBase('Pair, t2 :: t3 :: Nil) :: Nil) => e.thrd(t1,t2,t3)
+  }
+  def frth(t: Type, e: Exp) = t match {
+    case TBase('Pair, t1 :: TBase('Pair, t2 :: TBase('Pair, t3 :: t4 :: Nil) :: Nil) :: Nil) => e.frth(t1,t2,t3,t4)
   }
 }

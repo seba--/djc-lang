@@ -14,6 +14,13 @@ object IntegerCompare {
     }
   }
 
+  case object Neq extends BaseOp(List(TInteger, TInteger), TBool) {
+    def reduce(es: List[Value]) = es match {
+      case IntValue(i1)::IntValue(i2)::Nil => BoolValue(i1 != i2)
+      case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
+    }
+  }
+
   case object Lt extends BaseOp(List(TInteger, TInteger), TBool) {
     def reduce(es: List[Value]) = es match {
       case IntValue(i1)::IntValue(i2)::Nil => BoolValue(i1 < i2)
@@ -46,6 +53,7 @@ object IntegerCompare {
   implicit def infixExpIntegerCompareVar(e: Symbol) = InfixExp(Var(e))
   implicit def infixExpIntegerCompare(e: Exp) = InfixExp(e)
   case class InfixExp(e1: Exp) {
+    def <>(e2: Exp) = BaseCall(Neq, e1, e2)
     def ===(e2: Exp) = BaseCall(Eq, e1, e2)
     def <(e2: Exp) = BaseCall(Lt, e1, e2)
     def <==(e2: Exp) = BaseCall(Le, e1, e2)

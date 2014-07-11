@@ -1,5 +1,6 @@
 package djc.lang.base
 
+import com.sun.xml.internal.rngom.parse.host.Base
 import djc.lang.TypedSyntax._
 import djc.lang.typ.Types._
 import djc.lang.sem.SemanticException
@@ -54,6 +55,25 @@ object Integer {
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
     }
   }
+
+  case object Fresh extends BaseOp(Nil, TInteger) {
+    private var _id = -1
+
+    def reduce(vs: List[Value]) = {
+      _id += 1
+     IntValue(_id)
+    }
+  }
+
+  case object Time extends BaseOp(Nil, TInteger) {
+    def reduce(vs: List[Value]) = {
+      import java.util.Date
+      IntValue((new Date()).getTime().toInt) //TODO use long as base values instead?
+    }
+  }
+
+  def freshInt() = BaseCall(Fresh)
+  def localTime() = BaseCall(Time)
 
   implicit def infixExpIntegerVar(e: Symbol) = InfixExp(Var(e))
   implicit def infixExpInteger(e: Exp) = InfixExp(e)
