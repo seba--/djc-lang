@@ -10,6 +10,11 @@ object Pairs {
 
   val TPair = TUniv('A, TUniv('B, TBase('Pair, 'A, 'B)))
 
+  def TTuple(t1: Type, t2: Type, ts: Type*) = {
+    val tall = t1 +: t2 +: ts
+    tall.reduceRight( (t1, t2) => TPair(t1, t2)   )
+  }
+
   case class PairVal(fst: Value, snd: Value) extends Value {
     def toExp = Syntax.BaseCall(Pair.eraseType, fst.toExp, snd.toExp)
   }
@@ -49,7 +54,7 @@ object Pairs {
     }
   }
 
-  case object Frth extends BaseOp('A << None, 'B << None, 'C << None, 'D << None)(List(TPair('A, TPair('B, TPair('D)))), 'D) {
+  case object Frth extends BaseOp('A << None, 'B << None, 'C << None, 'D << None)(List(TPair('A, TPair('B, TPair('C, 'D)))), 'D) {
     def reduce(vs: List[Value]) = vs match {
       case PairVal(_, PairVal(_, PairVal(_, frth))) :: Nil => frth
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $vs")

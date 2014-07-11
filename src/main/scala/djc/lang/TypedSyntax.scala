@@ -236,6 +236,7 @@ object TypedSyntax {
     }
 
     def mapType: TMapT = {
+      case Top => Top
       case Unit => Unit
       case TSvc(ts) => TSvc((ts map mapType))
       case TSrvRep(svcs) => TSrvRep(svcs mapValues mapType)
@@ -290,6 +291,8 @@ object TypedSyntax {
     }
 
     def foldType[T](init: T): FoldT[T] = {
+      case Top =>
+        init
       case Unit =>
         init
       case TSvc(ts) =>

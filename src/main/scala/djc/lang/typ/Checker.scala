@@ -23,12 +23,11 @@ object Checker {
         f
       }
       val sigma = Function.chain(substs)  //TODO extend substitutions to be simultaneous
-
       val bSig = b.ts map sigma
       if (argTs.corresponds(bSig)(_ <:< _)) // actual arguments have subtypes of declared parameters
         sigma(b.res)
       else
-        throw TypeCheckException(s"Arguments of base call mismatch. Was: $argTs, Expected: ${b.ts}\n  in ${BaseCall(b, ts, es)}")
+        throw TypeCheckException(s"Arguments of base call mismatch. Was: $argTs, Expected: ${bSig}\n  in ${BaseCall(b, ts, es)}")
     }
 
     case Par(ps)
