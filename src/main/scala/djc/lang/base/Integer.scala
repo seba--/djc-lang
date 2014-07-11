@@ -1,6 +1,5 @@
 package djc.lang.base
 
-import com.sun.xml.internal.rngom.parse.host.Base
 import djc.lang.TypedSyntax._
 import djc.lang.typ.Types._
 import djc.lang.sem.SemanticException
