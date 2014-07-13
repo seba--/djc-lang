@@ -31,28 +31,33 @@ class TestLists[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem) {
   testType("Empty list int", l1, TList(Ti))
 
 
-  val l2 = (1, Ti) :: (2, Ti) :: (3, Ti) :: nil(Ti)
+  val l2 = 1 :: 2 :: 3 :: nil(Ti)
   testType("Nonempty list int", l2, TList(Ti))
 
   val l1d = nil(Td)
   testType("Empty list double", l1d, TList(Td))
 
 
-  val l2d = (1.0, Td) :: (2.0, Td) :: (3.0, Td) :: nil(Td)
+  val l2d = 1.0 :: 2.0 :: 3.0 :: nil(Td)
   testType("Nonempty list double", l2d, TList(Td))
 
-  val l3 = (1, Ti) :: (2.0, Td) :: nil(Ti)
+  val l3 = 1 :: 2.0 :: nil(Ti)
   test("Heterogenuous list") {
     intercept[TypeCheckException] {
       typeCheck(Map(), Map(), l3)
     }
   }
 
-  testInterp("Nonempty list double", Par(PRINT(Td, l2d)), Set(Bag(PRINT(lst(Td, 1.0, 2.0, 3.0)))))
-  testInterp("Nonempty elemAt", Par(PRINT(Td, l2d.elemAt(Td)(1))), Set(Bag(PRINT(2.0))))
-  testInterp("List concat", Par(PRINT(Ts, lst(Ts, "cloud") +++ (Ts, lst(Ts, "calculus")))),  Set(Bag(PRINT(lst(Ts, "cloud", "calculus")))))
+  def p(t: Type, e: Exp): Par = Par(PRINT(t, e))
+  def res(sends: Exp*): AbstractSemantics.Res[Bag[Send]] = Set(Bag(sends.map(PRINT):_*))
 
-  val polymorph = TAbs('alpha, Spawn(TApp(PRINT_SERVER, 'alpha))~>'PRINT!!(nil('alpha)))
-  testInterp("Polymorphic", Par(polymorph(Ti)) ,  Set(Bag(PRINT(lst(Ti)))) )
+  testInterp("Nonempty list double", p(TList(Td), l2d), res(lst(Td, 1.0, 2.0, 3.0)))
+  testInterp("Nonempty elemAt", p(Td, l2d.elemAt(1)), res(2.0))
+  testType("Nonempty elemAt", p(Td, l2d.elemAt(1)), Unit)
+  testInterp("List concat", p(TList(Ts), lst(Ts, "cloud") +++ lst(Ts, "calculus")), res(lst(Ts, "cloud", "calculus")))
+  testType("List concat", p(TList(Ts), lst(Ts, "cloud") +++ lst(Ts, "calculus")), Unit)
 
+  val polymorph = TAbs('alpha, Spawn(TApp(PRINT_SERVER, TList('alpha)))~>'PRINT!!(nil('alpha)))
+  testInterp("Polymorphic", Par(polymorph(Ti)), res(lst(Ti)))
+  testType("Polymorphic", polymorph, TUniv('alpha, Unit))
 }

@@ -1,8 +1,11 @@
 package djc.lang.base
 
 import djc.lang.Syntax
+import djc.lang.TypedSyntax.InfixExp
 import djc.lang.TypedSyntax._
+import djc.lang.base.Bool.InfixExp
 import djc.lang.base.Bool._
+import djc.lang.base.Lists._
 import djc.lang.sem.SemanticException
 import djc.lang.typ.Types._
 
@@ -10,9 +13,21 @@ object Pairs {
 
   val TPair = TUniv('A, TUniv('B, TBase('Pair, 'A, 'B)))
 
-  def TTuple(t1: Type, t2: Type, ts: Type*) = {
-    val tall = t1 +: t2 +: ts
-    tall.reduceRight( (t1, t2) => TPair(t1, t2)   )
+  object TTuple {
+    def apply(t1: Type, t2: Type, ts: Type*) = {
+      val tall = t1 +: t2 +: ts
+      tall.reduceRight( (t1, t2) => TPair(t1, t2)   )
+    }
+
+    def unapplySeq(t: Type): Option[Seq[Type]] = t match {
+      case TBase('Pair, t1 :: t2 :: Nil) =>
+        t2 match {
+          case TBase('Pair, t3 :: t4 :: Nil) =>
+            Some(t1 +: t3 +: unapplySeq(t4).getOrElse(Seq(t4)))
+          case _ => Some(Seq(t1,t2))
+        }
+      case _ => None
+    }
   }
 
   case class PairVal(fst: Value, snd: Value) extends Value {
@@ -26,11 +41,26 @@ object Pairs {
     }
   }
 
-  def pair(p1: (Exp, Type), p2: (Exp, Type), ps: (Exp, Type)*): Exp = {
+  def pair(p1: (Exp, Type), p2: (Exp, Type), ps: (Exp, Type)*): BaseCall = {
       val pall = p1 +: p2 +: ps
       pall.dropRight(1).foldRight(pall.last) {
         case ((e,t), (ep, tp)) => (BaseCall(Pair, List(t, tp), e, ep), TPair(t, tp))
-      }._1
+      }._1.asInstanceOf[BaseCall]
+  }
+
+  def pair(t: Type, es: Exp*): BaseCall = (t,es) match {
+    case (TTuple(t1,t2,ts@_*), Seq(e1,e2,es@_*))
+      if (es.length == ts.length) =>
+        pair(e1 -> t1, e2 -> t2, (es zip ts):_*)
+
+    case _ => throw SemanticException(s"need a tuple type and matching arguments, got $t\n$es")
+  }
+
+  def pair(b1: BaseCall, b2: BaseCall, bs: BaseCall*): BaseCall = {
+    val ball = b1 +: b2 +: bs
+    ball.dropRight(1).foldRight(ball.last) {
+      case (bc, pairbc) => BaseCall(Pair, List(bc.resultType, pairbc.resultType), bc, pairbc)
+    }
   }
 
   case object Fst extends BaseOp('A << Top, 'B << Top)(List(TPair('A,'B)), 'A) {
@@ -47,42 +77,36 @@ object Pairs {
     }
   }
 
-  case object Thrd extends BaseOp('A << Top, 'B << Top, 'C << Top)(List(TPair('A, TPair('B, 'C))), 'C) {
-    def reduce(vs: List[Value]) = vs match {
-      case PairVal(_, PairVal(_, thrd)) :: Nil => thrd
-      case _ => throw new SemanticException(s"wrong argument types for $getClass: $vs")
+  implicit def infixExpPairVar(e: Symbol) = InfixExpPair(Var(e))
+  implicit def infixExpPair(e: Exp) = InfixExpPair(e)
+  case class InfixExpPair(e1: Exp) {
+    def p = this
+    def fst(t: Type) = Pairs.fst(t, e1)
+    def snd(t: Type) = Pairs.snd(t, e1)
+    def thrd(t: Type) = Pairs.thrd(t, e1)
+    def frth(t: Type) = Pairs.frth(t, e1)
+  }
+  implicit class InfixBasecallPair(bc: BaseCall) {
+    def fst = Pairs.fst(bc.resultType, bc)
+    def snd = Pairs.snd(bc.resultType, bc)
+    def thrd = Pairs.thrd(bc.resultType, bc)
+    def frth = Pairs.frth(bc.resultType, bc)
+  }
+
+  def fst(t: Type, e: Exp) = ith(t,e,1)
+  def snd(t: Type, e: Exp) = ith(t,e,2)
+  def thrd(t: Type, e: Exp) = ith(t,e,3)
+  def frth(t: Type, e: Exp) = ith(t,e,4)
+
+
+  def ith(t: Type, e: Exp, n: Int): Exp = n match {
+    case 1 => t match {
+      case TBase('Pair, t1 :: t2 :: Nil) => BaseCall(Fst, List(t1,t2), e)
+      case _ => e
     }
-  }
 
-  case object Frth extends BaseOp('A << Top, 'B << Top, 'C << Top, 'D << Top)(List(TPair('A, TPair('B, TPair('C, 'D)))), 'D) {
-    def reduce(vs: List[Value]) = vs match {
-      case PairVal(_, PairVal(_, PairVal(_, frth))) :: Nil => frth
-      case _ => throw new SemanticException(s"wrong argument types for $getClass: $vs")
+    case i if i > 1 => t match {
+      case TBase('Pair, t1 :: t2 :: Nil) => ith(t2, BaseCall(Snd, List(t1,t2), e), i - 1)
     }
-  }
-
-
-
-  implicit def infixExpPairVar(e: Symbol) = InfixExp(Var(e))
-  implicit def infixExpPair(e: Exp) = InfixExp(e)
-  case class InfixExp(e1: Exp) {
-    def i = this
-    def fst(t1: Type, t2: Type) = BaseCall(Fst, List(t1,t2), e1)
-    def snd(t1: Type, t2: Type) = BaseCall(Snd, List(t1,t2), e1)
-    def thrd(t1: Type, t2: Type, t3: Type) = BaseCall(Thrd, List(t1,t2,t3), e1)
-    def frth(t1: Type, t2: Type, t3: Type, t4: Type) = BaseCall(Frth, List(t1,t2,t3,t4), e1)
-  }
-
-  def fst(t: Type, e: Exp) = t match {
-    case TBase('Pair, t1 :: t2 :: Nil) => BaseCall(Fst, List(t1,t2), e)
-  }
-  def snd(t: Type, e: Exp) = t match {
-    case TBase('Pair, t1 :: t2 :: Nil) => BaseCall(Snd, List(t1,t2), e)
-  }
-  def thrd(t: Type, e: Exp) = t match {
-    case TBase('Pair, t1 :: TBase('Pair, t2 :: t3 :: Nil) :: Nil) => BaseCall(Thrd, List(t1,t2,t3), e)
-  }
-  def frth(t: Type, e: Exp) = t match {
-    case TBase('Pair, t1 :: TBase('Pair, t2 :: TBase('Pair, t3 :: t4 :: Nil) :: Nil) :: Nil) => BaseCall(Frth, List(t1,t2,t3,t4), e)
   }
 }

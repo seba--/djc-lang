@@ -24,11 +24,11 @@ class TestPairs[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem) {
   val Td = TDouble
   val Tb = TBool
 
-  val p1 = pair(1.0 -> Td, 2 -> Ti)
+  val p1 = pair(1.0, 2)
 
   testType("double int pair", p1, TPair(Td, Ti))
 
-  val p2 = pair(1.0 -> Td, 2 -> Ti, tru -> Tb, 1337 -> Ti)
+  val p2 = pair(1.0, 2, tru, 1337)
   testType("quadruple double int bool int", p2, TTuple(Td, Ti, Tb, Ti))
 
   val p3 = pair(1.0 -> Tb, 2 -> Tb)
@@ -38,15 +38,18 @@ class TestPairs[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem) {
     }
   }
 
+  println(pair(1.0, tru, 1).snd)
+  println()
+
   def p(t: Type, e: Exp): Par = Par(PRINT(t, e))
   def res(sends: Exp*): AbstractSemantics.Res[Bag[Send]] = Set(Bag(sends.map(PRINT):_*))
 
-  testInterp("fst",  p(Td, p1.fst(Td,Ti)), res(1.0))
-  testType("fst", p1.fst(Td,Ti), Td)
-  testInterp("snd",  p(Ti, p1.snd(Td,Ti)), res(2))
-  testType("snd", p1.snd(Td,Ti), Ti)
-  testInterp("thrd", p(TPair(Tb,Ti), p2.thrd(Td, Ti, TPair(Tb, Ti))), res(pair(tru -> Tb, 1337 -> Ti)))
-  testType("thrd", p2.thrd(Td, Ti, TPair(Tb,Ti)), TPair(Tb,Ti))
-  testInterp("frth",  p(Ti, p2.frth(Td, Ti, Tb, Ti)), res(1337))
-  testType("frth", p2.frth(Td, Ti, Tb, Ti), Ti)
+  testInterp("fst",  p(Td, p2.fst), res(1.0))
+  testType("fst", p2.fst, Td)
+  testInterp("snd",  p(Ti, p2.snd), res(2))
+  testType("snd", p2.snd, Ti)
+  testInterp("thrd", p(Tb, p2.thrd), res(tru))
+  testType("thrd", p2.thrd, Tb)
+  testInterp("frth",  p(Ti, p2.frth), res(1337))
+  testType("frth", p2.frth, Ti)
 }

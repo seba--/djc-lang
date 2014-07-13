@@ -17,7 +17,7 @@ object Double {
   case class DoubleLit(i: Double) extends BaseOp(Nil, TDouble) {
     def reduce(es: List[Value]) = DoubleValue(i)
   }
-  implicit def mkDoubleLit(n: Double): Exp = BaseCall(DoubleLit(n))
+  implicit def mkDoubleLit(n: Double): BaseCall = BaseCall(DoubleLit(n))
   implicit def mkDoubleListP(p: (Double, Type)): (Exp, Type) = (p._1, p._2)
 
   case object Plus extends BaseOp(List(TDouble, TDouble), TDouble) {

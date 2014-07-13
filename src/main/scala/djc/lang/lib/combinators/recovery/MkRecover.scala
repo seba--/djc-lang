@@ -32,7 +32,7 @@ object MkRecover {
             Rule('work?('thunk -> TThunk('A), 'k -> ?('A)),
                  'inst?('w -> TSrv('W)), 'pending?('xs -> TList(TP))) {
                Let(TInternal('A,'W))('id, TInteger, freshInt()) {
-                 ('this~>'pending!!((pair(Var('id) -> TInteger, localTime() -> TInteger, Var('thunk) -> TThunk('A), Var('k) -> ?('A)), TP) :: Var('xs))
+                 ('this~>'pending!!((pair(TP,'id, localTime(), 'thunk, 'k), TP) :: 'xs.l)
                    && 'this~>'inst!!'w
                    && Letk('r, 'A, 'w~>'work!!'thunk) {
                         'k!!'r && 'this~>'done!!'id

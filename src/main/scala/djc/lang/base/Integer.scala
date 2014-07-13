@@ -16,7 +16,7 @@ object Integer {
   case class IntLit(i: Int) extends BaseOp(Nil, TInteger) {
     def reduce(es: List[Value]) = IntValue(i)
   }
-  implicit def mkIntLit(n: Int): Exp = BaseCall(IntLit(n))
+  implicit def mkIntLit(n: Int): BaseCall = BaseCall(IntLit(n))
   implicit def mkIntLitPair(p: (Int, Type)): (Exp, Type) = (p._1, p._2)
   implicit def mkIntList(ints: List[Int]): List[Exp] = ints map mkIntLit
 

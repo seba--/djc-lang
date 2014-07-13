@@ -52,12 +52,13 @@ object Maps {
   }
 
 
-  implicit def infixSymbol(s: Symbol) =  InfixExp(Var(s))
-  implicit def infixMapExp(e: Exp) = InfixExp(e)
-  case class InfixExp(e: Exp) {
-    def insert(k: Type, v: Type, p: (Exp, Exp)): Exp = BaseCall(Insert, List(k,v), e, p._1, p._2)
-    def hasKey(k: Type, v: Type, ke: Exp): Exp = BaseCall(Contains, List(k,v), e, ke)
-    def get(k: Type, v: Type, ke: Exp): Exp = BaseCall(Get, List(k,v), e, ke)
-    def remove(k: Type, v: Type, ke: Exp): Exp = BaseCall(Remove, List(k,v), e, ke)
+  implicit def infixSymbolMap(s: Symbol) =  InfixExpMap(Var(s))
+  implicit def infixMapExp(e: Exp) = InfixExpMap(e)
+  case class InfixExpMap(e: Exp) {
+    def m = this
+    def insert(k: Type, v: Type, p: (Exp, Exp)): BaseCall = BaseCall(Insert, List(k,v), e, p._1, p._2)
+    def hasKey(k: Type, v: Type, ke: Exp): BaseCall = BaseCall(Contains, List(k,v), e, ke)
+    def get(k: Type, v: Type, ke: Exp): BaseCall = BaseCall(Get, List(k,v), e, ke)
+    def remove(k: Type, v: Type, ke: Exp): BaseCall = BaseCall(Remove, List(k,v), e, ke)
   }
 }

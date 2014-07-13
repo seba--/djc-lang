@@ -29,7 +29,7 @@ object MkHost {
             },
             Rule('resolve?('id -> TInteger, 'fail -> ?(TInteger), 'k -> ?(TSrv('A))), 'vms?('map -> TM)) {
                   'this~>'vms!!'map && (Ifc('map.hasKey(TInteger, TP, 'id)) {
-                                         'k!!(snd(TP, 'map.get(TInteger, TP,'id)))
+                                         'k!!('map.get(TInteger, TP,'id).snd)
                                         } Else {
                                           'fail!!'id
                                         })
