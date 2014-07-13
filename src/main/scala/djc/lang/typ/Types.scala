@@ -56,7 +56,7 @@ object Types {
 
   case class TUniv(alpha: Symbol, bound: Type, tpe: Type) extends Type {
     override def ===(that: Type) = that match {
-      case TUniv(beta, bound1, tpe1) => bound === bound1 && tpe === SubstType(beta, TVar(alpha))(tpe1)
+      case TUniv(beta, bound1, tpe1) => bound === bound1 && tpe === SubstType(beta -> TVar(alpha))(tpe1)
       case _ => false
     }
   }

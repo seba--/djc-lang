@@ -24,7 +24,7 @@ object Checker {
       tgamma.contains(alpha) && subtype(tgamma)(tgamma(alpha), t)
 
     case (TUniv(alpha, u1, t1), TUniv(beta, u2, t2)) =>
-      u1 === u2 && subtype(tgamma + (alpha -> u1))(t1, SubstType(beta, TVar(alpha))(t2))
+      u1 === u2 && subtype(tgamma + (alpha -> u1))(t1, SubstType(beta -> TVar(alpha))(t2))
 
     case (TSvc(args), TSvc(args1)) =>
       args1.corresponds(args)(subtype(tgamma)(_,_))
@@ -50,11 +50,7 @@ object Checker {
       if (!ts.corresponds(bounds)(subtype(tgamma)(_,_)))
          throw TypeCheckException(s"Type arguments do not match type parameters. Applied $ts to $b.targs\n in $p")
 
-      val substs = (tArgs zip ts) map { case (alpha, t) =>
-        val f: Type => Type = SubstType(alpha, t).apply
-        f
-      }
-      val sigma = Function.chain(substs)  //TODO extend substitutions to be simultaneous
+      val sigma: Type => Type = SubstType(tArgs zip ts)(_)
       val bSig = b.ts map sigma
       if (argTs.corresponds(bSig)(subtype(tgamma)(_, _))) // actual arguments have subtypes of declared parameters
         sigma(b.res)
@@ -107,7 +103,7 @@ object Checker {
         throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\ntgamma: $tgamma\n  free type vars ${FreeTypeVars(t) -- tgamma.keySet}")
       typeCheck(gamma, tgamma, p2) match {
         case TUniv(alpha, bound, t2) if subtype(tgamma)(t, bound) =>
-          SubstType(alpha, t)(t2)
+          SubstType(alpha -> t)(t2)
 
         case x => throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\ntgamma: $tgamma\nwith $x")
       }
@@ -115,7 +111,7 @@ object Checker {
     case TAbs(alpha, bound1, p1) =>
       val dontSubst = !tgamma.contains(alpha)
       lazy val alphafresh = gensym(alpha, tgamma.keySet)
-      lazy val p1fresh = SubstType(alpha, TVar(alphafresh))(p1)
+      lazy val p1fresh = SubstType(alpha -> TVar(alphafresh))(p1)
       val (alphares, p1res) = if (dontSubst) (alpha, p1) else (alphafresh, p1fresh)
       val t = typeCheck(gamma, tgamma + (alphares -> bound1), p1res)
 

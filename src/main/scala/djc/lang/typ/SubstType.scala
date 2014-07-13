@@ -4,43 +4,51 @@ import djc.lang.Gensym._
 import djc.lang.typ.Types._
 import djc.lang.TypedSyntax._
 
-case class SubstType(alpha: Symbol, repl: Type) extends Mapper {
-  lazy val replTVars = FreeTypeVars(repl)
+case class SubstType(substs: Map[Symbol, Type]) extends Mapper {
+  lazy val replTVars = substs.values.foldLeft(Set[Symbol]()) {
+    case (s, t) => s ++ FreeTypeVars(t)
+  }
 
   override def map: TMapE = {
-    case prog@TAbs(alpha1, bound1, p1) =>
+    case p if substs.isEmpty => p
+
+    case TAbs(alpha1, bound1, p1) if substs.contains(alpha1) =>
+      TAbs(alpha1, mapType(bound1), SubstType(substs - alpha1)(p1))
+
+    case TAbs(alpha1, bound1, p1) =>
       val captureAvoiding = !replTVars(alpha1)
       lazy val alpha1fresh = gensym(alpha1, replTVars)
-      lazy val p1fresh = SubstType(alpha1, TVar(alpha1fresh))(p1)
+      lazy val p1fresh = SubstType(alpha1 -> TVar(alpha1fresh))(p1)
       val (alpha1res, p1res) = if (captureAvoiding) (alpha1, p1) else (alpha1fresh, p1fresh)
 
-      if (alpha == alpha1)
-        prog
-      else
-        TAbs(alpha1res, mapType(bound1), map(p1res))
+      TAbs(alpha1res, mapType(bound1), map(p1res))
 
     case prog => super.map(prog)
   }
 
   override def mapType: TMapT = {
-    case TVar(alpha1) if alpha == alpha1 =>
-      repl
+    case t if substs.isEmpty => t
 
-    case tpe@TUniv(alpha1, bound1, tpe1) =>
+    case TVar(alpha1) if substs.contains(alpha1) =>
+      substs(alpha1)
+
+    case TUniv(alpha1, bound1, tpe1) if substs.contains(alpha1) =>
+      TUniv(alpha1, mapType(bound1), SubstType(substs - alpha1)(tpe1))
+
+    case TUniv(alpha1, bound1, tpe1) =>
       val captureAvoiding = !replTVars(alpha1)
       lazy val alpha1fresh = gensym(alpha1, replTVars)
-      lazy val tpe1fresh = SubstType(alpha1, TVar(alpha1fresh))(tpe1)
+      lazy val tpe1fresh = SubstType(alpha1 -> TVar(alpha1fresh))(tpe1)
       val (alpha1res, tpe1res) = if (captureAvoiding) (alpha1, tpe1) else (alpha1fresh, tpe1fresh)
 
-      if (alpha == alpha1)
-        tpe
-      else
-        TUniv(alpha1res, mapType(bound1), mapType(tpe1res))
+      TUniv(alpha1res, mapType(bound1), mapType(tpe1res))
 
     case tpe => super.mapType(tpe)
   }
-
-
+}
+object SubstType {
+  def apply(substs: (Symbol,Type)*): SubstType  = SubstType(Map(substs:_*))
+  def apply(substs: List[(Symbol,Type)]): SubstType = SubstType(substs.toMap)
 }
 
 abstract class SubstTemplate(x: Symbol, repl: Exp) extends Mapper {
@@ -60,7 +68,7 @@ abstract class SubstTemplate(x: Symbol, repl: Exp) extends Mapper {
     case TAbs(alpha, bound1, p1) =>
       val captureAvoiding = !replTVars(alpha)
       lazy val alphafresh = gensym(alpha, replTVars)
-      lazy val p1fresh = SubstType(alpha, TVar(alphafresh))(p1)
+      lazy val p1fresh = SubstType(alpha -> TVar(alphafresh))(p1)
       val (alphares, p1res) = if (captureAvoiding) (alpha, p1) else (alphafresh, p1fresh)
 
       TAbs(alphares, mapType(bound1), map(p1res))
@@ -130,7 +138,7 @@ object FreeTypeVars extends Fold {
 
   def fold(init: Set[Symbol]): FoldE[Set[Symbol]] = {
     case TAbs(alpha, bound1, p1) =>
-      fold(foldType(init)(bound1))(p1) - alpha
+      foldType(fold(init)(p1) - alpha)(bound1)
     case prog => super.fold(init)(prog)
   }
 
@@ -138,7 +146,7 @@ object FreeTypeVars extends Fold {
     case TVar(alpha) =>
       init + alpha
     case TUniv(alpha, bound1, tpe1) =>
-      foldType(foldType(init)(bound1))(tpe1) - alpha
+      foldType(foldType(init)(tpe1) - alpha)(bound1)
     case tpe => super.foldType(init)(tpe)
   }
 }

@@ -148,6 +148,12 @@ object TypedSyntax {
   case class BaseCall(b: BaseOp, ts: List[Type], es: List[Exp]) extends Exp {
     def this(b: BaseOp, es: List[Exp]) = this(b, Nil, es)
     def eraseType = Syntax.BaseCall(b.eraseType, es map (_.eraseType))
+
+    lazy val resultType: Type = {
+      val (tvars,_) = b.targs.unzip
+      val sigma: Type => Type = SubstType(tvars zip ts)(_)
+      sigma(b.res)
+    }
   }
   object BaseCall {
   //  def apply(b: BaseOp, ts: Type*)(es: Exp*): BaseCall = BaseCall(b, List(ts:_*), List(es:_*))
@@ -192,7 +198,7 @@ object TypedSyntax {
   implicit def infixType(t: Type) = InfixType(t)
   case class InfixType(t: Type) {
     def apply(t2: Type): Type = t match {
-      case TUniv(x, _, t1) => SubstType(x, t2)(t1)
+      case TUniv(x, _, t1) => SubstType(x -> t2)(t1)
       case _ => throw new IllegalArgumentException(s"Expect TUniv but got $t")
     }
     def apply(t2s: Type*): Type = t2s.foldLeft(this)((t, t2) => InfixType(t.apply(t2))).t
