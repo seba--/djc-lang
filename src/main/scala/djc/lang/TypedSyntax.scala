@@ -87,12 +87,11 @@ object TypedSyntax {
     def apply(e: Exp, ts: Type*) = ts.foldLeft(e){case (e1, t) => new TApp(e1, t) }
   }
 
-  case class TAbs(alpha: Symbol, bound: Option[Type], p: Exp) extends Exp {
+  case class TAbs(alpha: Symbol, bound: Type, p: Exp) extends Exp {
     override def eraseType = p.eraseType
   }
   object TAbs {
-    def apply(alpha: Symbol, p: Exp): TAbs = TAbs(alpha, None, p)
-    def apply(alpha: Symbol, bound: Type, p: Exp): TAbs = TAbs(alpha, Some(bound), p)
+    def apply(alpha: Symbol, p: Exp): TAbs = TAbs(alpha, Top, p)
     def apply(alpha1: Symbol, alpha2: Symbol, alphas: Symbol*)(p: Exp): TAbs = {
       (alpha1 +: alpha2 +: alphas).foldRight(p) {
         case (a, e) => TAbs(a, Top, e)
@@ -140,9 +139,9 @@ object TypedSyntax {
 
 
   type Value = Syntax.Value
-  abstract class BaseOp(val targs: List[(Symbol, Option[Type])], val ts: List[Type], val res: Type) extends Syntax.BaseOp {
+  abstract class BaseOp(val targs: List[(Symbol, Type)], val ts: List[Type], val res: Type) extends Syntax.BaseOp {
     def this(ts: List[Type], res: Type) = this(Nil, ts, res)
-    def this(targs: (Symbol, Option[Type])*)(ts: List[Type], res: Type) = this(List(targs:_*), ts, res)
+    def this(targs: (Symbol,Type)*)(ts: List[Type], res: Type) = this(List(targs:_*), ts, res)
     def eraseType: Syntax.BaseOp = this
   }
 
@@ -240,7 +239,7 @@ object TypedSyntax {
       case TApp(p1, t) =>
         TApp(map(p1), mapType(t))
       case TAbs(alpha, bound1, p1) =>
-        TAbs(alpha, bound1.map(mapType(_)), map(p1))
+        TAbs(alpha, mapType(bound1), map(p1))
       case UnsafeCast(e, t) =>
         UnsafeCast(map(e), mapType(t))
       case UpCast(e, t) =>
@@ -257,7 +256,7 @@ object TypedSyntax {
       case TSrv(t) => TSrv(mapType(t))
       case TVar(alpha) => TVar(alpha)
       case TBase(name, ts) => TBase(name, ts map mapType)
-      case TUniv(alpha, bound, tpe1) => TUniv(alpha, bound.map(mapType(_)), mapType(tpe1))
+      case TUniv(alpha, bound, tpe1) => TUniv(alpha, mapType(bound), mapType(tpe1))
     }
 
     def mapRule(rule: Rule): Rule = {
@@ -295,7 +294,7 @@ object TypedSyntax {
       case TApp(p1, t) =>
         fold(foldType(init)(t))(p1)
       case TAbs(alpha, bound1, p1) =>
-        fold(bound1.map(foldType(init)(_)).getOrElse(init))(p1)
+        fold(foldType(init)(bound1))(p1)
       case UnsafeCast(e, t) =>
         fold(foldType(init)(t))(e)
       case UpCast(e, t) =>
@@ -321,7 +320,7 @@ object TypedSyntax {
       case TBase(name, ts) =>
         ts.foldLeft(init)(foldType(_)(_))
       case TUniv(alpha, bound1, tpe1) =>
-        foldType(bound1.map(foldType(init)(_)).getOrElse(init))(tpe1)
+        foldType(foldType(init)(bound1))(tpe1)
     }
 
     def foldRule[T](init: T)(rule: Rule): T = {

@@ -44,7 +44,7 @@ class TestLists[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem) {
   val l3 = (1, Ti) :: (2.0, Td) :: nil(Ti)
   test("Heterogenuous list") {
     intercept[TypeCheckException] {
-      typeCheck(Map(), Set(), l3)
+      typeCheck(Map(), Map(), l3)
     }
   }
 

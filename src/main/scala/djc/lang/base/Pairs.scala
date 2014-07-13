@@ -19,7 +19,7 @@ object Pairs {
     def toExp = Syntax.BaseCall(Pair.eraseType, fst.toExp, snd.toExp)
   }
 
-  case object Pair extends BaseOp('A << None, 'B << None)(List('A,'B), TPair('A,'B)) {
+  case object Pair extends BaseOp('A << Top, 'B << Top)(List('A,'B), TPair('A,'B)) {
     def reduce(vs: List[Value]) = vs match {
       case v1 :: v2 :: Nil => PairVal(v1, v2)
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $vs")
@@ -33,28 +33,28 @@ object Pairs {
       }._1
   }
 
-  case object Fst extends BaseOp('A << None, 'B << None)(List(TPair('A,'B)), 'A) {
+  case object Fst extends BaseOp('A << Top, 'B << Top)(List(TPair('A,'B)), 'A) {
     def reduce(vs: List[Value]) = vs match {
       case PairVal(fst,_) :: Nil => fst
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $vs")
     }
   }
 
-  case object Snd extends BaseOp('A << None, 'B << None)(List(TPair('A,'B)), 'B) {
+  case object Snd extends BaseOp('A << Top, 'B << Top)(List(TPair('A,'B)), 'B) {
     def reduce(vs: List[Value]) = vs match {
       case PairVal(_,snd) :: Nil => snd
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $vs")
     }
   }
 
-  case object Thrd extends BaseOp('A << None, 'B << None, 'C << None)(List(TPair('A, TPair('B, 'C))), 'C) {
+  case object Thrd extends BaseOp('A << Top, 'B << Top, 'C << Top)(List(TPair('A, TPair('B, 'C))), 'C) {
     def reduce(vs: List[Value]) = vs match {
       case PairVal(_, PairVal(_, thrd)) :: Nil => thrd
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $vs")
     }
   }
 
-  case object Frth extends BaseOp('A << None, 'B << None, 'C << None, 'D << None)(List(TPair('A, TPair('B, TPair('C, 'D)))), 'D) {
+  case object Frth extends BaseOp('A << Top, 'B << Top, 'C << Top, 'D << Top)(List(TPair('A, TPair('B, TPair('C, 'D)))), 'D) {
     def reduce(vs: List[Value]) = vs match {
       case PairVal(_, PairVal(_, PairVal(_, frth))) :: Nil => frth
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $vs")
@@ -74,15 +74,15 @@ object Pairs {
   }
 
   def fst(t: Type, e: Exp) = t match {
-    case TBase('Pair, t1 :: t2 :: Nil) => e.fst(t1,t2)
+    case TBase('Pair, t1 :: t2 :: Nil) => BaseCall(Fst, List(t1,t2), e)
   }
   def snd(t: Type, e: Exp) = t match {
-    case TBase('Pair, t1 :: t2 :: Nil) => e.snd(t1,t2)
+    case TBase('Pair, t1 :: t2 :: Nil) => BaseCall(Snd, List(t1,t2), e)
   }
   def thrd(t: Type, e: Exp) = t match {
-    case TBase('Pair, t1 :: TBase('Pair, t2 :: t3 :: Nil) :: Nil) => e.thrd(t1,t2,t3)
+    case TBase('Pair, t1 :: TBase('Pair, t2 :: t3 :: Nil) :: Nil) => BaseCall(Thrd, List(t1,t2,t3), e)
   }
   def frth(t: Type, e: Exp) = t match {
-    case TBase('Pair, t1 :: TBase('Pair, t2 :: TBase('Pair, t3 :: t4 :: Nil) :: Nil) :: Nil) => e.frth(t1,t2,t3,t4)
+    case TBase('Pair, t1 :: TBase('Pair, t2 :: TBase('Pair, t3 :: t4 :: Nil) :: Nil) :: Nil) => BaseCall(Frth, List(t1,t2,t3,t4), e)
   }
 }

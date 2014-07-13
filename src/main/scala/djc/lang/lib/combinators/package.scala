@@ -12,7 +12,7 @@ package object combinators {
   val TStop = TSrvRep('stop -> ?())
   val TStWorker = TUniv('alpha, TWorker('alpha) ++ TStop)
   val TLaWorker = TUniv('alpha, TWorker('alpha) ++ TSrvRep('getLoad -> ?(?(TInteger))))
-  val THost = TUniv('alpha, Some(TStop), TSrvRep('host -> ?('alpha, ?(TInteger)), 'resolve -> ?(TInteger, ?(TInteger), ?(TSrv('alpha)))))
-  val TMigrate = TUniv('alpha, Some(TStop), TSrvRep('migrate -> ?(TInteger, TSrv(THost('alpha)), ?(TInteger), ?(TInteger))))
-  val THostM = TUniv('alpha, Some(TStop), THost('alpha) ++ TMigrate('alpha))
+  val THost = TUniv('alpha, TStop, TSrvRep('host -> ?('alpha, ?(TInteger)), 'resolve -> ?(TInteger, ?(TInteger), ?(TSrv('alpha)))))
+  val TMigrate = TUniv('alpha, TStop, TSrvRep('migrate -> ?(TInteger, TSrv(THost('alpha)), ?(TInteger), ?(TInteger))))
+  val THostM = TUniv('alpha, TStop, THost('alpha) ++ TMigrate('alpha))
 }

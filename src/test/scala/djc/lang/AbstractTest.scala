@@ -58,11 +58,11 @@ abstract class AbstractTest[V](semFactory: ISemanticsFactory[V]) extends FunSuit
     }
   }
 
-  def testType(s: String, p: Exp, expected: Type, gamma: Context=Map(), boundTv: Set[Symbol]=Set()) = {
+  def testType(s: String, p: Exp, expected: Type, gamma: Context=Map(), tgamma: TVarContext=Map()) = {
     test(s ++ "-type") {
       try {
-        val tpe = typeCheck(gamma, boundTv, p)
-        assert(tpe <:< expected)
+        val tpe = typeCheck(gamma, tgamma, p)
+        assert(subtype(tgamma)(tpe,expected))
       } catch {
         case TypeCheckException(msg) => assert(false, msg)
       }

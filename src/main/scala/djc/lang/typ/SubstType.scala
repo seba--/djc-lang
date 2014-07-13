@@ -17,7 +17,7 @@ case class SubstType(alpha: Symbol, repl: Type) extends Mapper {
       if (alpha == alpha1)
         prog
       else
-        TAbs(alpha1res, bound1.map(mapType(_)), map(p1res))
+        TAbs(alpha1res, mapType(bound1), map(p1res))
 
     case prog => super.map(prog)
   }
@@ -35,7 +35,7 @@ case class SubstType(alpha: Symbol, repl: Type) extends Mapper {
       if (alpha == alpha1)
         tpe
       else
-        TUniv(alpha1res, bound1.map(mapType(_)), mapType(tpe1res))
+        TUniv(alpha1res, mapType(bound1), mapType(tpe1res))
 
     case tpe => super.mapType(tpe)
   }
@@ -63,7 +63,7 @@ abstract class SubstTemplate(x: Symbol, repl: Exp) extends Mapper {
       lazy val p1fresh = SubstType(alpha, TVar(alphafresh))(p1)
       val (alphares, p1res) = if (captureAvoiding) (alpha, p1) else (alphafresh, p1fresh)
 
-      TAbs(alphares, bound1.map(mapType(_)), map(p1res))
+      TAbs(alphares, mapType(bound1), map(p1res))
 
     case prog =>
       super.map(prog)
@@ -130,7 +130,7 @@ object FreeTypeVars extends Fold {
 
   def fold(init: Set[Symbol]): FoldE[Set[Symbol]] = {
     case TAbs(alpha, bound1, p1) =>
-      fold(bound1.map(foldType(init)(_)).getOrElse(init))(p1) - alpha
+      fold(foldType(init)(bound1))(p1) - alpha
     case prog => super.fold(init)(prog)
   }
 
@@ -138,7 +138,7 @@ object FreeTypeVars extends Fold {
     case TVar(alpha) =>
       init + alpha
     case TUniv(alpha, bound1, tpe1) =>
-      foldType(bound1.map(foldType(init)(_)).getOrElse(init))(tpe1) - alpha
+      foldType(foldType(init)(bound1))(tpe1) - alpha
     case tpe => super.foldType(init)(tpe)
   }
 }

@@ -46,11 +46,11 @@ class TypeCheckTest extends FunSuite {
 
 
   test("cellServer typeCheck") {
-    assert(cellTypePrivate(TVar('V)).rep === typeCheck(Map(), Set(), cellServer))
+    assert(cellTypePrivate(TVar('V)).rep === typeCheck(Map(), Map(), cellServer))
   }
 
   test("cellFactoryServer typeCheck factory") {
-    assert(cellFactoryServerType === typeCheck(Map(), Set(), cellFactoryServer))
+    assert(cellFactoryServerType === typeCheck(Map(), Map(), cellFactoryServer))
   }
 
   // TODO reinsert these tests, add type annotations

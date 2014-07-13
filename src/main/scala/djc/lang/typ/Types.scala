@@ -6,13 +6,6 @@ object Types {
      * Equality modulo bound vars
      */
     def ===(that: Type): Boolean = this == that
-
-    def <:<(that: Type): Boolean = this === that || that == Top
-    def <:<(that: Option[Type]): Boolean = that match {
-      case None => true
-      case Some(that) => this === that
-    }
-    def >:>(that: Type) = that <:< this
   }
 
   case object Top extends Type
@@ -22,11 +15,6 @@ object Types {
     override def ===(that: Type) = that match {
       case TSvc(params1) => params.corresponds(params1)(_ === _)
       case _ => false
-    }
-
-    override def <:<(that: Type) = that match {
-      case TSvc(params1) => params.corresponds(params1)(_ >:> _) // contra-variant in arguments
-      case _ => super.<:<(that)
     }
   }
   object TSvc {
@@ -40,13 +28,6 @@ object Types {
       }
       case _ => false
     }
-
-    override def <:<(that: Type) = that match {
-      case TSrvRep(svcs1) => svcs1 forall {
-        case(s, tpe) => svcs.contains(s) && svcs(s) <:< tpe
-      }
-      case _ => super.<:<(that)
-    }
   }
   object TSrvRep {
     def apply(svcs: (Symbol, Type)*): TSrvRep = TSrvRep(Map(svcs: _*))
@@ -56,10 +37,6 @@ object Types {
     override def ===(that: Type) = that match {
       case TSrv(rep2) => rep === rep2
       case _ => false
-    }
-    override def <:<(that: Type) = that match {
-      case TSrv(rep2) => rep <:< rep2
-      case _ => super.<:<(that)
     }
   }
   
@@ -77,33 +54,13 @@ object Types {
     def apply(name: Symbol, ts: Type*): TBase = TBase(name, List(ts:_*))
   }
 
-  case class TUniv(alpha: Symbol, bound: Option[Type], tpe: Type) extends Type {
+  case class TUniv(alpha: Symbol, bound: Type, tpe: Type) extends Type {
     override def ===(that: Type) = that match {
-      case TUniv(beta, bound1, tpe1) => boundEq(bound, bound1) && tpe === SubstType(beta, TVar(alpha))(tpe1)
-      case _ => false
-    }
-
-    override def <:<(that: Type) = that match {
-      case TUniv(beta, bound1, tpe1) => boundSub(bound, bound1) && tpe <:< SubstType(beta, TVar(alpha))(tpe1)
-      case _ => super.<:<(that)
-    }
-
-    def boundEq(t1: Option[Type], t2: Option[Type]) = (t1, t2) match {
-      case (None, None) => true
-      case (Some(t1), Some(t2)) => t1 === t2
-      case _ => false
-    }
-
-    // contra-variant (subtype accepts at least everything supertype accepts)
-    //     If T1 <: T2  and  T2[U] well-typed,   then  T1[U] well-typed
-    def boundSub(t1: Option[Type], t2: Option[Type]) = (t1, t2) match {
-      case (None, _) => true
-      case (Some(t1), Some(t2)) => t1 >:> t2
+      case TUniv(beta, bound1, tpe1) => bound === bound1 && tpe === SubstType(beta, TVar(alpha))(tpe1)
       case _ => false
     }
   }
   object TUniv {
-    def apply(alpha: Symbol, tpe: Type): TUniv = TUniv(alpha, None, tpe)
-    def apply(alpha: Symbol, bound: Type, tpe: Type): TUniv = TUniv(alpha, Some(bound), tpe)
+    def apply(alpha: Symbol, tpe: Type): TUniv = TUniv(alpha, Top, tpe)
   }
 }

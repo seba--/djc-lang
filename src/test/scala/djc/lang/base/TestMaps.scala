@@ -40,7 +40,7 @@ class TestMaps[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem) {
   val m3 = empty(Ti, Td).insert(Ti, Td, (1, 1.0)).insert(Ti,Ti, (2, 2))
   test("Heterogenuous map") {
     intercept[TypeCheckException] {
-      typeCheck(Map(), Set(), m3)
+      typeCheck(Map(), Map(), m3)
     }
   }
 

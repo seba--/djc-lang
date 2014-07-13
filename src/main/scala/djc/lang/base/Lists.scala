@@ -18,7 +18,7 @@ object Lists {
     def apply(vs: Value*): ListValue = ListValue(List(vs:_*))
   }
 
-  case class ListLit(t: Type, vs: List[Value]) extends BaseOp('alpha << None)(Nil, TList('alpha)) {
+  case class ListLit(t: Type, vs: List[Value]) extends BaseOp('alpha << Top)(Nil, TList('alpha)) {
     def reduce(vs1: List[Value]) = ListValue(vs)
     override lazy val eraseType = ListLit(Top, vs)
   }
@@ -29,28 +29,28 @@ object Lists {
   def lst(t: Type, vs: Value*): Exp = BaseCall(ListLit(t, List(vs:_*)), List(t))
   def nil(t: Type) = BaseCall(ListLit(t, Nil), List(t))
 
-  case object Cons extends BaseOp('alpha << None)(TVar('alpha)::TList('alpha)::Nil, TList('alpha)) {
+  case object Cons extends BaseOp('alpha << Top)(TVar('alpha)::TList('alpha)::Nil, TList('alpha)) {
     def reduce(vs: List[Value]) = vs match {
       case v :: ListValue(vs1) :: Nil => ListValue(v :: vs1)
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $vs")
     }
   }
 
-  case object ElementAt extends BaseOp('alpha << None)(TInteger::TList('alpha)::Nil, 'alpha) {
+  case object ElementAt extends BaseOp('alpha << Top)(TInteger::TList('alpha)::Nil, 'alpha) {
     def reduce(es: List[Value]) = es match {
       case IntValue(i)::ListValue(vs)::Nil => vs(i)
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $es")
     }
   }
 
-  case object Tail extends BaseOp('alpha << None)(TList('alpha)::Nil, TList('alpha)) {
+  case object Tail extends BaseOp('alpha << Top)(TList('alpha)::Nil, TList('alpha)) {
     def reduce(vs: List[Value]) = vs match {
       case ListValue(x :: xs) :: Nil => ListValue(xs)
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $vs")
     }
   }
 
-  case object Concat extends BaseOp('alpha << None)(TList('alpha)::TList('alpha)::Nil, TList('alpha)) {
+  case object Concat extends BaseOp('alpha << Top)(TList('alpha)::TList('alpha)::Nil, TList('alpha)) {
     def reduce(es: List[Value]) = es match {
       case ListValue(vs1)::ListValue(vs2)::Nil =>
         ListValue(vs1 ::: vs2)
@@ -58,14 +58,14 @@ object Lists {
     }
   }
 
-  case object IsEmpty extends BaseOp('alpha << None)(TList('alpha)::Nil, TBool) {
+  case object IsEmpty extends BaseOp('alpha << Top)(TList('alpha)::Nil, TBool) {
     def reduce(vs: List[Value]) = vs match {
       case ListValue(vs1) :: Nil => BoolValue(vs1.isEmpty)
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $vs")
     }
   }
 
-  case object Length extends BaseOp('alpha << None)(TList('alpha)::Nil, TInteger) {
+  case object Length extends BaseOp('alpha << Top)(TList('alpha)::Nil, TInteger) {
     def reduce(vs: List[Value]) = vs match {
       case ListValue(vs1) :: Nil => IntValue(vs1.length)
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $vs")

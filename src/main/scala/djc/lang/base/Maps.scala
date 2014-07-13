@@ -12,14 +12,14 @@ object Maps {
     def toExp = BaseCall(MapLit(Top,Top,m)).eraseType
   }
 
-  case class MapLit(k: Type, v: Type, m: Map[Value, Value]) extends BaseOp('K << None, 'V << None)(Nil, TMap('K, 'V)) {
+  case class MapLit(k: Type, v: Type, m: Map[Value, Value]) extends BaseOp('K << Top, 'V << Top)(Nil, TMap('K, 'V)) {
     def reduce(vs: List[Value]) = MapValue(m)
     override lazy val eraseType = MapLit(Top, Top, m)
   }
 
   def empty(k: Type, v: Type) = BaseCall(MapLit(k,v, Map()), List(k, v))
 
-  case object Contains extends BaseOp('K << None, 'V << None)(TMap('K, 'V) :: TVar('K) :: Nil, TBool) {
+  case object Contains extends BaseOp('K << Top, 'V << Top)(TMap('K, 'V) :: TVar('K) :: Nil, TBool) {
     def reduce(vs: List[Value]) = vs match {
       case MapValue(m) :: vk :: Nil =>
         BoolValue(m.contains(vk))
@@ -27,7 +27,7 @@ object Maps {
     }
   }
 
-  case object Get extends BaseOp('K << None, 'V << None)(TMap('K, 'V) :: TVar('K) :: Nil, 'V) {
+  case object Get extends BaseOp('K << Top, 'V << Top)(TMap('K, 'V) :: TVar('K) :: Nil, 'V) {
     def reduce(vs: List[Value]) = vs match {
       case MapValue(m) :: vk :: Nil =>
         m(vk)
@@ -35,7 +35,7 @@ object Maps {
     }
   }
 
-  case object Remove extends BaseOp('K << None, 'V << None)(TMap('K, 'V) :: TVar('K) :: Nil, TMap('K, 'V)) {
+  case object Remove extends BaseOp('K << Top, 'V << Top)(TMap('K, 'V) :: TVar('K) :: Nil, TMap('K, 'V)) {
     def reduce(vs: List[Value]) = vs match {
       case MapValue(m) :: vk :: Nil =>
         MapValue(m - vk)
@@ -43,7 +43,7 @@ object Maps {
     }
   }
 
-  case object Insert extends BaseOp('K << None, 'V << None)(TMap('K, 'V) :: TVar('K) :: TVar('V) :: Nil, TMap('K, 'V)) {
+  case object Insert extends BaseOp('K << Top, 'V << Top)(TMap('K, 'V) :: TVar('K) :: TVar('V) :: Nil, TMap('K, 'V)) {
     def reduce(vs: List[Value]) = vs match {
       case MapValue(m) :: vk :: vv :: Nil =>
         MapValue(m + (vk -> vv))
