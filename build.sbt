@@ -2,7 +2,7 @@ name := "djc-lang"
 
 version := "0.0.0"
 
-scalaVersion := "2.11.0"
+scalaVersion := "2.11.1"
 
 scalacOptions ++= List(
 	"-deprecation",
@@ -17,7 +17,7 @@ scalacOptions ++= List(
 
 resolvers ++= Seq()
 
-libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.1.6" % "test"
+libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.0" % "test"
 
 org.scalastyle.sbt.ScalastylePlugin.Settings
 
