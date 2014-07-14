@@ -1,7 +1,9 @@
 package djc.lang.base
 
+import djc.lang.Syntax
 import djc.lang.TypedSyntax._
 import djc.lang.base.Bool._
+import djc.lang.base.Maps.MapValue
 import djc.lang.sem.SemanticException
 import djc.lang.typ.Types._
 
@@ -9,15 +11,18 @@ object Maps {
   val TMap = TUniv('K, TUniv('V, TBase('Map, TVar('K), TVar('V))))
 
   case class MapValue(m: Map[Value, Value]) extends Value {
-    def toExp = BaseCall(MapLit(Top,Top,m)).eraseType
+    def toExp = m.foldRight(Syntax.BaseCall(Empty.eraseType)) {
+      case ((k,v), mape) =>  Syntax.BaseCall(Insert.eraseType, mape, k.toExp, v.toExp)
+    }
   }
 
-  case class MapLit(k: Type, v: Type, m: Map[Value, Value]) extends BaseOp('K << Top, 'V << Top)(Nil, TMap('K, 'V)) {
-    def reduce(vs: List[Value]) = MapValue(m)
-    override lazy val eraseType = MapLit(Top, Top, m)
+  case object Empty extends BaseOp('K << Top, 'V << Top)(Nil, TMap('K, 'V)) {
+    def reduce(vs: List[Value]) = MapValue(Map())
   }
 
-  def empty(k: Type, v: Type) = BaseCall(MapLit(k,v, Map()), List(k, v))
+  def map(tk: Type, tv: Type)(es: (Exp,Exp)*): BaseCall =
+    es.foldRight(empty(tk,tv)) { case ((k,v), mape) => mape.insert(k, v)}
+  def empty(k: Type, v: Type) = BaseCall(Empty, List(k, v))
 
   case object Contains extends BaseOp('K << Top, 'V << Top)(TMap('K, 'V) :: TVar('K) :: Nil, TBool) {
     def reduce(vs: List[Value]) = vs match {
@@ -52,7 +57,7 @@ object Maps {
   }
 
 
-  implicit def infixSymbolMap(s: Symbol) =  InfixExpMap(Var(s))
+  implicit def infixSymbolMap(s: Symbol) = InfixExpMap(Var(s))
   implicit def infixMapExp(e: Exp) = InfixExpMap(e)
   case class InfixExpMap(e: Exp) {
     def m = this
@@ -60,5 +65,21 @@ object Maps {
     def hasKey(k: Type, v: Type, ke: Exp): BaseCall = BaseCall(Contains, List(k,v), e, ke)
     def get(k: Type, v: Type, ke: Exp): BaseCall = BaseCall(Get, List(k,v), e, ke)
     def remove(k: Type, v: Type, ke: Exp): BaseCall = BaseCall(Remove, List(k,v), e, ke)
+  }
+
+  implicit class BaseCallInfixMap(bc: BaseCall) {
+    def insert(p: (Exp, Exp)): BaseCall = insert(p._1, p._2)
+    def insert(e1: Exp, e2: Exp): BaseCall = bc.resultType match {
+      case TBase('Map, tk :: tv :: Nil) => BaseCall(Insert, List(tk,tv), bc, e1, e2)
+    }
+    def hasKey(ke: Exp): BaseCall = bc.resultType match {
+      case TBase('Map, tk :: tv :: Nil) => BaseCall(Contains, List(tk,tv), bc, ke)
+    }
+    def get(ke: Exp): BaseCall = bc.resultType match {
+      case TBase('Map, tk :: tv :: Nil) => BaseCall(Get, List(tk,tv), bc, ke)
+    }
+    def remove(ke: Exp): BaseCall = bc.resultType match {
+      case TBase('Map, tk :: tv :: Nil) => BaseCall(Remove, List(tk,tv), bc, ke)
+    }
   }
 }
