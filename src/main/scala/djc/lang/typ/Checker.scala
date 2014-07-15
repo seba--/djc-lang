@@ -41,6 +41,15 @@ object Checker {
     case _ => false
   }
 
+  def promote(tgamma: TVarContext)(tpe: Type): Type = tpe match {
+    case TVar(alpha) =>
+      if (!tgamma.contains(alpha))
+        throw TypeCheckException(s"promotion of type variable $alpha undefined with tgamma: $tgamma")
+      promote(tgamma)(tgamma(alpha))
+
+    case _ => tpe
+  }
+
   def typeCheck(gamma: Context, tgamma: TVarContext, p: Exp): Type = p match {
 //    case _ if {println(s"gammma: ${gamma.keys}");false} => ?()
 
@@ -63,13 +72,14 @@ object Checker {
       Unit
 
     case Send(rcv, args) => {
-      val trcv: TSvc = typeCheck(gamma, tgamma, rcv) match {
+      val trcv: TSvc = promote(tgamma)(typeCheck(gamma, tgamma, rcv)) match {
         case t: TSvc => t
         case t => throw TypeCheckException(s"Illegal receiver type. Expected: TSvc(_), was $t\n  in ${Send(rcv, args)}")
       }
       val targs = args.map(typeCheck(gamma, tgamma, _))
+
       if (!targs.corresponds(trcv.params)(subtype(tgamma)(_,_))) // actual send arguments have subtypes of declared parameters
-        throw TypeCheckException(s"Send arguments have wrong types for receiver \n  $rcv.\nArguments: $args\nExpected: ${trcv.params}\nWas: $targs")
+        throw TypeCheckException(s"Send arguments have wrong types for receiver \n  $rcv.\nArguments: $args\nExpected: ${trcv.params}\nWas: $targs\nwith gamma: $gamma\ntgamma: $tgamma")
       Unit
     }
 
@@ -77,8 +87,14 @@ object Checker {
       gamma.getOrElse(x, throw TypeCheckException(s"Unbound variable $x\ngamma: $gamma\ntgamma: $tgamma"))
 
     case ref@ServiceRef(srv, x) =>
-      typeCheck(gamma, tgamma, srv) match {
-        case TSrv(TSrvRep(svcs)) if svcs.contains(x) => svcs(x)
+      promote(tgamma)(typeCheck(gamma, tgamma, srv)) match {
+        case TSrv(t) => promote(tgamma)(t) match {
+          case TSrvRep(svcs) =>
+            if (!svcs.contains(x))
+              throw TypeCheckException(s"service $x is not a member of server templates $svcs")
+              svcs(x)
+          case x => throw TypeCheckException(s"typeCheck ServiceRef: expected TSrvRep(_) but got $t (which promotes to $x")
+        }
         case TSrvRep(_) => throw TypeCheckException(s"Cannot refer to service of non-running server in $ref")
         case x => throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\ntgamma: $tgamma\nwith $x")
       }
@@ -93,15 +109,16 @@ object Checker {
     }
 
     case sp@Spawn(_, e) =>
-      typeCheck(gamma, tgamma, e) match {
-        case t: TSrvRep => TSrv(t)
-        case t => throw TypeCheckException(s"Illegal spwan expression. Expected: TSvrRep(_), was $t\n  in $sp)}")
+      val argt = typeCheck(gamma, tgamma, e)
+      promote(tgamma)(argt) match {
+        case t: TSrvRep  => TSrv(argt)
+        case t => throw TypeCheckException(s"Illegal spawn expression. Expected: TSrvRep(_), was $argt (which promotes to $t)\n  in $sp)}")
       }
 
     case TApp(p2, t) =>
       if (!(FreeTypeVars(t) subsetOf tgamma.keySet))
         throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\ntgamma: $tgamma\n  free type vars ${FreeTypeVars(t) -- tgamma.keySet}")
-      typeCheck(gamma, tgamma, p2) match {
+      promote(tgamma)(typeCheck(gamma, tgamma, p2)) match {
         case TUniv(alpha, bound, t2) if subtype(tgamma)(t, bound) =>
           SubstType(alpha -> t)(t2)
 
