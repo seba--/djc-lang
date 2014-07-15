@@ -5,14 +5,16 @@ import djc.lang.TypedSyntaxDerived.{TThunk => _, _}
 import djc.lang.lib.combinators._
 import djc.lang.typ.Types._
 
-object MkStoppable {
-  def apply(t1: Type, t2: Type) = TApp(combinator, t1, t2)
+object MkStoppable extends Combinator {
+  def apply(t1: Type, t2: Type) = TApp(impl, t1, t2)
 
+  val TMkStoppable = TUniv('A, TUniv('W, TWorker('A), TSrvRep('make -> ?('W, ?(TStWorker('A))))))
   val TInternal = TUniv('A, TUniv('W, TWorker('A),
-                   TSrvRep('init -> ?(), 'work -> TFun(TThunk('A) -> 'A),
-                           'stop -> ?(), 'alive -> ?(), 'instance -> ?(TSrv('W)))))
+                   TSrv(TSrvRep('init -> ?(), 'work -> TFun(TThunk('A) -> 'A),
+                           'stop -> ?(), 'alive -> ?(), 'instance -> ?(TSrv('W)))))  )
 
-  val combinator = TAbs('A, 'W << TWorker('A)) {
+  val tpe = TMkStoppable
+  val impl = TAbs('A, 'W << TWorker('A)) {
     ServerImpl {
       Rule('make?('worker -> 'W, 'k -> ?(TStWorker('A)))) {
         Let('stoppable, TStWorker('A),
@@ -25,7 +27,7 @@ object MkStoppable {
             Rule('work?('thunk -> TThunk('A), 'k -> ?('A)),
                  'instance?('w -> TSrv('W)),
                   'alive?()) {
-              'w~>'work!!'thunk && 'this~>'instance!!'w && 'this~>'alive!!()
+              'w~>'work!!('thunk,'k) && 'this~>'instance!!'w && 'this~>'alive!!()
             },
             Rule('stop?(), 'alive?()) {
               Par()

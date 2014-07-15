@@ -8,14 +8,15 @@ import djc.lang.base.Integer._
 import djc.lang.lib.combinators._
 import djc.lang.typ.Types._
 
-object MkHost {
-  def apply(t1: Type) = TApp(combinator, t1)
+object MkHost extends Combinator {
+  def apply(t1: Type) = TApp(impl, t1)
 
   val TP = TTuple('A, TSrv('A))
   val TM = TMap(TInteger, TP)
-  val TInternal = TUniv('A, TStop, THostM('A) ++ TSrvRep('vms -> ?(TM)))
+  val TInternal = TUniv('A, TStop, TSrv(THostM('A) ++ TSrvRep('vms -> ?(TM))))
 
-  val combinator = TAbs('A << TStop) {
+  val tpe = TUniv('A, TStop, TSrvRep('make -> ?(?(THostM('A)))))
+  val impl = TAbs('A << TStop) {
     ServerImpl {
       Rule('make?('k -> ?(THostM('A)))) {
         Let('host, THostM('A),
@@ -23,7 +24,7 @@ object MkHost {
             Rule('host?('image -> 'A, 'k -> ?(TInteger)), 'vms?('map -> TM)) {
               Let(TInternal('A))('id, TInteger, freshInt()) {
                 Let('inst, TSrv('A), Spawn('image)) {
-                  'this~>'vms!!('map.insert(TInteger, TP, Var('id) -> 'inst)) && 'k!!'id
+                  'this~>'vms!!('map.insert(TInteger, TP, Var('id) -> pair(TP, 'image, 'inst))) && 'k!!'id
                 }
               }
             },
@@ -34,7 +35,7 @@ object MkHost {
                                           'fail!!'id
                                         })
             },
-            Rule('migrate?('id -> TInteger, 'host -> THost('A), 'fail -> ?(TInteger), 'k -> ?(TInteger)), 'vms?('map -> TM)) {
+            Rule('migrate?('id -> TInteger, 'host -> TSrv(THost('A)), 'fail -> ?(TInteger), 'k -> ?(TInteger)), 'vms?('map -> TM)) {
               Ifc(TInternal('A))('map.hasKey(TInteger, TP, 'id)) {
                 Let('p, TP, 'map.get(TInteger, TP, 'id)) {
                   snd(TP, 'p)~>'stop!!() && 'this~>'vms!!('map.remove(TInteger, TP, 'id)) && 'host~>'host!!(fst(TP, 'p), 'k)

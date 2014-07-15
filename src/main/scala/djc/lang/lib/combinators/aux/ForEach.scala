@@ -4,16 +4,19 @@ package djc.lang.lib.combinators.aux
 import djc.lang.TypedSyntax._
 import djc.lang.TypedSyntaxDerived._
 import djc.lang.base.Lists._
+import djc.lang.lib.combinators.Combinator
 import djc.lang.typ.Types._
 import djc.lang.lib.Function
 
-object ForEach {
-  def apply(t: Type) = TApp(service, t)
+object ForEach extends Combinator {
+  def apply(t: Type) = TApp(impl, t)
 
   val TForEachInt = TUniv('A, TSrv(TSrvRep('foreach -> ?(TList('A)))))
   val TForEach = TUniv('A, ?(TList('A), TFun(TVar('A) -> Unit)))
 
-  val service = TAbs('A) {
+
+  val tpe = TForEach
+  val impl = TAbs('A) {
     LocalServer {
       Rule('foreach?('xs -> TList('A), 'body -> TFun(TVar('A) -> Unit))) {
         LocalServer {

@@ -11,7 +11,7 @@ import djc.lang.typ.Types._
 import djc.lang.sem.concurrent_6_thread.ServerThread
 
 
-abstract class AbstractTest[V](semFactory: ISemanticsFactory[V]) extends FunSuite {
+abstract class AbstractTest[V](semFactory: ISemanticsFactory[V]) extends FunSuite with TypeTests {
   private[this] val _PRINT_SERVER = ServerImpl(Rule(Bag(Pattern('PRINT)), Par()))
   val PRINT_SERVER = TAbs('V, UnsafeCast(_PRINT_SERVER, TSrvRep('PRINT -> ?(TVar('V)))))
   val PRINT_SERVER_NO = PRINT_SERVER.eraseType
@@ -54,17 +54,6 @@ abstract class AbstractTest[V](semFactory: ISemanticsFactory[V]) extends FunSuit
       else {
         for (result <- normFiltered)
           assert(normExpected.contains(result), s"Was $normFiltered, expected one of $normExpected")
-      }
-    }
-  }
-
-  def testType(s: String, p: Exp, expected: Type, gamma: Context=Map(), tgamma: TVarContext=Map()) = {
-    test(s ++ "-type") {
-      try {
-        val tpe = typeCheck(gamma, tgamma, p)
-        assert(subtype(tgamma)(tpe,expected), s"subtype is wrong: $tpe </< $expected")
-      } catch {
-        case TypeCheckException(msg) => assert(false, msg)
       }
     }
   }

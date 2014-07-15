@@ -6,15 +6,15 @@ import djc.lang.base.Integer._
 import djc.lang.lib.combinators._
 import djc.lang.typ.Types._
 
-object MkLoadAware {
-  def apply(t1: Type, t2: Type) = TApp(combinator, t1, t2)
+object MkLoadAware extends Combinator {
+  def apply(t1: Type, t2: Type) = TApp(impl, t1, t2)
 
   val TInternal = TUniv('A, TUniv('W, TWorker('A),
-    TSrvRep('init -> ?(), 'work -> TFun(TThunk('A) -> 'A), 'instance -> ?(TSrv('W)),
-            'getLoad -> ?(?(TInteger)), 'done -> ?(), 'load -> ?(TInteger))))
+    TSrv(TSrvRep('init -> ?(), 'work -> TFun(TThunk('A) -> 'A), 'instance -> ?(TSrv('W)),
+            'getLoad -> ?(?(TInteger)), 'done -> ?(), 'load -> ?(TInteger)))))
 
-
-  val combinator = TAbs('A, 'W << TWorker('A)) {
+  val tpe = TUniv('A, TUniv('W, TWorker('A), TSrvRep('make -> ?('W, ?(TLaWorker('A))))))
+  val impl = TAbs('A, 'W << TWorker('A)) {
     ServerImpl {
       Rule('make?('worker -> 'W, 'k -> ?(TLaWorker('A)))) {
         Let('laWorker, TLaWorker('A),

@@ -3,15 +3,17 @@ package djc.lang.lib.combinators.aux
 import djc.lang.TypedSyntax._
 import djc.lang.TypedSyntaxDerived._
 import djc.lang.base.Lists._
+import djc.lang.lib.combinators.Combinator
 import djc.lang.typ.Types._
 
-object MapK {
-  def apply(t: Type, t2: Type) = TApp(mapk, t, t2)
+object MapK extends Combinator {
+  def apply(t: Type, t2: Type) = TApp(impl, t, t2)
 
   val TMapK = TUniv('A, TUniv('B, TFun(TList('A), TFun(TVar('A) -> TVar('B)), TList('B))))
   val TMapKInt = TUniv('A, TUniv('B, TSrv(TSrvRep('mapkint -> TFun(TList('A), TList('B))))))
 
-  val mapk =
+  val tpe = TMapK
+  val impl =
   TAbs('A, 'B) {
     LocalServer {
       Rule('mapk?('xs -> TList('A), 'fun -> TFun(TVar('A) -> TVar('B)), 'k -> ?(TList('B)))) {
@@ -29,7 +31,7 @@ object MapK {
           }
         }~>'mapkint!!('xs, 'k)
       }
-    }~>'map
+    }~>'mapk
   }
 
 }

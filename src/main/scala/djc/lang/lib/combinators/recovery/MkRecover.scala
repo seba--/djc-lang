@@ -11,22 +11,23 @@ import djc.lang.lib.combinators._
 import djc.lang.lib.combinators.aux._
 import djc.lang.typ.Types._
 
-object MkRecover {
-  def apply(t1: Type, t2: Type) = TApp(combinator, t1, t2)
+object MkRecover extends Combinator {
+  def apply(t1: Type, t2: Type) = TApp(impl, t1, t2)
 
   val TP = TTuple(TInteger, TInteger, TThunk('A), ?('A))
   val TInternal = TUniv('A, TUniv('W, TWorker('A),
-    TSrvRep('init -> ?(), 'work -> TFun(TThunk('A) -> 'A), 'inst -> ?(TSrv('W)),  'pending -> ?(TList(TP)), 'done -> ?(TInteger))))
+    TSrv(TSrvRep('init -> ?(), 'work -> TFun(TThunk('A) -> 'A), 'inst -> ?(TSrv('W)),  'pending -> ?(TList(TP)), 'done -> ?(TInteger)))))
 
 
-  val combinator = TAbs('A, 'W << TStWorker('A)) {
+  val tpe = TUniv('A, TUniv('W, TStWorker('A), TSrvRep('make -> ?('W, TInteger, ?(TWorker('A))))))
+  val impl = TAbs('A, 'W << TStWorker('A)) {
     ServerImpl {
       Rule('make?('worker -> 'W, 'timeout -> TInteger, 'k -> ?(TWorker('A)))) {
         Let('selfrecovering, TWorker('A),
           ServerImpl (
             Rule('init?()) {
               Let(TInternal('A, 'W))('w, TSrv('W), SpawnLocal('worker)) {
-                'w~>'init!!() && 'this~>'instance!!'w && 'this~>'pending!!nil(TP)
+                'w~>'init!!() && 'this~>'inst!!'w && 'this~>'pending!!nil(TP)
               }
             },
             Rule('work?('thunk -> TThunk('A), 'k -> ?('A)),

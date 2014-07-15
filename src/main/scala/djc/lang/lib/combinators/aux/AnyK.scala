@@ -4,15 +4,17 @@ import djc.lang.TypedSyntax._
 import djc.lang.TypedSyntaxDerived._
 import djc.lang.base.Bool._
 import djc.lang.base.Lists._
+import djc.lang.lib.combinators.Combinator
 import djc.lang.typ.Types._
 
-object AnyK {
-  def apply(t: Type) = TApp(anyk, t)
+object AnyK extends Combinator {
+  def apply(t: Type) = TApp(impl, t)
 
   val TAnyK = TUniv('A, TFun(TList('A), TFun(TVar('A) -> TBool), TBool))
-  val TAnyKInt = TUniv('A, TSrv(TSrvRep('fk -> TFun(TList('A), TBool))))
+  val TAnyKInt = TUniv('A, TSrv(TSrvRep('ak -> TFun(TList('A), TBool))))
 
-  val anyk =
+  val tpe = TAnyK
+  val impl =
     TAbs('A) {
       LocalServer {
         Rule('anyk?('xs -> TList('A), 'fun -> TFun(TVar('A) -> TBool), 'k -> ?(TBool))) {
