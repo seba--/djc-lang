@@ -9,6 +9,7 @@ object Types {
   }
 
   case object Top extends Type
+  case object Bot extends Type
   case object Unit extends Type
 
   case class TSvc(params: List[Type]) extends Type {

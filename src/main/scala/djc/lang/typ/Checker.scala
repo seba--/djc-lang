@@ -14,6 +14,9 @@ object Checker {
     case (_, Top) =>
       true
 
+    case (Bot, _) =>
+      true
+
     case (Unit, Unit) =>
       true
 
@@ -71,23 +74,24 @@ object Checker {
       if ps.map(typeCheck(gamma, tgamma, _)) forall (_ === Unit) =>
       Unit
 
-    case Send(rcv, args) => {
-      val trcv: TSvc = promote(tgamma)(typeCheck(gamma, tgamma, rcv)) match {
-        case t: TSvc => t
-        case t => throw TypeCheckException(s"Illegal receiver type. Expected: TSvc(_), was $t\n  in ${Send(rcv, args)}")
-      }
+    case Send(rcv, args) =>
       val targs = args.map(typeCheck(gamma, tgamma, _))
 
-      if (!targs.corresponds(trcv.params)(subtype(tgamma)(_,_))) // actual send arguments have subtypes of declared parameters
-        throw TypeCheckException(s"Send arguments have wrong types for receiver \n  $rcv.\nArguments: $args\nExpected: ${trcv.params}\nWas: $targs\nwith gamma: $gamma\ntgamma: $tgamma")
-      Unit
-    }
+      promote(tgamma)(typeCheck(gamma, tgamma, rcv)) match {
+        case trcv: TSvc =>
+          if (!targs.corresponds(trcv.params)(subtype(tgamma)(_,_))) // actual send arguments have subtypes of declared parameters
+            throw TypeCheckException(s"Send arguments have wrong types for receiver \n  $rcv.\nArguments: $args\nExpected: ${trcv.params}\nWas: $targs\nwith gamma: $gamma\ntgamma: $tgamma")
+          Unit
+        case Bot => Bot
+        case t => throw TypeCheckException(s"Illegal receiver type. Expected: TSvc(_), was $t\n  in ${Send(rcv, args)}")
+      }
 
     case Var(x) =>
       gamma.getOrElse(x, throw TypeCheckException(s"Unbound variable $x\ngamma: $gamma\ntgamma: $tgamma"))
 
     case ref@ServiceRef(srv, x) =>
       promote(tgamma)(typeCheck(gamma, tgamma, srv)) match {
+        case Bot => Bot
         case TSrv(t) => promote(tgamma)(t) match {
           case TSrvRep(svcs) =>
             if (!svcs.contains(x))
@@ -111,6 +115,7 @@ object Checker {
     case sp@Spawn(_, e) =>
       val argt = typeCheck(gamma, tgamma, e)
       promote(tgamma)(argt) match {
+        case Bot => Bot
         case t: TSrvRep  => TSrv(argt)
         case t => throw TypeCheckException(s"Illegal spawn expression. Expected: TSrvRep(_), was $argt (which promotes to $t)\n  in $sp)}")
       }
@@ -119,6 +124,7 @@ object Checker {
       if (!(FreeTypeVars(t) subsetOf tgamma.keySet))
         throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\ntgamma: $tgamma\n  free type vars ${FreeTypeVars(t) -- tgamma.keySet}")
       promote(tgamma)(typeCheck(gamma, tgamma, p2)) match {
+        case Bot => Bot
         case TUniv(alpha, bound, t2) if subtype(tgamma)(t, bound) =>
           SubstType(alpha -> t)(t2)
 
