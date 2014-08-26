@@ -126,7 +126,7 @@ object Checker {
     }
 
     case Par(ps)
-      if ps.map(typeCheck(gamma, tgamma, _)) forall (_ === Unit) =>
+      if ps.map(typeCheck(gamma, tgamma, _)) forall (subtype(tgamma)(_, Unit)) => //TODO do we handle Bot correctly here?
       Unit
 
     case Send(rcv, args) =>
@@ -195,18 +195,16 @@ object Checker {
 
       TUniv(alphares, bound1, t)
 
-    case UnsafeCast(e, t) => {
+    case UnsafeCast(e, t) =>
       typeCheck(gamma, tgamma, e)
       t
-    }
 
-    case UpCast(e, t) => {
+    case UpCast(e, t) =>
       val te = typeCheck(gamma, tgamma, e)
       if (subtype(tgamma)(te,t))
         t
       else
         throw TypeCheckException(s"Cannot upcast\n  expression $e\n  of type $te\n  to type $t")
-    }
 
     case _ =>
       throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\ntgamma: $tgamma")
@@ -218,8 +216,8 @@ object Checker {
 //    println(s"rule-pats: ${r.ps}")
 //    println(s"rule-gamma: ${ruleGamma.keys}")
     val t = typeCheck(ruleGamma, tgamma, r.p)
-    if (!(t === Unit))
+    if (!subtype(tgamma)(t, Unit))
       throw TypeCheckException(s"Illegal rule type in rule $r, expected: Unit, was: $t")
-    t
+    promote(tgamma)(t)
   }
 }
