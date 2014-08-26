@@ -10,6 +10,7 @@ object Checker {
 
   case class TypeCheckException(msg: String) extends RuntimeException(msg)
 
+  //TODO make the contexts implicit parameters?
   def subtype(tgamma: TVarContext)(tpe1: Type, tpe2: Type): Boolean = (tpe1, tpe2) match {
     case (_, Top) =>
       true
@@ -20,8 +21,8 @@ object Checker {
     case (Unit, Unit) =>
       true
 
-    case (TVar(alpha), TVar(beta)) => //TODO should be bound in tgamma or not?
-      alpha == beta
+    case (TVar(alpha), TVar(beta)) if alpha == beta => //TODO should be bound in tgamma or not?
+      true
 
     case (TVar(alpha), t) =>
       tgamma.contains(alpha) && subtype(tgamma)(tgamma(alpha), t)
@@ -51,6 +52,60 @@ object Checker {
       promote(tgamma)(tgamma(alpha))
 
     case _ => tpe
+  }
+
+  def meet(tgamma: TVarContext)(s: Type, t: Type): Type = (s,t) match {
+    case (s,t) if subtype(tgamma)(s, t) => s
+
+    case (s,t) if subtype(tgamma)(t, s) => t
+
+    case (TUniv(alpha, u1, t1), TUniv(beta, u2, t2)) if u1 === u2 =>
+      TUniv(alpha, u1, meet(tgamma + (alpha -> u1))(t1, SubstType(beta -> TVar(alpha))(t2)))
+
+    case (TSvc(args), TSvc(args1)) if args.length == args1.length =>
+      TSvc((args zip args1) map {case (x,y) => join(tgamma)(x,y)})
+
+    case (TSrvRep(svcs), TSrvRep(svcs1)) =>
+      val m1 = svcs.filterKeys(svcs1.contains(_))
+      val m2 = svcs1.filterKeys(svcs.contains(_))
+      val merge = for((k,t1) <- m1) yield k -> meet(tgamma)(t1, m2(k))
+      val diff1 = svcs.filterKeys(!svcs1.contains(_))
+      val diff2 = svcs1.filterKeys(!svcs.contains(_))
+      TSrvRep(merge ++ diff1 ++ diff2)
+
+    case (TSrv(t1), TSrv(t2)) =>
+      TSrv(meet(tgamma)(t1,t2))
+
+    case _ => Bot
+  }
+
+  def join(tgamma: TVarContext)(s: Type, t: Type): Type = (s,t) match {
+    case (s,t) if subtype(tgamma)(s, t) => t
+
+    case (s,t) if subtype(tgamma)(t, s) => s
+
+    case (TVar(alpha), t) =>
+      join(tgamma)(tgamma(alpha), t)
+
+    case (s, TVar(alpha)) =>
+      join(tgamma)(s, tgamma(alpha))
+
+    case (TUniv(alpha, u1, t1), TUniv(beta, u2, t2)) if u1 === u2 =>
+      TUniv(alpha, u1, join(tgamma + (alpha -> u1))(t1, SubstType(beta -> TVar(alpha))(t2)))
+
+    case (TSvc(args), TSvc(args1)) if args.length == args1.length =>
+      TSvc((args zip args1) map {case (x,y) => meet(tgamma)(x,y)})
+
+    case (TSrvRep(svcs), TSrvRep(svcs1)) =>
+      val m1 = svcs.filterKeys(svcs1.contains(_))
+      val m2 = svcs1.filterKeys(svcs.contains(_))
+      val merge = for((k,t1) <- m1) yield k -> join(tgamma)(t1, m2(k))
+      TSrvRep(merge)
+
+    case (TSrv(t1), TSrv(t2)) =>
+      TSrv(join(tgamma)(t1,t2))
+
+    case _ => Top
   }
 
   def typeCheck(gamma: Context, tgamma: TVarContext, p: Exp): Type = p match {

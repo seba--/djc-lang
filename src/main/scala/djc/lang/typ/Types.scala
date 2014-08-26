@@ -40,7 +40,7 @@ object Types {
       case _ => false
     }
   }
-  
+
 
   case class TVar(alpha: Symbol) extends Type
 
