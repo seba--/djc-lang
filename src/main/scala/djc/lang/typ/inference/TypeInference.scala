@@ -110,7 +110,7 @@ object TypeInference {
 
       TUniv(alphar, bound1, down(tres, pres))
 
-    case (TBase(_), TBase(_)) if protoMatch(proto, tpe) => tpe
+    case (TBase(name1, _), TBase(name2, _)) if name1 == name2 && protoMatch(proto, tpe) => tpe
   }
 
   //compute least supertype of 1st arg which matches prototype in 2nd arg structurally
@@ -154,7 +154,7 @@ object TypeInference {
 
       TUniv(alphar, bound1, up(tres, pres))
 
-    case (TBase(_), TBase(_)) if protoMatch(proto, tpe) => tpe
+    case (TBase(name1, _), TBase(name2, _)) if name1 == name2 && protoMatch(proto, tpe) => tpe
   }
 
   //Constraint generation and solving, adapted from Pierce and Turner
