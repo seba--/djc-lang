@@ -1,5 +1,6 @@
 package djc.lang.typ
 
+import djc.lang.Gensym
 import djc.lang.Gensym._
 import djc.lang.TypedSyntax._
 import djc.lang.typ.Types._
@@ -27,8 +28,15 @@ object Checker {
     case (TVar(alpha), t) =>
       tgamma.contains(alpha) && subtype(tgamma)(tgamma(alpha), t)
 
-    case (TUniv(alpha, u1, t1), TUniv(beta, u2, t2)) =>
-      u1 === u2 && subtype(tgamma + (alpha -> u1))(t1, SubstType(beta -> TVar(alpha))(t2))
+    case (TUniv(alpha, u1, t1), TUniv(beta, u2, t2)) if u1 === u2 =>
+      lazy val ftv1 = FreeTypeVars(t1)
+      lazy val ftv2 = FreeTypeVars(t2)
+      val alphares =
+        if (alpha != beta && ftv2(alpha))
+          Gensym(alpha, ftv1 ++ ftv2 ++ tgamma.keySet)
+        else alpha
+
+      subtype(tgamma + (alphares -> u1))(SubstType(alpha -> TVar(alphares))(t1), SubstType(beta -> TVar(alphares))(t2))
 
     case (TSvc(args), TSvc(args1)) =>
       args1.corresponds(args)(subtype(tgamma)(_,_))
@@ -60,7 +68,14 @@ object Checker {
     case (s,t) if subtype(tgamma)(t, s) => t
 
     case (TUniv(alpha, u1, t1), TUniv(beta, u2, t2)) if u1 === u2 =>
-      TUniv(alpha, u1, meet(tgamma + (alpha -> u1))(t1, SubstType(beta -> TVar(alpha))(t2)))
+      lazy val ftv1 = FreeTypeVars(t1)
+      lazy val ftv2 = FreeTypeVars(t2)
+      val alphares =
+        if (alpha != beta && ftv2(alpha))
+          Gensym(alpha, ftv1 ++ ftv2 ++ tgamma.keySet)
+        else alpha
+
+      TUniv(alphares, u1, meet(tgamma + (alphares -> u1))(SubstType(alpha -> TVar(alphares))(t1), SubstType(beta -> TVar(alpha))(t2)))
 
     case (TSvc(args), TSvc(args1)) if args.length == args1.length =>
       TSvc((args zip args1) map {case (x,y) => join(tgamma)(x,y)})
@@ -91,7 +106,14 @@ object Checker {
       join(tgamma)(s, tgamma(alpha))
 
     case (TUniv(alpha, u1, t1), TUniv(beta, u2, t2)) if u1 === u2 =>
-      TUniv(alpha, u1, join(tgamma + (alpha -> u1))(t1, SubstType(beta -> TVar(alpha))(t2)))
+      lazy val ftv1 = FreeTypeVars(t1)
+      lazy val ftv2 = FreeTypeVars(t2)
+      val alphares =
+        if (alpha != beta && ftv2(alpha))
+          Gensym(alpha, ftv1 ++ ftv2 ++ tgamma.keySet)
+        else alpha
+
+      TUniv(alphares, u1, join(tgamma + (alphares -> u1))(SubstType(alpha -> TVar(alphares))(t1), SubstType(beta -> TVar(alpha))(t2)))
 
     case (TSvc(args), TSvc(args1)) if args.length == args1.length =>
       TSvc((args zip args1) map {case (x,y) => meet(tgamma)(x,y)})
@@ -125,8 +147,12 @@ object Checker {
         throw TypeCheckException(s"Arguments of base call mismatch. Was: $argTs, Expected: ${bSig}\n  in ${BaseCall(b, ts, es)}")
     }
 
-    case Par(ps)
-      if ps.map(typeCheck(gamma, tgamma, _)) forall (subtype(tgamma)(_, Unit)) => //TODO do we handle Bot correctly here?
+    case Par(ps) =>
+      val psTypes = ps.map(typeCheck(gamma, tgamma, _))
+      val joined = psTypes.foldLeft(Unit.asInstanceOf[Type])( (t,u) => join(tgamma)(t,u))
+      if (!subtype(tgamma)(joined, Unit))
+        throw TypeCheckException(s"Illegal parallel composition of types $psTypes\n which joins to $joined\n in $p")
+       //TODO do we handle Bot correctly here?
       Unit
 
     case Send(rcv, args) =>

@@ -1,6 +1,8 @@
 package djc.lang
 
 object Gensym {
+  def apply(x: Symbol, used: Set[Symbol]): Symbol = gensym(x, used)
+  def apply(l: List[Symbol], used: Set[Symbol]): List[Symbol] = gensyms(l, used)
   def gensyms(l: List[Symbol], used: Set[Symbol]): List[Symbol] = l match {
     case Nil => Nil
     case s :: ss =>

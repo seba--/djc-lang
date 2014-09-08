@@ -1,5 +1,7 @@
 package djc.lang.typ
 
+import djc.lang.Gensym
+
 object Types {
   abstract class Type {
     /**
@@ -57,7 +59,15 @@ object Types {
 
   case class TUniv(alpha: Symbol, bound: Type, tpe: Type) extends Type {
     override def ===(that: Type) = that match {
-      case TUniv(beta, bound1, tpe1) => bound === bound1 && tpe === SubstType(beta -> TVar(alpha))(tpe1)
+      case TUniv(beta, bound1, tpe1) if bound === bound1 =>
+        lazy val ftv = FreeTypeVars(tpe)
+        lazy val ftv1 = FreeTypeVars(tpe1)
+        val alphares = if (alpha != beta && ftv1(alpha))
+          Gensym(alpha, ftv ++ ftv1)
+        else alpha
+
+        SubstType(alpha -> TVar(alphares))(tpe) === SubstType(beta -> TVar(alphares))(tpe1)
+
       case _ => false
     }
   }

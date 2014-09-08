@@ -61,7 +61,8 @@ class SubstType(val substs: Map[Symbol, Type]) extends SubstTypeTemplate {
 }
 
 object SubstType extends SubstTypeFactory[SubstType] {
-  def apply(substs: Map[Symbol, Type]): SubstType = new SubstType(substs)
+  def apply(substs: Map[Symbol, Type]): SubstType = new SubstType(substs.filter { case (k, TVar(v)) if k == v => false
+  case _ => true})
 }
 
 abstract class SubstTemplate(x: Symbol, repl: Exp) extends Mapper {
