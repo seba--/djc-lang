@@ -49,6 +49,7 @@ object Checker {
 
     case (TBase(name, targs), TBase(name1, targs1)) =>
       name == name1 && targs.corresponds(targs1)(_ === _) //TODO support variance?
+      //TODO what about equivalence classes of Bot?
 
     case _ => false
   }
