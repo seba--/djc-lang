@@ -11,6 +11,12 @@ import djc.lang.typ.Types._
 object Matching {
   import ProtoTypes._
 
+  implicit class TypeMatchingOps(val t: Type) extends AnyVal {
+    def matchDown(proto: Type): Type = Matching.down(t, proto)
+    def matchUp(proto: Type): Type = Matching.up(t, proto)
+    def protoMatch(tpe: Type): Boolean = Matching.protoMatch(tpe, t)
+  }
+
   //can first arg be completed to second arg?
   def protoMatch(proto: Type, tpe: Type): Boolean = (proto, tpe) match {
     case (p,t) if !IsPrototype(p) => p === t

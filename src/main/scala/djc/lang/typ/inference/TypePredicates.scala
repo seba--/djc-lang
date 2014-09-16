@@ -8,6 +8,15 @@ import djc.lang.typ.Types._
  * Variance and rigidity checks for types
  */
 object TypePredicates {
+  implicit class TypePreds(val t: Type) extends AnyVal {
+    def isConstantIn(tvar: Symbol): Boolean = TypePredicates.isConstantIn(t, tvar)
+    def isCovariantIn(tvar: Symbol): Boolean = TypePredicates.isCovariantIn(t, tvar)
+    def isContravariantIn(tvar: Symbol): Boolean = TypePredicates.isContravariantIn(t, tvar)
+    def isInvariantIn(tvar: Symbol): Boolean = TypePredicates.isInvariantIn(t, tvar)
+    def isRigidIn(tvar: Symbol): Boolean = TypePredicates.isRigidIn(t, tvar)
+    def isRigidUnder(tgamma: TVarContext): Boolean = TypePredicates.isRigid(tgamma, t)
+  }
+
   def isConstantIn(r: Type, tvar: Symbol): Boolean = !FreeTypeVars(r)(tvar)
 
   def isCovariantIn(r: Type, tvar: Symbol): Boolean = r match {
