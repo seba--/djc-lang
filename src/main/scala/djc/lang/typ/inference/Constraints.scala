@@ -55,6 +55,7 @@ object Constraints {
       case (c@Equal(t1), Between(t2, t3)) if subtype(tgamma)(t2, t1) && subtype(tgamma)(t1, t3) => c
       case (Between(t2, t3), c@Equal(t1)) if subtype(tgamma)(t2, t1) && subtype(tgamma)(t1, t3) => c
       case (Between(t1, t2), Between(t3,t4)) => Between(join(tgamma)(t1,t3), Checker.meet(tgamma)(t2,t4))
+      case _ => throw ConstraintsException(s"meet undefined for $c1 and $c2\nunder $tgamma")
     }
   }
 
@@ -112,10 +113,10 @@ object Constraints {
     private def subtypeConstraints(tgamma: TVarContext)(tvars: Set[Symbol])(s: Type, t: Type): CSet = (s, t) match {
       case (t1, Top) => CSet()
       case (Bot, t1) => CSet()
-      case (TVar(tv), t1) if tvars(tv) => CSet(tv -> Between(Bot, t1))
       case (TVar(a), TVar(b)) if a == b => CSet()
-      case (TVar(a), t1) => subtypeConstraints(tgamma)(tvars)(tgamma(a), t1)
+      case (TVar(tv), t1) if tvars(tv) => CSet(tv -> Between(Bot, t1))
       case (t1, TVar(tv)) if tvars(tv) => CSet(tv -> Between(t1, Top))
+      case (TVar(a), t1) => subtypeConstraints(tgamma)(tvars)(tgamma(a), t1)
 
       case (TUniv(alpha1, bound1, t1), TUniv(alpha2, bound2, t2)) =>
         lazy val ftv1 = FreeTypeVars(t1)
@@ -154,8 +155,8 @@ object Constraints {
       case (Top, Top) => (Top, CSet())
       case (Bot, Bot) => (Bot, CSet())
       case (Unit, Unit) => (Unit, CSet())
-      case (TVar(tv), t1) if tvars(tv) => (t1, CSet(tv -> Equal(t1)))
       case (TVar(a), TVar(b)) if a == b => (s, CSet())
+      case (TVar(tv), t1) if tvars(tv) => (t1, CSet(tv -> Equal(t1)))
       case (t1, TVar(tv)) if tvars(tv) => (t1, CSet(tv -> Equal(t1)))
 
       case (TUniv(alpha1, bound1, t1), TUniv(alpha2, bound2, t2)) =>

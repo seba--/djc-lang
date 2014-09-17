@@ -138,7 +138,7 @@ object Checker {
       val argTs = es map (typeCheck(gamma, tgamma, _))
       val (tArgs, bounds) = b.targs.unzip
       if (!ts.corresponds(bounds)(subtype(tgamma)(_,_)))
-         throw TypeCheckException(s"Type arguments do not match type parameters. Applied $ts to $b.targs\n in $p")
+         throw TypeCheckException(s"Type arguments do not match type parameters. Applied $ts to ${b.targs}\n in $p")
 
       val sigma: Type => Type = SubstType(tArgs zip ts)(_)
       val bSig = b.ts map sigma

@@ -46,7 +46,7 @@ class TypeCheckTest extends FunSuite {
 
 
   test("cellServer typeCheck") {
-    assert(cellTypePrivate(TVar('V)).rep === typeCheck(Map(), Map(), cellServer))
+    assert(TUniv('V, cellTypePrivate(TVar('V)).rep) === typeCheck(Map(), Map(), TAbs('V, cellServer)))
   }
 
   test("cellFactoryServer typeCheck factory") {

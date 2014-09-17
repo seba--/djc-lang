@@ -21,7 +21,7 @@ object TypeInference {
     case Par(ps) => proto match {
       case Hole | Unit | Top =>
         val (psts, pses) = ps.map(infer(Unit, gamma, tgamma, _)).unzip
-        val joined = psts.foldLeft(Unit.asInstanceOf[Type]) { (t,u) => join(tgamma)(t,u)}
+        val joined = psts.foldLeft(Unit.asInstanceOf[Type]) { (t, u) => join(tgamma)(t, u)}
         val tres = if (proto == Hole) Unit else proto
 
         (joined matchUp tres, Par(pses))
@@ -32,7 +32,7 @@ object TypeInference {
         val (t@TSvc(ts), rcve) = infer(Hole, gamma, tgamma, rcv)
         if (ts.length != args.length)
           throw InferenceException(s"receiver/arg counts do not match: inferred $t for rcv\n with arguments $args")
-        val (_, arges) = (ts zip args).map { case (t, e) => infer(t, gamma, tgamma, e)    }.unzip
+        val (_, arges) = (ts zip args).map { case (t, e) => infer(t, gamma, tgamma, e)}.unzip
         val tres = if (proto == Hole) Unit else proto
 
         (tres, Send(rcve, arges))
@@ -67,15 +67,18 @@ object TypeInference {
         if (!(psvcs.keySet subsetOf srv.services.keySet))
           throw InferenceException(s"Untyped server $srv is incompatible with prototype $proto")
 
-        //TODO need to expand prototype with services which are added by srv
+        //assume services not mentioned in proto to be of the most general service type
+        val added = for((svc, arity) <- srv.services if !psvcs.contains(svc))
+          yield svc -> TSvc(List.fill(arity)(Bot))
+        val proto2 = TSrvRep(psvcs ++ added)
 
-        val (_, irules) = rules.map(inferRule(gamma, tgamma, _, tsrv)).unzip
+        val (_, irules) = rules.map(inferRule(gamma, tgamma, _, proto2)).unzip
         (proto, ServerImpl(irules))
     }
 
     case Spawn(local, e) =>
       proto match {
-        case Hole | Top  =>
+        case Hole | Top =>
           val (tsrv@TSrvRep(_), ie) = infer(proto, gamma, tgamma, e)
           (TSrv(tsrv) matchUp proto, Spawn(local, ie))
 
@@ -107,7 +110,8 @@ object TypeInference {
 
     case TAbs(alpha, bound, e) => proto match {
       case Hole | Top =>
-        infer(proto, gamma, tgamma + (alpha -> bound), e)
+        val (t, ie) = infer(proto, gamma, tgamma + (alpha -> bound), e)
+        (TUniv(alpha, bound, t), TAbs(alpha, bound, ie))
 
       case TUniv(alpha2, bound2, p) if !IsPrototype(bound2) && bound === bound2 =>
         lazy val fptv = FreeProtoTypeVars(p)
@@ -127,10 +131,10 @@ object TypeInference {
 
     case BaseCall(b, Nil, es) =>
       //infer type arguments
-      val (tvarslist, bounds) = b.targs.unzip
+      val (tvarslist, bounds) = b.targs.unzip  //TODO baseops are also type binders, hence we need to ensure the bound vars are not in scope already
       val tvars = tvarslist.toSet
       val substTargs = SubstPrototype(tvarslist zip List.fill(tvarslist.length)(Hole))
-      val (argTypes, inferredArgs) = ((b.ts zip es) map { case (t, e) => infer(substTargs(t), gamma, tgamma, e) }).unzip
+      val (argTypes, inferredArgs) = ((b.ts zip es) map { case (t, e) => infer(substTargs(t), gamma, tgamma, e)}).unzip
 
       val cargs = GenConstraints(tgamma, tvars, argTypes zip b.ts)
       val cresult = GenConstraints(tgamma, tvars, b.res, Top matchDown proto)
@@ -146,15 +150,14 @@ object TypeInference {
         throw InferenceException(s"Insufficient type arguments ($ts) provided for baseop $b.")
 
       val (tArgs, bounds) = b.targs.unzip
-      if (!ts.corresponds(bounds)(subtype(tgamma)(_,_)))
-        throw InferenceException(s"Type arguments do not match bounds of type parameters. Applied $ts to $b.targs\n in $exp")
+      if (!ts.corresponds(bounds)(subtype(tgamma)(_, _)))
+        throw InferenceException(s"Type arguments do not match bounds of type parameters. Applied $ts to ${b.targs}\n in $exp")
 
       val sigma: Type => Type = SubstType(tArgs zip ts)(_)
       val bSig = b.ts map sigma
 
       //no need to bind the synthesized types, since in this case, they exactly match b.ts
-      val (_, infEs) = ((b.ts zip es) map { case (p, e) => infer(p, gamma, tgamma, e)}).unzip
-
+      val (bla, infEs) = ((b.ts zip es) map { case (p, e) => infer(p, gamma, tgamma, e)}).unzip
       (sigma(b.res) matchUp proto, BaseCall(b, ts, infEs))
 
     case _ => throw InferenceException(s"Cannot infer type for $exp. Unknown syntactic form.")
