@@ -9,7 +9,7 @@ import djc.lang.base.Lists._
 import djc.lang.sem.SemanticException
 import djc.lang.typ.Types._
 
-object Pairs {
+object PairsOps {
 
   val TPair = TUniv('A, TUniv('B, TBase('Pair, 'A, 'B)))
 
@@ -41,27 +41,6 @@ object Pairs {
     }
   }
 
-  def pair(p1: (Exp, Type), p2: (Exp, Type), ps: (Exp, Type)*): BaseCall = {
-      val pall = p1 +: p2 +: ps
-      pall.dropRight(1).foldRight(pall.last) {
-        case ((e,t), (ep, tp)) => (BaseCall(Pair, List(t, tp), e, ep), TPair(t, tp))
-      }._1.asInstanceOf[BaseCall]
-  }
-
-  def pair(t: Type, es: Exp*): BaseCall = (t,es) match {
-    case (TTuple(t1,t2,ts@_*), Seq(e1,e2,es@_*))
-      if (es.length == ts.length) =>
-        pair(e1 -> t1, e2 -> t2, (es zip ts):_*)
-
-    case _ => throw SemanticException(s"need a tuple type and matching arguments, got $t\n$es")
-  }
-
-  def pair(b1: BaseCall, b2: BaseCall, bs: BaseCall*): BaseCall = {
-    val ball = b1 +: b2 +: bs
-    ball.dropRight(1).foldRight(ball.last) {
-      case (bc, pairbc) => BaseCall(Pair, List(bc.resultType, pairbc.resultType), bc, pairbc)
-    }
-  }
 
   case object Fst extends BaseOp('A << Top, 'B << Top)(List(TPair('A,'B)), 'A) {
     def reduce(vs: List[Value]) = vs match {
@@ -74,6 +53,35 @@ object Pairs {
     def reduce(vs: List[Value]) = vs match {
       case PairVal(_,snd) :: Nil => snd
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $vs")
+    }
+  }
+}
+
+object Pairs {
+  import PairsOps._
+
+  val TPair = PairsOps.TPair
+  val TTuple = PairsOps.TTuple
+
+  def pair(p1: (Exp, Type), p2: (Exp, Type), ps: (Exp, Type)*): BaseCall = {
+    val pall = p1 +: p2 +: ps
+    pall.dropRight(1).foldRight(pall.last) {
+      case ((e,t), (ep, tp)) => (BaseCall(Pair, List(t, tp), e, ep), TPair(t, tp))
+    }._1.asInstanceOf[BaseCall]
+  }
+
+  def pair(t: Type, es: Exp*): BaseCall = (t,es) match {
+    case (TTuple(t1,t2,ts@_*), Seq(e1,e2,es@_*))
+      if (es.length == ts.length) =>
+      pair(e1 -> t1, e2 -> t2, (es zip ts):_*)
+
+    case _ => throw SemanticException(s"need a tuple type and matching arguments, got $t\n$es")
+  }
+
+  def pair(b1: BaseCall, b2: BaseCall, bs: BaseCall*): BaseCall = {
+    val ball = b1 +: b2 +: bs
+    ball.dropRight(1).foldRight(ball.last) {
+      case (bc, pairbc) => BaseCall(Pair, List(bc.resultType, pairbc.resultType), bc, pairbc)
     }
   }
 
