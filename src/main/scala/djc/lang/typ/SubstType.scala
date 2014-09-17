@@ -123,10 +123,10 @@ abstract class SubstTemplate(x: Symbol, repl: Exp) extends Mapper {
 
 case class SubstProg(x: Symbol, repl: Exp) extends SubstTemplate(x,repl)
 
-trait FreeVarsTemplate extends Fold {
+trait FreeVarsTemplate extends StrictFold[Set[Symbol]] {
   def apply(prog: Exp): Set[Symbol] = fold(Set[Symbol]())(prog)
 
-  def fold(init: Set[Symbol]): FoldE[Set[Symbol]] = {
+  override def fold(init: Set[Symbol]): FoldE = {
     case Var(x) =>
       init + x
     case ServerImpl(rs) =>
@@ -134,29 +134,31 @@ trait FreeVarsTemplate extends Fold {
     case prog => super.fold(init)(prog)
   }
 
-  def foldType(init: Set[Symbol])(tpe: Type) = init
+  override def foldType(init: Set[Symbol]) = {
+    case _ => init
+  }
 
-  def foldPattern(init: Set[Symbol])(pattern: Pattern) = init
+  override def foldPattern(init: Set[Symbol])(pattern: Pattern) = init
 
-  def foldRule(init: Set[Symbol])(rule: Rule): Set[Symbol] = {
+  override def foldRule(init: Set[Symbol])(rule: Rule): Set[Symbol] = {
     super.foldRule(init)(rule) -- rule.rcvars.keySet
   }
 }
 
 object FreeVars extends FreeVarsTemplate
 
-trait FreeTypeVarsTemplate extends Fold {
+trait FreeTypeVarsTemplate extends StrictFold[Set[Symbol]] {
   def apply(prog: Exp): Set[Symbol] = fold(Set[Symbol]())(prog)
 
   def apply(tpe: Type): Set[Symbol] = foldType(Set[Symbol]())(tpe)
 
-  def fold(init: Set[Symbol]): FoldE[Set[Symbol]] = {
+  override def fold(init: Set[Symbol]): FoldE = {
     case TAbs(alpha, bound1, p1) =>
       foldType(fold(init)(p1) - alpha)(bound1)
     case prog => super.fold(init)(prog)
   }
 
-  def foldType(init: Set[Symbol]): FoldT[Set[Symbol]] = {
+  override def foldType(init: Set[Symbol]): FoldT = {
     case TVar(alpha) =>
       init + alpha
     case TUniv(alpha, bound1, tpe1) =>

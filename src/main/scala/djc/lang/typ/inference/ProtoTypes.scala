@@ -1,6 +1,6 @@
 package djc.lang.typ.inference
 
-import djc.lang.TypedSyntax.Fold
+import djc.lang.TypedSyntax.LazyFold
 import djc.lang.typ.{FreeTypeVarsTemplate, SubstTypeFactory, SubstType}
 import djc.lang.typ.Types._
 
@@ -26,18 +26,19 @@ object ProtoTypes {
   }
 
   object FreeProtoTypeVars extends FreeTypeVarsTemplate {
-    override def foldType(init: Set[Symbol]): FoldT[Set[Symbol]] = {
+    override def foldType(init: Set[Symbol]): FoldT= {
       case Hole => init
       case tpe => super.foldType(init)(tpe)
     }
   }
 
-  object IsPrototype extends Fold {
+  object IsPrototype extends LazyFold[Boolean] {
     def apply(t: Type): Boolean = foldType(false)(t)
 
-    def foldType(init: Boolean): FoldT[Boolean] = {
+    override def foldType(init: => Boolean): FoldT = {
       case Hole => true
-      case t => super.foldType(init)(t)
+      case t =>
+        super.foldType(init)(t)
     }
   }
 

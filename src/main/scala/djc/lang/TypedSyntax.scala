@@ -257,6 +257,7 @@ object TypedSyntax {
     def mapType: TMapT = {
       case Top => Top
       case Unit => Unit
+      case Bot => Bot
       case TSvc(ts) => TSvc((ts map mapType))
       case TSrvRep(svcs) => TSrvRep(svcs mapValues mapType)
       case TSrv(t) => TSrv(mapType(t))
@@ -280,11 +281,11 @@ object TypedSyntax {
     }
   }
 
-  trait Fold {
-    final type FoldE[T] = PartialFunction[Exp, T]
-    final type FoldT[T] = PartialFunction[Type, T]
+  trait StrictFold[T] {
+    final type FoldE = PartialFunction[Exp, T]
+    final type FoldT = PartialFunction[Type, T]
 
-    def fold[T](init: T): FoldE[T] = {
+    def fold(init: T): FoldE = {
       case Par(ps) =>
         ps.foldLeft(init)(fold(_)(_))
       case Send(p, args) =>
@@ -309,8 +310,10 @@ object TypedSyntax {
         es.foldLeft(ts.foldLeft(init)(foldType(_)(_)))(fold(_)(_))
     }
 
-    def foldType[T](init: T): FoldT[T] = {
+    def foldType(init: T): FoldT = {
       case Top =>
+        init
+      case Bot =>
         init
       case Unit =>
         init
@@ -329,16 +332,86 @@ object TypedSyntax {
         foldType(foldType(init)(bound1))(tpe1)
     }
 
-    def foldRule[T](init: T)(rule: Rule): T = {
+    def foldRule(init: T)(rule: Rule): T = {
       val Rule(ps, prog) = rule
       fold((ps.foldLeft(init)(foldPattern(_)(_))))(prog)
     }
 
-    def foldPattern[T](init: T)(pattern: Pattern): T = {
+    def foldPattern(init: T)(pattern: Pattern): T = {
       val Pattern(_, params) = pattern
       params.foldLeft(init) {
         (i, kv) => foldType(i)(kv._2)
       }
     }
   }
+
+
+  implicit class LazyFoldList[S](val l: List[S]) extends AnyVal {
+    def lazyFoldr[T](base: => T)(f: (S, => T) => T): T = l match {
+      case Nil => base
+      case x :: xs => f(x, xs.lazyFoldr(base)(f))
+    }
+  }
+
+  trait LazyFold[T] {
+    final type FoldE = PartialFunction[Exp, T]
+    final type FoldT = PartialFunction[Type, T]
+
+
+    def fold(init: => T): FoldE = {
+      case Par(ps) =>
+        ps.lazyFoldr(init)( (e, t) => fold(t)(e))
+      case Send(p, args) =>
+        fold(args.lazyFoldr(init)( (e, t) => fold(t)(e)))(p)
+      case Var(x) =>
+        init
+      case ServiceRef(p1, x) =>
+        fold(init)(p1)
+      case ServerImpl(rs) =>
+        rs.lazyFoldr(init)( (e, t) => foldRule(t)(e))
+      case Spawn(local, e) =>
+        fold(init)(e)
+      case TApp(p1, t) =>
+        fold(foldType(init)(t))(p1)
+      case TAbs(alpha, bound1, p1) =>
+        foldType(fold(init)(p1))(bound1)
+      case UnsafeCast(e, t) =>
+        fold(foldType(init)(t))(e)
+      case UpCast(e, t) =>
+        fold(foldType(init)(t))(e)
+      case BaseCall(b, ts, es) =>
+        ts.lazyFoldr(es.lazyFoldr(init)((e, t) => fold(t)(e)))( (tpe, t) => foldType(t)(tpe) )
+    }
+
+    def foldType(init: => T): FoldT = {
+      case Top =>
+        init
+      case Bot =>
+        init
+      case Unit =>
+        init
+      case TSvc(ts) =>
+        ts.lazyFoldr(init)( (tpe, t) => foldType(t)(tpe) )
+      case TSrvRep(svcs) =>
+        svcs.toList.lazyFoldr(init) ( (p, t) => foldType(t)(p._2)  )
+      case TSrv(t) => foldType(init)(t)
+      case TVar(alpha) =>
+        init
+      case TBase(name, ts) =>
+        ts.lazyFoldr(init)( (tpe, t) => foldType(t)(tpe) )
+      case TUniv(alpha, bound1, tpe1) =>
+        foldType(foldType(init)(tpe1))(bound1)
+    }
+
+    def foldRule(init: => T)(rule: Rule): T = {
+      val Rule(ps, prog) = rule
+      ps.lazyFoldr(fold(init)(prog))( (p, t) => foldPattern(t)(p))
+    }
+
+    def foldPattern(init: => T)(pattern: Pattern): T = {
+      val Pattern(_, params) = pattern
+      params.toList.lazyFoldr(init)( (p, t) => foldType(t)(p._2)  )
+    }
+  }
+
 }

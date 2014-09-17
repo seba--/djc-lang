@@ -55,6 +55,18 @@ class Bag[T](m: ListMap[T, Int]) extends scala.collection.immutable.Set[T]
       }
     }
   }
+
+  def lazyFoldr[S](base: => S)(f: (T, => S) => S): S = {
+    val it = iterator
+    def withIterator: S = {
+      if (it.hasNext)
+        f(it.next(), withIterator)
+      else
+        base
+    }
+
+    withIterator
+  }
 }
 object Bag extends SetFactory[Bag] {
   implicit def canBuildFrom[A]: CanBuildFrom[Coll, A, Bag[A]] = setCanBuildFrom[A]
