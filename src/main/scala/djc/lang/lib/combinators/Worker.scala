@@ -1,6 +1,6 @@
 package djc.lang.lib.combinators
 
-import djc.lang.TypedSyntax._
+import djc.lang.TypedLanguage._
 import djc.lang.TypedSyntaxDerived.{TThunk => _, _}
 
 object Worker {

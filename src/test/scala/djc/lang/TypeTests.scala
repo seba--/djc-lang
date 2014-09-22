@@ -1,8 +1,7 @@
 package djc.lang
 
-import djc.lang.TypedSyntax.Exp
+import djc.lang.TypedLanguage.{Type, Exp}
 import djc.lang.typ.Checker._
-import djc.lang.typ.Types.Type
 import org.scalatest.FunSuite
 
 trait TypeTests extends FunSuite {

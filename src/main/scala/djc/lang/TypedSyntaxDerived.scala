@@ -1,9 +1,7 @@
 package djc.lang
 
-import djc.lang.typ.{FreeVars, SubstTemplate}
 import util.Bag
-import djc.lang.TypedSyntax._
-import djc.lang.typ.Types._
+import djc.lang.TypedLanguage._
 
 object TypedSyntaxDerived {
 
@@ -43,7 +41,7 @@ object TypedSyntaxDerived {
 
     //Modified substitution function which lets substs for 'this' pass into
     //rule bodies of local control expressions.
-    object PatchThisRefs extends SubstTemplate('this, Var(self)) {
+    object PatchThisRefs extends Subst('this, Var(self)) {
       def isThisTransparentName(sym: Symbol) = sym.name.startsWith("$") && !sym.name.endsWith("$")
 
       override def map: TMapE = {

@@ -1,6 +1,6 @@
 package djc.lang.typ.inference.base
 
-import djc.lang.TypedSyntax.{Var, BaseCall, Exp}
+import djc.lang.TypedLanguage.{Var, BaseCall, Exp}
 import djc.lang.base.PairsOps
 
 import scala.annotation.tailrec

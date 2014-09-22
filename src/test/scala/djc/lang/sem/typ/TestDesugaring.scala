@@ -2,8 +2,7 @@ package djc.lang.sem.typ
 
 import djc.lang.{Syntax, AbstractTest}
 import djc.lang.sem._
-import djc.lang.typ.Types._
-import djc.lang.TypedSyntax._
+import djc.lang.TypedLanguage._
 import djc.lang.TypedSyntaxDerived._
 import djc.lang.base.Integer._
 import djc.lang.base.IntegerCompare._

@@ -1,12 +1,11 @@
 package djc.lang.lib.combinators.migration
 
-import djc.lang.TypedSyntax._
+import djc.lang.TypedLanguage._
 import djc.lang.TypedSyntaxDerived.{TThunk => _, _}
 import djc.lang.base.Pairs._
 import djc.lang.base.Maps._
 import djc.lang.base.Integer._
 import djc.lang.lib.combinators._
-import djc.lang.typ.Types._
 
 object MkHost extends Combinator {
   def apply(t1: Type) = TApp(impl, t1)

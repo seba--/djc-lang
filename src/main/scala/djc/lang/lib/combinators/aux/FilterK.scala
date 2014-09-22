@@ -1,11 +1,10 @@
 package djc.lang.lib.combinators.aux
 
-import djc.lang.TypedSyntax._
+import djc.lang.TypedLanguage._
 import djc.lang.TypedSyntaxDerived._
 import djc.lang.base.Lists._
 import djc.lang.base.Bool._
 import djc.lang.lib.combinators.Combinator
-import djc.lang.typ.Types._
 
 object FilterK extends Combinator {
   def apply(t: Type) = TApp(impl, t)

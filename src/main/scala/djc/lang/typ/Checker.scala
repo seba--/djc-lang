@@ -2,8 +2,7 @@ package djc.lang.typ
 
 import djc.lang.Gensym
 import djc.lang.Gensym._
-import djc.lang.TypedSyntax._
-import djc.lang.typ.Types._
+import djc.lang.TypedLanguage._
 
 object Checker {
   type Context = Map[Symbol, Type]
@@ -36,7 +35,7 @@ object Checker {
           Gensym(alpha, ftv1 ++ ftv2 ++ tgamma.keySet)
         else alpha
 
-      subtype(tgamma + (alphares -> u1))(SubstType(alpha -> TVar(alphares))(t1), SubstType(beta -> TVar(alphares))(t2))
+      subtype(tgamma + (alphares -> u1))(substType(alpha -> TVar(alphares))(t1), substType(beta -> TVar(alphares))(t2))
 
     case (TSvc(args), TSvc(args1)) =>
       args1.corresponds(args)(subtype(tgamma)(_,_))
@@ -76,7 +75,7 @@ object Checker {
           Gensym(alpha, ftv1 ++ ftv2 ++ tgamma.keySet)
         else alpha
 
-      TUniv(alphares, u1, meet(tgamma + (alphares -> u1))(SubstType(alpha -> TVar(alphares))(t1), SubstType(beta -> TVar(alpha))(t2)))
+      TUniv(alphares, u1, meet(tgamma + (alphares -> u1))(substType(alpha -> TVar(alphares))(t1), substType(beta -> TVar(alpha))(t2)))
 
     case (TSvc(args), TSvc(args1)) if args.length == args1.length =>
       TSvc((args zip args1) map {case (x,y) => join(tgamma)(x,y)})
@@ -114,7 +113,7 @@ object Checker {
           Gensym(alpha, ftv1 ++ ftv2 ++ tgamma.keySet)
         else alpha
 
-      TUniv(alphares, u1, join(tgamma + (alphares -> u1))(SubstType(alpha -> TVar(alphares))(t1), SubstType(beta -> TVar(alpha))(t2)))
+      TUniv(alphares, u1, join(tgamma + (alphares -> u1))(substType(alpha -> TVar(alphares))(t1), substType(beta -> TVar(alpha))(t2)))
 
     case (TSvc(args), TSvc(args1)) if args.length == args1.length =>
       TSvc((args zip args1) map {case (x,y) => meet(tgamma)(x,y)})
@@ -140,7 +139,7 @@ object Checker {
       if (!ts.corresponds(bounds)(subtype(tgamma)(_,_)))
          throw TypeCheckException(s"Type arguments do not match type parameters. Applied $ts to ${b.targs}\n in $p")
 
-      val sigma: Type => Type = SubstType(tArgs zip ts)(_)
+      val sigma: Type => Type = substType(tArgs zip ts)(_)
       val bSig = b.ts map sigma
       if (argTs.corresponds(bSig)(subtype(tgamma)(_, _))) // actual arguments have subtypes of declared parameters
         sigma(b.res)
@@ -208,7 +207,7 @@ object Checker {
       promote(tgamma)(typeCheck(gamma, tgamma, p2)) match {
         case Bot => Bot
         case TUniv(alpha, bound, t2) if subtype(tgamma)(t, bound) =>
-          SubstType(alpha -> t)(t2)
+          substType(alpha -> t)(t2)
 
         case x => throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\ntgamma: $tgamma\nwith $x")
       }
@@ -216,7 +215,7 @@ object Checker {
     case TAbs(alpha, bound1, p1) =>
       val dontSubst = !tgamma.contains(alpha)
       lazy val alphafresh = gensym(alpha, tgamma.keySet)
-      lazy val p1fresh = SubstType(alpha -> TVar(alphafresh))(p1)
+      lazy val p1fresh = substType(alpha -> TVar(alphafresh))(p1)
       val (alphares, p1res) = if (dontSubst) (alpha, p1) else (alphafresh, p1fresh)
       val t = typeCheck(gamma, tgamma + (alphares -> bound1), p1res)
 

@@ -2,12 +2,11 @@ package djc.lang
 
 import org.scalatest.FunSuite
 import djc.lang.sem.{ISemanticsFactory, Substitution, AbstractSemantics}
-import djc.lang.TypedSyntax._
+import djc.lang.TypedLanguage._
 import djc.lang.TypedSyntaxDerived._
 import util.Bag
 
 import djc.lang.typ.Checker._
-import djc.lang.typ.Types._
 import djc.lang.sem.concurrent_6_thread.ServerThread
 
 
@@ -24,7 +23,7 @@ abstract class AbstractTest[V](semFactory: ISemanticsFactory[V]) extends FunSuit
   def PRINT(t: Type, e: Exp) = Spawn(PRINT_SERVER(t))~>'PRINT !! (e)
   def PRINT_NO(e: Syntax.Exp) = Syntax.Send(Syntax.ServiceRef(Syntax.Spawn(PRINT_SERVER_NO), 'PRINT), e)
 
-  def testInterp(s: String, p: TypedSyntax.Par, expected: Bag[Syntax.Send] => Boolean): Unit =
+  def testInterp(s: String, p: TypedLanguage.Par, expected: Bag[Syntax.Send] => Boolean): Unit =
     testInterp(s, p.eraseType, expected)
 
   def testInterp(s: String, p: Syntax.Par, expected: Bag[Syntax.Send] => Boolean): Unit =
@@ -37,7 +36,7 @@ abstract class AbstractTest[V](semFactory: ISemanticsFactory[V]) extends FunSuit
     }
 //    testInterpUntyped(s, p.eraseType, expected map (_.map(_.eraseType)), ignore)
 
-  def testInterp(s: String, p: TypedSyntax.Par, expected: AbstractSemantics.Res[Bag[TypedSyntax.Send]],
+  def testInterp(s: String, p: TypedLanguage.Par, expected: AbstractSemantics.Res[Bag[TypedLanguage.Send]],
                  ignore: Syntax.Send => Boolean = (s => false)): Unit =
     testInterpUntyped(s, p.eraseType, expected map (_.map(_.eraseType)), ignore)
 

@@ -1,10 +1,9 @@
 package djc.lang.base
 
 import djc.lang.Syntax
-import djc.lang.TypedSyntax._
+import djc.lang.TypedLanguage._
 import djc.lang.base.Bool._
 import djc.lang.sem.SemanticException
-import djc.lang.typ.Types._
 
 object MapsOps {
   val TMap = TUniv('K, TUniv('V, TBase('Map, TVar('K), TVar('V))))

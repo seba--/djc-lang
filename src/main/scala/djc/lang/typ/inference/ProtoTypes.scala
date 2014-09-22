@@ -1,36 +1,38 @@
 package djc.lang.typ.inference
 
-import djc.lang.TypedSyntax.LazyFold
-import djc.lang.typ.{FreeTypeVarsTemplate, SubstTypeFactory, SubstType}
-import djc.lang.typ.Types._
+import djc.lang.typ._
 
 /**
  * Partial types for colored type inference
  */
-object ProtoTypes {
+trait ProtoTypesFamily extends TypeFamily {
+  self: TypeOps =>
+
   //placeholder in partial type information
   case object Hole extends Type {
     override def ===(that: Type) = ???
+    override def toFamily(TF: TypeFamily) = ???
   }
-  //Variant of type substitution which works on partial types
-  class SubstProtoType(substs: Map[Symbol, Type]) extends SubstType(substs) {
-    override val mkSubst = SubstPrototype
-    override def mapType: TMapT = {
+
+  trait Mapper extends super.Mapper {
+    override def mapType = {
       case Hole => Hole
       case t => super.mapType(t)
     }
   }
-  object SubstPrototype extends SubstTypeFactory[SubstProtoType] {
-    def apply(substs: Map[Symbol, Type]) = new SubstProtoType(substs.filter { case (k, TVar(v)) if k == v => false
-    case _ => true})
-  }
 
-  object FreeProtoTypeVars extends FreeTypeVarsTemplate {
-    override def foldType(init: Set[Symbol]): FoldT= {
+  trait StrictFold[T] extends super.StrictFold[T] {
+    override def foldType(init: T): FoldT = {
       case Hole => init
-      case tpe => super.foldType(init)(tpe)
+      case t => super.foldType(init)(t)
     }
   }
+}
+
+trait ProtoTypeOps extends DefaultTypeOpsImpl {
+  self: ProtoTypesFamily =>
+
+  def isPrototype(t: Type): Boolean = IsPrototype(t)
 
   object IsPrototype extends LazyFold[Boolean] {
     def apply(t: Type): Boolean = foldType(false)(t)
@@ -41,5 +43,8 @@ object ProtoTypes {
         super.foldType(init)(t)
     }
   }
+}
 
+object ProtoTypes extends ProtoTypesFamily with ProtoTypeOps {
+  
 }

@@ -2,10 +2,8 @@ package djc.lang.sem.typ
 
 import org.scalatest.FunSuite
 import util.Bag
-
-import djc.lang.typ.Types._
 import djc.lang.typ.Checker._
-import djc.lang.TypedSyntax._
+import djc.lang.TypedLanguage._
 import djc.lang.TypedSyntaxDerived._
 
 

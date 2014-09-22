@@ -1,11 +1,10 @@
 package djc.lang.lib.combinators.aux
 
 
-import djc.lang.TypedSyntax._
+import djc.lang.TypedLanguage._
 import djc.lang.TypedSyntaxDerived._
 import djc.lang.base.Lists._
 import djc.lang.lib.combinators.Combinator
-import djc.lang.typ.Types._
 import djc.lang.lib.Function
 
 object ForEach extends Combinator {

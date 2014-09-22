@@ -1,9 +1,10 @@
 package djc.lang.typ.inference
 
-import djc.lang.TypedSyntax.{SyntaxException, BaseOp, Exp}
-import djc.lang.typ.Types.TSvc
-import djc.lang.typ.inference.ExtSyntax.ExtExp
+import djc.lang.TypedSyntaxFamily
 import util.Bag
+import djc.lang.typ.TypeFamily
+import djc.lang.typ.TypedSyntaxOps
+import djc.lang.typ.DefaultTypedSyntaxOps
 
 
 /**
@@ -12,16 +13,17 @@ import util.Bag
  * None of these implement type erasure. Type inference must map them to
  * annotated syntax.
  */
-object ExtSyntax {
-  abstract class ExtExp extends Exp
-
-  case class UTApp(e: Exp) extends ExtExp {
+trait ExtSyntaxFamily extends TypedSyntaxFamily {
+  typ: TypeFamily with TypedSyntaxOps =>
+    
+  abstract class ExtExp extends Exp {
     def eraseType = ???
+    override def toFamily(TF: TTF) = ???
   }
 
-  case class UServerImpl(rules: List[URule]) extends ExtExp {
-    def eraseType = ???
+  case class UTApp(e: Exp) extends ExtExp
 
+  case class UServerImpl(rules: List[URule]) extends ExtExp {
     //services + arity
     lazy val services: Map[Symbol, Int] = {
       import collection.mutable.{HashMap, MultiMap, Set}
@@ -60,6 +62,10 @@ object ExtSyntax {
   }
 
   implicit def singletonUPattern(p: UPattern): Bag[UPattern] = Bag(p)
+}
+
+//TODO make ExtSyntax and TypedSyntax share the exact same type family
+object ExtSyntax extends TypeFamily with ExtSyntaxFamily with DefaultTypedSyntaxOps {
   implicit class UPatternSymbol(val s: Symbol) extends AnyVal {
     def ?(ps: Symbol*) = UPattern(s, List(ps:_*))
   }

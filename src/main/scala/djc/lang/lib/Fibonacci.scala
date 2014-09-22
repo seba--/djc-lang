@@ -1,9 +1,7 @@
 package djc.lang.lib
 
 import util.Bag
-
-import djc.lang.typ.Types._
-import djc.lang.TypedSyntax._
+import djc.lang.TypedLanguage._
 import djc.lang.TypedSyntaxDerived._
 import scala.collection.immutable.ListMap
 

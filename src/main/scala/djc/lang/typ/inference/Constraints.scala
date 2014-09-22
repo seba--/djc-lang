@@ -1,9 +1,9 @@
 package djc.lang.typ.inference
 
 import djc.lang.Gensym
-import djc.lang.typ.{SubstType, FreeTypeVars, Checker}
+import djc.lang.TypedLanguage._
+import djc.lang.typ.Checker
 import djc.lang.typ.Checker.{TVarContext, subtype, join}
-import djc.lang.typ.Types._
 import djc.lang.typ.inference.TypePredicates._
 
 /**
@@ -127,7 +127,7 @@ object Constraints {
           else alpha1
 
         val (t1res, t2res) =
-          (SubstType(alpha1 -> TVar(alphares))(t1), SubstType(alpha2 -> TVar(alphares))(t2))
+          (substType(alpha1 -> TVar(alphares))(t1), substType(alpha2 -> TVar(alphares))(t2))
         val (boundres, k) = equalityConstraints(tgamma)(tvars)(bound1, bound2)
         val c = subtypeConstraints(tgamma + (alphares -> boundres))(tvars)(t1res, t2res)
 
@@ -168,7 +168,7 @@ object Constraints {
           else alpha1
 
         val (t1res, t2res) =
-          (SubstType(alpha1 -> TVar(alphares))(t1), SubstType(alpha2 -> TVar(alphares))(t2))
+          (substType(alpha1 -> TVar(alphares))(t1), substType(alpha2 -> TVar(alphares))(t2))
         val (boundres, k) = equalityConstraints(tgamma)(tvars)(bound1, bound2)
         val (tres, c) = equalityConstraints(tgamma + (alphares -> boundres))(tvars)(t1res, t2res)
 
