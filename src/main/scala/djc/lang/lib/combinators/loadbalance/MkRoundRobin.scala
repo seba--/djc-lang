@@ -1,6 +1,7 @@
 package djc.lang.lib.combinators.loadbalance
 
 import djc.lang.TypedLanguage._
+import djc.lang.TypedLanguage.types._
 import djc.lang.TypedSyntaxDerived.{TThunk => _, _}
 import djc.lang.base.Integer._
 import djc.lang.base.Lists._

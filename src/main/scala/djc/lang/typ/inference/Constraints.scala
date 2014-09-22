@@ -1,7 +1,7 @@
 package djc.lang.typ.inference
 
 import djc.lang.Gensym
-import djc.lang.TypedLanguage._
+import djc.lang.typ.Types._
 import djc.lang.typ.Checker
 import djc.lang.typ.Checker.{TVarContext, subtype, join}
 import djc.lang.typ.inference.TypePredicates._
@@ -86,8 +86,8 @@ object Constraints {
   object GenConstraints {
     //compute constraints on tvars which makes s a subtype of t
     def apply(tgamma: TVarContext, tvars: Set[Symbol], s: Type, t: Type): CSet = {
-      val ftvS = freeTypeVars(s)
-      val ftvT = freeTypeVars(t)
+      val ftvS = freeTVars(s)
+      val ftvT = freeTVars(t)
 
       val intersect = tgamma.keySet.intersect(tvars)
       if (intersect.nonEmpty)
@@ -119,15 +119,15 @@ object Constraints {
       case (TVar(a), t1) => subtypeConstraints(tgamma)(tvars)(tgamma(a), t1)
 
       case (TUniv(alpha1, bound1, t1), TUniv(alpha2, bound2, t2)) =>
-        lazy val ftv1 = freeTypeVars(t1)
-        lazy val ftv2 = freeTypeVars(t2)
+        lazy val ftv1 = freeTVars(t1)
+        lazy val ftv2 = freeTVars(t2)
         lazy val alphares =
           if (tvars(alpha1) || ( alpha1 != alpha2 && ftv2(alpha1)))
             Gensym(alpha1, ftv1 ++ ftv2 ++ tgamma.keySet ++ tvars)
           else alpha1
 
         val (t1res, t2res) =
-          (substType(alpha1 -> TVar(alphares))(t1), substType(alpha2 -> TVar(alphares))(t2))
+          (substT(alpha1 -> TVar(alphares))(t1), substT(alpha2 -> TVar(alphares))(t2))
         val (boundres, k) = equalityConstraints(tgamma)(tvars)(bound1, bound2)
         val c = subtypeConstraints(tgamma + (alphares -> boundres))(tvars)(t1res, t2res)
 
@@ -160,15 +160,15 @@ object Constraints {
       case (t1, TVar(tv)) if tvars(tv) => (t1, CSet(tv -> Equal(t1)))
 
       case (TUniv(alpha1, bound1, t1), TUniv(alpha2, bound2, t2)) =>
-        lazy val ftv1 = freeTypeVars(t1)
-        lazy val ftv2 = freeTypeVars(t2)
+        lazy val ftv1 = freeTVars(t1)
+        lazy val ftv2 = freeTVars(t2)
         lazy val alphares =
           if (tvars(alpha1) || ( alpha1 != alpha2 && ftv2(alpha1)))
             Gensym(alpha1, ftv1 ++ ftv2 ++ tgamma.keySet ++ tvars)
           else alpha1
 
         val (t1res, t2res) =
-          (substType(alpha1 -> TVar(alphares))(t1), substType(alpha2 -> TVar(alphares))(t2))
+          (substT(alpha1 -> TVar(alphares))(t1), substT(alpha2 -> TVar(alphares))(t2))
         val (boundres, k) = equalityConstraints(tgamma)(tvars)(bound1, bound2)
         val (tres, c) = equalityConstraints(tgamma + (alphares -> boundres))(tvars)(t1res, t2res)
 

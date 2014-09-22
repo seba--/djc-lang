@@ -1,6 +1,7 @@
   package djc.lang.lib.autonomous
 
 import djc.lang.TypedLanguage._
+import djc.lang.TypedLanguage.types._
 import djc.lang.TypedSyntaxDerived._
 import djc.lang.base.Bool._
 import djc.lang.base.Double._

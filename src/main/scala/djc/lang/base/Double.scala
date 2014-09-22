@@ -1,6 +1,7 @@
 package djc.lang.base
 
 import djc.lang.TypedLanguage._
+import djc.lang.TypedLanguage.types._
 import djc.lang.sem.SemanticException
 import djc.lang.base.Integer.IntValue
 

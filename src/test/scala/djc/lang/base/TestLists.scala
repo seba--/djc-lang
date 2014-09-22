@@ -2,6 +2,7 @@ package djc.lang.base
 
 import djc.lang.AbstractTest
 import djc.lang.TypedLanguage._
+import djc.lang.TypedLanguage.types._
 import djc.lang.TypedSyntaxDerived._
 import djc.lang.sem._
 import djc.lang.typ.Checker._

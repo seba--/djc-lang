@@ -4,6 +4,7 @@ import org.scalatest.FunSuite
 import util.Bag
 import djc.lang.typ.Checker._
 import djc.lang.TypedLanguage._
+import djc.lang.TypedLanguage.types._
 import djc.lang.TypedSyntaxDerived._
 
 

@@ -3,6 +3,7 @@ package djc.lang.lib
 import util.Bag
 import djc.lang.Syntax
 import djc.lang.TypedLanguage._
+import djc.lang.TypedLanguage.types._
 import djc.lang.TypedSyntaxDerived._
 
 import djc.lang.sem._

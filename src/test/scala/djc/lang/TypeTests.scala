@@ -1,6 +1,7 @@
 package djc.lang
 
-import djc.lang.TypedLanguage.{Type, Exp}
+import djc.lang.TypedLanguage.Exp
+import djc.lang.TypedLanguage.types.Type
 import djc.lang.typ.Checker._
 import org.scalatest.FunSuite
 

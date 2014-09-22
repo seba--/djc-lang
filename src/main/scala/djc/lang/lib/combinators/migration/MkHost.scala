@@ -1,6 +1,7 @@
 package djc.lang.lib.combinators.migration
 
 import djc.lang.TypedLanguage._
+import djc.lang.TypedLanguage.types._
 import djc.lang.TypedSyntaxDerived.{TThunk => _, _}
 import djc.lang.base.Pairs._
 import djc.lang.base.Maps._

@@ -1,7 +1,7 @@
 package djc.lang.typ.inference
 
-import djc.lang.Gensym
-import djc.lang.{ TypedLanguage => TP }
+import djc.lang.typ.TypeOps
+import djc.lang.typ.{ Types => TP }
 import djc.lang.typ.inference.{ ProtoTypes => PT }
 
 
@@ -10,7 +10,6 @@ import djc.lang.typ.inference.{ ProtoTypes => PT }
  * Matching ops for partial type information
  */
 object Matching {
-  type Type = TP.Type
   type PType = PT.Type
 
   import PT.isPrototype
@@ -32,14 +31,7 @@ object Matching {
     case (PT.TSrv(p), TSrv(t)) =>
       protoMatch(p,t)
     case (PT.TUniv(alpha1, bound1, p1), TUniv(alpha2, bound2, t2)) =>
-      lazy val fptv = PT.freeTypeVars(p1)
-      lazy val ftv = TP.freeTypeVars(t2)
-      val alphar =
-        if (alpha1 != alpha2 && ftv(alpha1))
-          Gensym(alpha1, fptv ++ ftv)
-        else alpha1
-      val p1res = PT.substType(alpha1 -> PT.TVar(alphar))(p1)
-      val t2res = TP.substType(alpha2 -> TVar(alphar))(t2)
+      val (_, t2res, p1res) = TypeOps.captureAvoiding(TP, PT)(alpha2, t2, alpha1, p1)
 
       protoMatch(bound1, bound2) && protoMatch(p1res, t2res)
 
@@ -75,15 +67,7 @@ object Matching {
       TSrv(down(t1, p1))
 
     case (TUniv(alpha, bound1, t), PT.TUniv(beta, bound2, p)) if bound1 === bound2.toFamily(TP) =>
-      lazy val fptv = PT.freeTypeVars(p)
-      lazy val ftv = TP.freeTypeVars(t)
-      val alphar =
-        if (alpha != beta && fptv(alpha))
-          Gensym(alpha, fptv ++ ftv)
-        else alpha
-      val pres = PT.substType(beta -> PT.TVar(alphar))(p)
-      val tres = TP.substType(alpha -> TVar(alphar))(t)
-
+      val (alphar, tres, pres) = TypeOps.captureAvoiding(TP, PT)(alpha, t, beta, p)
       TUniv(alphar, bound1, down(tres, pres))
 
     case (TBase(name1, _), PT.TBase(name2, _)) if name1 == name2 && protoMatch(proto, tpe) => tpe
@@ -117,15 +101,7 @@ object Matching {
       TSrv(up(t1, p1))
 
     case (TUniv(alpha, bound1, t), PT.TUniv(beta, bound2, p)) if bound1 === bound2.toFamily(TP) =>
-      lazy val fptv = PT.freeTypeVars(p)
-      lazy val ftv = freeTypeVars(t)
-      val alphar =
-        if (alpha != beta && fptv(alpha))
-          Gensym(alpha, fptv ++ ftv)
-        else alpha
-      val pres = PT.substType(beta -> PT.TVar(alphar))(p)
-      val tres = TP.substType(alpha -> TVar(alphar))(t)
-
+      val (alphar, tres, pres) = TypeOps.captureAvoiding(TP, PT)(alpha, t, beta, p)
       TUniv(alphar, bound1, up(tres, pres))
 
     case (TBase(name1, _), PT.TBase(name2, _)) if name1 == name2 && protoMatch(proto, tpe) => tpe

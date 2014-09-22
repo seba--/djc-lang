@@ -1,6 +1,7 @@
 package djc.lang.lib.combinators
 
-import djc.lang.TypedLanguage.{Exp, Type}
+import djc.lang.TypedLanguage.Exp
+import djc.lang.TypedLanguage.types._
 
 
 trait Combinator {

@@ -1,7 +1,7 @@
 package djc.lang.lib.worker
 
 import djc.lang.TypedLanguage._
-import djc.lang.TypedSyntaxDerived._
+import djc.lang.TypedLanguage.types._
 import djc.lang.lib.worker.Task._
 
 object Worker {

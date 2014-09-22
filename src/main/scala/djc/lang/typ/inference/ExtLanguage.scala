@@ -2,9 +2,7 @@ package djc.lang.typ.inference
 
 import djc.lang.TypedSyntaxFamily
 import util.Bag
-import djc.lang.typ.TypeFamily
-import djc.lang.typ.TypedSyntaxOps
-import djc.lang.typ.DefaultTypedSyntaxOps
+import djc.lang.typ.{Types, TypeFamily, TypedSyntaxOps, DefaultTypedSyntaxOps}
 
 
 /**
@@ -14,11 +12,11 @@ import djc.lang.typ.DefaultTypedSyntaxOps
  * annotated syntax.
  */
 trait ExtSyntaxFamily extends TypedSyntaxFamily {
-  typ: TypeFamily with TypedSyntaxOps =>
+  self: TypedSyntaxOps =>
     
   abstract class ExtExp extends Exp {
     def eraseType = ???
-    override def toFamily(TF: TTF) = ???
+    override def toFamily(TF: TSF) = ???
   }
 
   case class UTApp(e: Exp) extends ExtExp
@@ -64,8 +62,8 @@ trait ExtSyntaxFamily extends TypedSyntaxFamily {
   implicit def singletonUPattern(p: UPattern): Bag[UPattern] = Bag(p)
 }
 
-//TODO make ExtSyntax and TypedSyntax share the exact same type family
-object ExtLanguage extends TypeFamily with ExtSyntaxFamily with DefaultTypedSyntaxOps {
+object ExtLanguage extends ExtSyntaxFamily with DefaultTypedSyntaxOps {
+  val types = Types
   implicit class UPatternSymbol(val s: Symbol) extends AnyVal {
     def ?(ps: Symbol*) = UPattern(s, List(ps:_*))
   }

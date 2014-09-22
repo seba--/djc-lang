@@ -1,6 +1,7 @@
 package djc.lang.typ.inference.base
 
 import djc.lang.TypedLanguage._
+import djc.lang.TypedLanguage.types._
 import djc.lang.base.MapsOps
 
 

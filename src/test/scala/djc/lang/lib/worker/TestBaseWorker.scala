@@ -2,6 +2,7 @@ package djc.lang.lib.worker
 
 import util.Bag
 import djc.lang.TypedLanguage._
+import djc.lang.TypedLanguage.types._
 import djc.lang.TypedSyntaxDerived._
 
 import djc.lang.sem._

@@ -81,13 +81,8 @@ trait TypeFamily  {
   case class TUniv(alpha: Symbol, bound: Type, tpe: Type) extends Type {
     override def ===(that: Type) = that match {
       case TUniv(beta, bound1, tpe1) if bound === bound1 =>
-        lazy val ftv = freeTypeVars(tpe)
-        lazy val ftv1 = freeTypeVars(tpe1)
-        val alphares = if (alpha != beta && ftv1(alpha))
-          Gensym(alpha, ftv ++ ftv1)
-        else alpha
-
-        substType(alpha -> TVar(alphares))(tpe) === substType(beta -> TVar(alphares))(tpe1)
+        val (_, tpefixed, tpe1fixed) = captureAvoiding(alpha, tpe, beta, tpe1)
+        tpefixed === tpe1fixed
 
       case _ => false
     }
@@ -172,3 +167,4 @@ trait TypeFamily  {
 
 }
 
+object Types extends TypeFamily with DefaultTypeOpsImpl

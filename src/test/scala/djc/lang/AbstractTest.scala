@@ -3,14 +3,13 @@ package djc.lang
 import org.scalatest.FunSuite
 import djc.lang.sem.{ISemanticsFactory, Substitution, AbstractSemantics}
 import djc.lang.TypedLanguage._
-import djc.lang.TypedSyntaxDerived._
 import util.Bag
 
-import djc.lang.typ.Checker._
-import djc.lang.sem.concurrent_6_thread.ServerThread
 
 
 abstract class AbstractTest[V](semFactory: ISemanticsFactory[V]) extends FunSuite with TypeTests {
+  import TypedLanguage.types._
+
   private[this] val _PRINT_SERVER = ServerImpl(Rule(Bag(Pattern('PRINT)), Par()))
   val PRINT_SERVER = TAbs('V, UnsafeCast(_PRINT_SERVER, TSrvRep('PRINT -> ?(TVar('V)))))
   val PRINT_SERVER_NO = PRINT_SERVER.eraseType

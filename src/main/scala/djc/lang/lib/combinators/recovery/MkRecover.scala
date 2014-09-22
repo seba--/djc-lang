@@ -1,6 +1,7 @@
 package djc.lang.lib.combinators.recovery
 
 import djc.lang.TypedLanguage._
+import djc.lang.TypedLanguage.types._
 import djc.lang.TypedSyntaxDerived.{TThunk => _, _}
 import djc.lang.base.Lists._
 import djc.lang.base.Pairs._

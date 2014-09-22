@@ -3,8 +3,10 @@ package djc.lang.typ
 import djc.lang.Gensym
 import djc.lang.Gensym._
 import djc.lang.TypedLanguage._
+import djc.lang.TypedLanguage.types._
 
 object Checker {
+  import types._
   type Context = Map[Symbol, Type]
   type TVarContext = Map[Symbol, Type]
 

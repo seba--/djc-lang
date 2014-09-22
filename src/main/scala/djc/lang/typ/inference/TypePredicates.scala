@@ -1,7 +1,7 @@
 package djc.lang.typ.inference
 
 import djc.lang.typ.Checker.TVarContext
-import djc.lang.TypedLanguage._
+import djc.lang.typ.Types._
 
 /**
  * Variance and rigidity checks for types
@@ -16,7 +16,7 @@ object TypePredicates {
     def isRigidUnder(tgamma: TVarContext): Boolean = TypePredicates.isRigid(tgamma, t)
   }
 
-  def isConstantIn(r: Type, tvar: Symbol): Boolean = !freeTypeVars(r)(tvar)
+  def isConstantIn(r: Type, tvar: Symbol): Boolean = !freeTVars(r)(tvar)
 
   def isCovariantIn(r: Type, tvar: Symbol): Boolean = r match {
     case TVar(alpha) =>

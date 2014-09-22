@@ -1,11 +1,8 @@
 package djc.lang.base
 
 import djc.lang.Syntax
-import djc.lang.TypedLanguage.InfixExp
 import djc.lang.TypedLanguage._
-import djc.lang.base.Bool.InfixExp
-import djc.lang.base.Bool._
-import djc.lang.base.Lists._
+import djc.lang.TypedLanguage.types._
 import djc.lang.sem.SemanticException
 
 object PairsOps {

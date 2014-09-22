@@ -4,6 +4,7 @@ import util.Bag
 import djc.lang.TypedLanguage._
 
 object TypedSyntaxDerived {
+  import TypedLanguage.types._
 
   implicit def makeParSend(s: Send) = Par(s)
 

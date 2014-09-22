@@ -2,6 +2,7 @@ package djc.lang.base
 
 import djc.lang.AbstractTest
 import djc.lang.TypedLanguage._
+import djc.lang.TypedLanguage.types._
 import djc.lang.base.Double._
 import djc.lang.base.Integer._
 import djc.lang.base.Bool._
