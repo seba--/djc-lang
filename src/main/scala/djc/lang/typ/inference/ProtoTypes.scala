@@ -45,6 +45,4 @@ trait ProtoTypeOps extends DefaultTypeOpsImpl {
   }
 }
 
-object ProtoTypes extends ProtoTypesFamily with ProtoTypeOps {
-  
-}
+object ProtoTypes extends ProtoTypesFamily with ProtoTypeOps

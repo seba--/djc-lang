@@ -86,8 +86,8 @@ object Constraints {
   object GenConstraints {
     //compute constraints on tvars which makes s a subtype of t
     def apply(tgamma: TVarContext, tvars: Set[Symbol], s: Type, t: Type): CSet = {
-      val ftvS = FreeTypeVars(s)
-      val ftvT = FreeTypeVars(t)
+      val ftvS = freeTypeVars(s)
+      val ftvT = freeTypeVars(t)
 
       val intersect = tgamma.keySet.intersect(tvars)
       if (intersect.nonEmpty)
@@ -119,8 +119,8 @@ object Constraints {
       case (TVar(a), t1) => subtypeConstraints(tgamma)(tvars)(tgamma(a), t1)
 
       case (TUniv(alpha1, bound1, t1), TUniv(alpha2, bound2, t2)) =>
-        lazy val ftv1 = FreeTypeVars(t1)
-        lazy val ftv2 = FreeTypeVars(t2)
+        lazy val ftv1 = freeTypeVars(t1)
+        lazy val ftv2 = freeTypeVars(t2)
         lazy val alphares =
           if (tvars(alpha1) || ( alpha1 != alpha2 && ftv2(alpha1)))
             Gensym(alpha1, ftv1 ++ ftv2 ++ tgamma.keySet ++ tvars)
@@ -160,8 +160,8 @@ object Constraints {
       case (t1, TVar(tv)) if tvars(tv) => (t1, CSet(tv -> Equal(t1)))
 
       case (TUniv(alpha1, bound1, t1), TUniv(alpha2, bound2, t2)) =>
-        lazy val ftv1 = FreeTypeVars(t1)
-        lazy val ftv2 = FreeTypeVars(t2)
+        lazy val ftv1 = freeTypeVars(t1)
+        lazy val ftv2 = freeTypeVars(t2)
         lazy val alphares =
           if (tvars(alpha1) || ( alpha1 != alpha2 && ftv2(alpha1)))
             Gensym(alpha1, ftv1 ++ ftv2 ++ tgamma.keySet ++ tvars)

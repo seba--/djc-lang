@@ -28,8 +28,8 @@ object Checker {
       tgamma.contains(alpha) && subtype(tgamma)(tgamma(alpha), t)
 
     case (TUniv(alpha, u1, t1), TUniv(beta, u2, t2)) if u1 === u2 =>
-      lazy val ftv1 = FreeTypeVars(t1)
-      lazy val ftv2 = FreeTypeVars(t2)
+      lazy val ftv1 = freeTypeVars(t1)
+      lazy val ftv2 = freeTypeVars(t2)
       val alphares =
         if (alpha != beta && ftv2(alpha))
           Gensym(alpha, ftv1 ++ ftv2 ++ tgamma.keySet)
@@ -68,8 +68,8 @@ object Checker {
     case (s,t) if subtype(tgamma)(t, s) => t
 
     case (TUniv(alpha, u1, t1), TUniv(beta, u2, t2)) if u1 === u2 =>
-      lazy val ftv1 = FreeTypeVars(t1)
-      lazy val ftv2 = FreeTypeVars(t2)
+      lazy val ftv1 = freeTypeVars(t1)
+      lazy val ftv2 = freeTypeVars(t2)
       val alphares =
         if (alpha != beta && ftv2(alpha))
           Gensym(alpha, ftv1 ++ ftv2 ++ tgamma.keySet)
@@ -106,8 +106,8 @@ object Checker {
       join(tgamma)(s, tgamma(alpha))
 
     case (TUniv(alpha, u1, t1), TUniv(beta, u2, t2)) if u1 === u2 =>
-      lazy val ftv1 = FreeTypeVars(t1)
-      lazy val ftv2 = FreeTypeVars(t2)
+      lazy val ftv1 = freeTypeVars(t1)
+      lazy val ftv2 = freeTypeVars(t2)
       val alphares =
         if (alpha != beta && ftv2(alpha))
           Gensym(alpha, ftv1 ++ ftv2 ++ tgamma.keySet)
@@ -187,8 +187,8 @@ object Checker {
     case srv@ServerImpl(rules) => {
       val ruleTypes = rules map (typecheckRule(gamma, tgamma, _, srv.signature))
 
-      if (!(FreeTypeVars(srv.signature) subsetOf tgamma.keySet))
-        throw TypeCheckException(s"Illegal free type variables: ${FreeTypeVars(srv.signature) -- tgamma.keySet}")
+      if (!(freeTypeVars(srv.signature) subsetOf tgamma.keySet))
+        throw TypeCheckException(s"Illegal free type variables: ${freeTypeVars(srv.signature) -- tgamma.keySet}")
 
       srv.signature
     }
@@ -202,8 +202,8 @@ object Checker {
       }
 
     case TApp(p2, t) =>
-      if (!(FreeTypeVars(t) subsetOf tgamma.keySet))
-        throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\ntgamma: $tgamma\n  free type vars ${FreeTypeVars(t) -- tgamma.keySet}")
+      if (!(freeTypeVars(t) subsetOf tgamma.keySet))
+        throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\ntgamma: $tgamma\n  free type vars ${freeTypeVars(t) -- tgamma.keySet}")
       promote(tgamma)(typeCheck(gamma, tgamma, p2)) match {
         case Bot => Bot
         case TUniv(alpha, bound, t2) if subtype(tgamma)(t, bound) =>

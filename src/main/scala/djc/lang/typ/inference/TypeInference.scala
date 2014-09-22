@@ -3,7 +3,7 @@ package djc.lang.typ.inference
 import djc.lang.Gensym
 import djc.lang.{TypedLanguage => TS}
 import djc.lang.typ._
-import djc.lang.typ.inference.{ExtSyntax => XS, ProtoTypes => PT }
+import djc.lang.typ.inference.{ExtLanguage => XS, ProtoTypes => PT }
 
 import scala.collection.immutable.ListMap
 

@@ -65,7 +65,7 @@ trait ExtSyntaxFamily extends TypedSyntaxFamily {
 }
 
 //TODO make ExtSyntax and TypedSyntax share the exact same type family
-object ExtSyntax extends TypeFamily with ExtSyntaxFamily with DefaultTypedSyntaxOps {
+object ExtLanguage extends TypeFamily with ExtSyntaxFamily with DefaultTypedSyntaxOps {
   implicit class UPatternSymbol(val s: Symbol) extends AnyVal {
     def ?(ps: Symbol*) = UPattern(s, List(ps:_*))
   }

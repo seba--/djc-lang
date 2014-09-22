@@ -55,7 +55,7 @@ trait TypeOps {
 trait DefaultTypeOpsImpl extends TypeOps {
   self: TypeFamily =>
   def freeTypeVars = FreeTypeVars
-  object FreeTypeVars extends FreeTypeVars
+  protected object FreeTypeVars extends FreeTypeVars
 
   def substType(sub: Map[Symbol, Type]) = new SubstType {
     val substs: Map[Symbol, Type] =
@@ -194,8 +194,8 @@ trait DefaultTypedSyntaxOps extends TypedSyntaxOps {
                    case _ => true}
   }
 
-  object FreeVars extends FreeVars
-  object FreeTypeVars extends FreeTypeVars
+  protected object FreeVars extends FreeVars
+  protected object FreeTypeVars extends FreeTypeVars
 }
 
 

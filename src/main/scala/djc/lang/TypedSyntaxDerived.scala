@@ -37,7 +37,7 @@ object TypedSyntaxDerived {
   //A local control expression is a ServerImpl if it has only a single rule with
   //a singleton join pattern and its service name starts with "$".
   def This(thisType: Type)(e: Exp): Exp = {
-    val self = Gensym.gensym('self, FreeVars(e))
+    val self = Gensym.gensym('self, freeVars(e))
 
     //Modified substitution function which lets substs for 'this' pass into
     //rule bodies of local control expressions.
