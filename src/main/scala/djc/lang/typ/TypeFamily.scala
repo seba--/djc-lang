@@ -12,6 +12,7 @@ trait TypeFamily  {
      */
     def ===(that: Type): Boolean = this == that
     def toFamily(TF: TypeFamily): TF.Type
+    val family: TypeFamily with TypeOps = self
   }
 
   case object Top extends Type {

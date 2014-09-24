@@ -18,6 +18,7 @@ trait TypedSyntaxFamily {
   import types._
 
   abstract class Exp {
+    val family: TypedSyntaxFamily with TypedSyntaxOps = self
     def eraseType: Syntax.Exp
     def toFamily(TF: TSF): TF.Exp
   }

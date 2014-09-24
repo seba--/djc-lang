@@ -9,7 +9,6 @@ scalacOptions ++= List(
 	"-encoding", "UTF-8",
 	"-unchecked",
 	"-feature",
-	"-target:jvm-1.6",
 	"-language:implicitConversions",
 	"-language:reflectiveCalls",
 	"-Xlint"
@@ -17,7 +16,14 @@ scalacOptions ++= List(
 
 resolvers ++= Seq()
 
-libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.0" % "test"
+libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.1" % "test"
+
+libraryDependencies += "org.scalafx" %% "scalafx" % "8.0.0-R4" 
+
+//javaFX related stuff
+unmanagedJars in Compile += Attributed.blank(file(System.getenv("JAVA_HOME") + "/jre/lib/ext/jfxrt.jar"))
+
+fork in run := true
 
 org.scalastyle.sbt.ScalastylePlugin.Settings
 

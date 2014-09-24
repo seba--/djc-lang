@@ -15,7 +15,6 @@ object TypeInference {
   
   type XExp = XS.Exp
   type Exp = TS.Exp
-  type XType = XS.types.Type //TODO should not be different to TypedSyntax.Type
   type PType = PT.Type
   type Type = TS.types.Type
 
