@@ -151,6 +151,7 @@ trait TypedSyntaxFamily {
 
     override def toString = s"Rule($ps  =>  $p)"
 
+    val family: TypedSyntaxFamily with TypedSyntaxOps = self
     def toFamily(TF: TSF): TF.Rule = TF.Rule(ps map {_.toFamily(TF)}, p.toFamily(TF))
   }
   object Rule {
@@ -159,6 +160,7 @@ trait TypedSyntaxFamily {
 
   case class Pattern(name: Symbol, params: ListMap[Symbol, Type]) {
     def eraseType = Syntax.Pattern(name, params.keys.toList)
+    val family: TypedSyntaxFamily with TypedSyntaxOps = self
     def toFamily(TF: TSF): TF.Pattern = TF.Pattern(name, params.map { case (k, t) => (k, t.toFamily(TF.types))}  )
   }
 
@@ -176,6 +178,7 @@ trait TypedSyntaxFamily {
     def this(targs: (Symbol,Type)*)(ts: List[Type], res: Type) = this(List(targs:_*), ts, res)
     def eraseType: Syntax.BaseOp = this
 
+    val family: TypedSyntaxFamily with TypedSyntaxOps = self
     def toFamily(TF: TSF): TF.BaseOp = TF.BaseOpFromImpl(targs map {case (s, t) => (s, t.toFamily(TF.types))}, ts map {_.toFamily(TF.types)}, res.toFamily(TF.types), this)
   }
 

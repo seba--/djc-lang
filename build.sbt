@@ -20,9 +20,14 @@ libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.1" % "test"
 
 libraryDependencies += "org.scalafx" %% "scalafx" % "8.0.0-R4" 
 
+libraryDependencies += "com.googlecode.kiama" %% "kiama" % "1.7.0"
+
+libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.2"
+
 //javaFX related stuff
 unmanagedJars in Compile += Attributed.blank(file(System.getenv("JAVA_HOME") + "/jre/lib/ext/jfxrt.jar"))
 
+//make run play nice with scalafx apps
 fork in run := true
 
 org.scalastyle.sbt.ScalastylePlugin.Settings
