@@ -14,8 +14,6 @@ import scalafx.stage.Stage
 
 /**
  * Visualize trees for debugging purposes
- *
- * @see Model
  */
 class TreeInspector(tree: Any, winTitle: String) {
   val webView = new WebView {
