@@ -4,7 +4,8 @@ import util.ListOps._
 import djc.lang.Gensym
 
 trait TypeFamily  {
-  self: TypeOps =>
+  self =>
+  val op: TypeOps { val types: self.type }
 
   abstract class Type {
     /**
@@ -12,7 +13,7 @@ trait TypeFamily  {
      */
     def ===(that: Type): Boolean = this == that
     def toFamily(TF: TypeFamily): TF.Type
-    val family: TypeFamily with TypeOps = self
+    val family: TypeFamily = self
   }
 
   case object Top extends Type {
@@ -82,7 +83,7 @@ trait TypeFamily  {
   case class TUniv(alpha: Symbol, bound: Type, tpe: Type) extends Type {
     override def ===(that: Type) = that match {
       case TUniv(beta, bound1, tpe1) if bound === bound1 =>
-        val (_, tpefixed, tpe1fixed) = captureAvoiding(alpha, tpe, beta, tpe1)
+        val (_, tpefixed, tpe1fixed) = op.captureAvoiding(alpha, tpe, beta, tpe1)
         tpefixed === tpe1fixed
 
       case _ => false
@@ -110,6 +111,10 @@ trait TypeFamily  {
       case TBase(name, ts) => TBase(name, ts map mapType)
       case TUniv(alpha, bound, tpe1) => TUniv(alpha, mapType(bound), mapType(tpe1))
     }
+  }
+
+  def identityMap: Mapper = new Mapper {
+    override def mapType = { case t => t }
   }
 
   trait StrictFold[T] {
@@ -140,6 +145,11 @@ trait TypeFamily  {
     }
   }
 
+  def identityFold[T](init: T): StrictFold[T] = new StrictFold[T] {
+    def apply(t: Type) = init
+    override def foldType(init: T) = { case _ => init }
+  }
+
   trait LazyFold[T] {
     final type FoldT = PartialFunction[Type, T]
 
@@ -168,4 +178,8 @@ trait TypeFamily  {
 
 }
 
-object Types extends TypeFamily with DefaultTypeOpsImpl
+object Types extends TypeFamily {
+  val op = new DefaultTypeOpsImpl {
+    val types = Types
+  }
+}

@@ -38,9 +38,6 @@ class TestPairs[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem) {
     }
   }
 
-  println(pair(1.0, tru, 1).snd)
-  println()
-
   def p(t: Type, e: Exp): Par = Par(PRINT(t, e))
   def res(sends: Exp*): AbstractSemantics.Res[Bag[Send]] = Set(Bag(sends.map(PRINT):_*))
 

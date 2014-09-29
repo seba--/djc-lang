@@ -12,7 +12,7 @@ import djc.lang.typ.inference.{ ProtoTypes => PT }
 object Matching {
   type PType = PT.Type
 
-  import PT.isPrototype
+  import PT.op.isPrototype
   import TP._
   
   implicit class TypeMatchingOps(val t: Type) extends AnyVal {

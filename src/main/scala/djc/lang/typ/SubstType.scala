@@ -4,27 +4,27 @@ import djc.lang.Gensym._
 import djc.lang._
 
 object TypeOps {
-  type TO = TypeFamily with TypeOps
-  def captureAvoiding(F1: TO, F2: TO)(alpha: Symbol, tpe: F1.Type, beta: Symbol, tpe1: F2.Type): (Symbol, F1.Type, F2.Type) = {
-    lazy val ftv = F1.freeTVars(tpe)
-    lazy val ftv1 = F2.freeTVars(tpe1)
+  def captureAvoiding(F1: TypeFamily, F2: TypeFamily)(alpha: Symbol, tpe: F1.Type, beta: Symbol, tpe1: F2.Type): (Symbol, F1.Type, F2.Type) = {
+    lazy val ftv = F1.op.freeTypeVars(tpe)
+    lazy val ftv1 = F2.op.freeTypeVars(tpe1)
     val alphares = if (alpha != beta && ftv1(alpha))
       Gensym(alpha, ftv ++ ftv1)
     else alpha
-    (alphares, F1.substT(alpha -> F1.TVar(alphares))(tpe), F2.substT(beta -> F2.TVar(alphares))(tpe1))
+    (alphares, F1.op.substType(alpha -> F1.TVar(alphares))(tpe), F2.op.substType(beta -> F2.TVar(alphares))(tpe1))
   }
 }
 
 trait TypeOps {
-  self: TypeFamily =>
+  val types: TypeFamily
+  import types._
 
-  def freeTVars: FreeTypeVars
-  def substT(substs: Map[Symbol, Type]): SubstType
-  def substT(substs: (Symbol, Type)*): SubstType = substT(Map(substs:_*))
-  def substT(substs: List[(Symbol, Type)]): SubstType = substT(substs.toMap)
+  def freeTypeVars: FreeTypeVars
+  def substType(substs: Map[Symbol, Type]): SubstType
+  def substType(substs: (Symbol, Type)*): SubstType = substType(Map(substs:_*))
+  def substType(substs: List[(Symbol, Type)]): SubstType = substType(substs.toMap)
 
   def captureAvoiding(alpha: Symbol, tpe: Type, beta: Symbol, tpe1: Type): (Symbol, Type, Type) =
-    TypeOps.captureAvoiding(self, self)(alpha, tpe, beta, tpe1)
+    TypeOps.captureAvoiding(types, types)(alpha, tpe, beta, tpe1)
 
   trait FreeTypeVars extends StrictFold[Set[Symbol]] {
     def apply(tpe: Type): Set[Symbol] = foldType(Set[Symbol]())(tpe)
@@ -42,7 +42,7 @@ trait TypeOps {
     val substs: Map[Symbol, Type]
 
     lazy val replTVars = substs.values.foldLeft(Set[Symbol]()) {
-      case (s, t) => s ++ freeTVars(t)
+      case (s, t) => s ++ freeTypeVars(t)
     }
 
     override def mapType: TMapT = {
@@ -52,12 +52,12 @@ trait TypeOps {
         substs(alpha1)
 
       case TUniv(alpha1, bound1, tpe1) if substs.contains(alpha1) =>
-        TUniv(alpha1, mapType(bound1), substT(substs - alpha1)(tpe1))
+        TUniv(alpha1, mapType(bound1), substType(substs - alpha1)(tpe1))
 
       case TUniv(alpha1, bound1, tpe1) =>
         val captureAvoiding = !replTVars(alpha1)
         lazy val alpha1fresh = gensym(alpha1, replTVars)
-        lazy val tpe1fresh = substT(alpha1 -> TVar(alpha1fresh))(tpe1)
+        lazy val tpe1fresh = substType(alpha1 -> TVar(alpha1fresh))(tpe1)
         val (alpha1res, tpe1res) = if (captureAvoiding) (alpha1, tpe1) else (alpha1fresh, tpe1fresh)
 
         TUniv(alpha1res, mapType(bound1), mapType(tpe1res))
@@ -68,11 +68,12 @@ trait TypeOps {
 }
 
 trait DefaultTypeOpsImpl extends TypeOps {
-  self: TypeFamily =>
-  def freeTVars = FreeTypeVars
+  import types._
+
+  def freeTypeVars = FreeTypeVars
   protected object FreeTypeVars extends FreeTypeVars
 
-  def substT(sub: Map[Symbol, Type]) = new SubstType {
+  def substType(sub: Map[Symbol, Type]) = new SubstType {
     val substs: Map[Symbol, Type] =
       sub.filter { case (k, TVar(v)) if k == v => false
                    case _ => true}
@@ -80,9 +81,11 @@ trait DefaultTypeOpsImpl extends TypeOps {
 }
 
 trait TypedSyntaxOps {
-  self: TypedSyntaxFamily =>
+  self =>
+  val syntax: TypedSyntaxFamily
 
-  import self.types._
+  import syntax._
+  import types._
 
   def freeTypeVars: FreeTypeVars
   def freeVars: FreeVars
@@ -91,7 +94,10 @@ trait TypedSyntaxOps {
   def substType(substs: (Symbol, Type)*): SubstType = substType(Map(substs:_*))
   def substType(substs: List[(Symbol, Type)]): SubstType = substType(substs.toMap)
 
-  trait FreeTypeVars extends types.FreeTypeVars with StrictFold[Set[Symbol]] {
+  trait FreeTypeVars extends syntax.StrictFold[Set[Symbol]] {
+    val typeFold = types.op.freeTypeVars
+    import typeFold._
+
     def apply(prog: Exp): Set[Symbol] = fold(Set[Symbol]())(prog)
 
     override def fold(init: Set[Symbol]): FoldE = {
@@ -101,7 +107,13 @@ trait TypedSyntaxOps {
     }
   }
 
-  trait SubstType extends types.SubstType with Mapper {
+  trait SubstType extends syntax.Mapper {
+    val typeMapper: types.op.SubstType
+    import typeMapper.mapType
+    lazy val replTVars = typeMapper.replTVars
+
+    lazy val substs: Map[Symbol, Type] = typeMapper.substs
+
     override def map: TMapE = {
       case p if substs.isEmpty => p
 
@@ -120,9 +132,10 @@ trait TypedSyntaxOps {
     }
   }
 
-  trait FreeVars extends StrictFold[Set[Symbol]] {
+  trait FreeVars extends syntax.StrictFold[Set[Symbol]] {
+    val typeFold = types.identityFold(Set[Symbol]())
+
     def apply(prog: Exp): Set[Symbol] = fold(Set())(prog)
-    def apply(t: Type): Set[Symbol] = Set()
 
     override def fold(init: Set[Symbol]): FoldE = {
       case Var(x) =>
@@ -132,10 +145,6 @@ trait TypedSyntaxOps {
       case prog => super.fold(init)(prog)
     }
 
-    override def foldType(init: Set[Symbol]) = {
-      case _ => init
-    }
-
     override def foldPattern(init: Set[Symbol])(pattern: Pattern) = init
 
     override def foldRule(init: Set[Symbol])(rule: Rule): Set[Symbol] = {
@@ -143,7 +152,8 @@ trait TypedSyntaxOps {
     }
   }
 
-  class Subst(x: Symbol, repl: Exp) extends Mapper {
+  class Subst(x: Symbol, repl: Exp) extends syntax.Mapper {
+    val typeMapper = types.identityMap
     lazy val replVars = freeVars(repl)
     lazy val replTVars = freeTypeVars(repl)
 
@@ -163,7 +173,7 @@ trait TypedSyntaxOps {
         lazy val p1fresh = substType(alpha -> TVar(alphafresh))(p1)
         val (alphares, p1res) = if (captureAvoiding) (alpha, p1) else (alphafresh, p1fresh)
 
-        TAbs(alphares, mapType(bound1), map(p1res))
+        TAbs(alphares, typeMapper.mapType(bound1), map(p1res))
 
       case prog =>
         super.map(prog)
@@ -195,32 +205,20 @@ trait TypedSyntaxOps {
       else
         Rule(psres, map(progres))
     }
-
-    override def mapType: TMapT = { case t => t }
   }
 }
 
 trait DefaultTypedSyntaxOps extends TypedSyntaxOps {
-  self: TypedSyntaxFamily =>
-
-  import types.{Type, TVar}
+  import syntax.types.Type
+  import syntax.Exp
 
   def freeTypeVars = FreeTypeVars
   def freeVars = FreeVars
   def substExp(x: Symbol, repl: Exp) = new Subst(x, repl)
   def substType(sub: Map[Symbol, Type]) = new SubstType {
-    val substs: Map[Symbol, Type] =
-      sub.filter { case (k, TVar(v)) if k == v => false
-                   case _ => true}
+    val typeMapper = syntax.types.op.substType(sub)
   }
 
   protected object FreeVars extends FreeVars
   protected object FreeTypeVars extends FreeTypeVars
 }
-
-
-
-
-
-
-

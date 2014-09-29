@@ -2,8 +2,6 @@ package util.vis
 
 import javafx.embed.swing.JFXPanel
 
-import com.sun.xml.internal.ws.policy.sourcemodel.ModelNode
-
 import scalafx.Includes._
 import scalafx.application.Platform
 import scalafx.scene.Scene
@@ -44,9 +42,4 @@ object TreeInspector {
       inspector.stage.showAndWait()
     }
   }
-}
-
-object Inspector extends App {
-  val model = djc.lang.lib.combinators.recovery.MkRecover.impl
-  TreeInspector(model, "MkRecover")
 }

@@ -10,7 +10,7 @@ import scala.collection.immutable.ListMap
 object TypeInference {
   import Constraints._
   import Matching._
-  import XS._
+  import XS.{op => _, _}
   import Checker._
   
   type XExp = XS.Exp
@@ -19,7 +19,7 @@ object TypeInference {
   type Type = TS.types.Type
 
   import TS.types._
-
+  import TS.types.op._
 
   def infer(proto: PType, gamma: Context, tgamma: TVarContext, exp: XExp): (Type, Exp) = exp match {
     case Var(x) =>
@@ -69,7 +69,7 @@ object TypeInference {
 
     case srv@UServerImpl(rules) => proto match {
       case PT.TSrvRep(psvcs) =>
-        if (PT.isPrototype(proto))
+        if (PT.op.isPrototype(proto))
           throw InferenceException(s"Type of server must be fully known from the usage context, got incomplete type $proto")
         if (!(psvcs.keySet subsetOf srv.services.keySet))
           throw InferenceException(s"Untyped server $srv is incompatible with prototype $proto")
@@ -113,7 +113,7 @@ object TypeInference {
       val c1 = GenConstraints(tgamma, alpha, t, Top matchDown proto)
       val c2 = GenConstraints(tgamma, alpha, TVar(alpha), bound)
       val subst = solve(tgamma, alpha, Constraints.meet(tgamma, c1, c2), t)
-      val sigma = substType(alpha -> subst)
+      val sigma = op.substType(alpha -> subst)
       val tres = sigma(t)
       (tres matchUp proto, TS.TApp(ie, subst))
 
@@ -124,16 +124,16 @@ object TypeInference {
       	  val (t, ie) = infer(proto, gamma, tgamma + (alpha -> bound), e)
       	  (TUniv(alpha, bound, t), TS.TAbs(alpha, bound, ie))
 
-      	case PT.TUniv(alpha2, bound2, p) if !PT.isPrototype(bound2) && bound === bound2.toFamily(TS.types) =>
-        lazy val fptv = PT.freeTVars(p)
+      	case PT.TUniv(alpha2, bound2, p) if !PT.op.isPrototype(bound2) && bound === bound2.toFamily(TS.types) =>
+        lazy val fptv = PT.op.freeTypeVars(p)
         val alphares =
           if (alpha != alpha2 && fptv(alpha))
-            Gensym(alpha, freeTypeVars(e) ++ fptv)
+            Gensym(alpha, XS.op.freeTypeVars(e) ++ fptv)
           else alpha
 
-        val (te, ie) = infer(PT.substT(alpha2 -> PT.TVar(alphares))(p),
+        val (te, ie) = infer(PT.op.substType(alpha2 -> PT.TVar(alphares))(p),
           gamma, tgamma + (alphares -> bound),
-          substType(alpha -> TVar(alphares))(e))
+          XS.op.substType(alpha -> TVar(alphares))(e))
         (TUniv(alphares, bound, te), TS.TAbs(alphares, bound, ie))
     }
 
@@ -149,7 +149,7 @@ object TypeInference {
       //infer type arguments
       val (tvarslist, bounds) = b.targs.unzip  //TODO baseops are also type binders, hence we need to ensure the bound vars are not in scope already
       val tvars = tvarslist.toSet
-      val substTargs = PT.substT(tvarslist zip List.fill(tvarslist.length)(PT.Hole))
+      val substTargs = PT.op.substType(tvarslist zip List.fill(tvarslist.length)(PT.Hole))
       val (argTypes, inferredArgs) = ((b.ts zip es) map { case (t, e) => infer(substTargs(t.toFamily(PT)), gamma, tgamma, e)}).unzip
 
       val cargs = GenConstraints(tgamma, tvars, argTypes zip b.ts)

@@ -6,7 +6,8 @@ import djc.lang.typ._
  * Partial types for colored type inference
  */
 trait ProtoTypesFamily extends TypeFamily {
-  self: TypeOps =>
+  self =>
+  val op: ProtoTypeOps { val types: self.type }
 
   //placeholder in partial type information
   case object Hole extends Type {
@@ -30,7 +31,8 @@ trait ProtoTypesFamily extends TypeFamily {
 }
 
 trait ProtoTypeOps extends DefaultTypeOpsImpl {
-  self: ProtoTypesFamily =>
+  val types: ProtoTypesFamily
+  import types._
 
   def isPrototype(t: Type): Boolean = IsPrototype(t)
 
@@ -45,4 +47,8 @@ trait ProtoTypeOps extends DefaultTypeOpsImpl {
   }
 }
 
-object ProtoTypes extends ProtoTypesFamily with ProtoTypeOps
+object ProtoTypes extends ProtoTypesFamily {
+  val op = new ProtoTypeOps {
+    val types = ProtoTypes
+  }
+}

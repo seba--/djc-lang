@@ -10,15 +10,17 @@ import scala.collection.immutable.ListMap
  * Created by oliver on 22.09.14.
  */
 trait TypedSyntaxFamily {
-  self: TypedSyntaxOps =>
+  self =>
 
+  val op: TypedSyntaxOps { val syntax: self.type   }
   type TSF = TypedSyntaxFamily
+  val types: TypeFamily
 
-  val types: TypeFamily with TypeOps
   import types._
+  import op._
 
   abstract class Exp {
-    val family: TypedSyntaxFamily with TypedSyntaxOps = self
+    val family: TypedSyntaxFamily = self
     def eraseType: Syntax.Exp
     def toFamily(TF: TSF): TF.Exp
   }
@@ -151,7 +153,7 @@ trait TypedSyntaxFamily {
 
     override def toString = s"Rule($ps  =>  $p)"
 
-    val family: TypedSyntaxFamily with TypedSyntaxOps = self
+    val family: TypedSyntaxFamily = self
     def toFamily(TF: TSF): TF.Rule = TF.Rule(ps map {_.toFamily(TF)}, p.toFamily(TF))
   }
   object Rule {
@@ -160,7 +162,7 @@ trait TypedSyntaxFamily {
 
   case class Pattern(name: Symbol, params: ListMap[Symbol, Type]) {
     def eraseType = Syntax.Pattern(name, params.keys.toList)
-    val family: TypedSyntaxFamily with TypedSyntaxOps = self
+    val family: TypedSyntaxFamily = self
     def toFamily(TF: TSF): TF.Pattern = TF.Pattern(name, params.map { case (k, t) => (k, t.toFamily(TF.types))}  )
   }
 
@@ -178,7 +180,7 @@ trait TypedSyntaxFamily {
     def this(targs: (Symbol,Type)*)(ts: List[Type], res: Type) = this(List(targs:_*), ts, res)
     def eraseType: Syntax.BaseOp = this
 
-    val family: TypedSyntaxFamily with TypedSyntaxOps = self
+    val family: TypedSyntaxFamily = self
     def toFamily(TF: TSF): TF.BaseOp = TF.BaseOpFromImpl(targs map {case (s, t) => (s, t.toFamily(TF.types))}, ts map {_.toFamily(TF.types)}, res.toFamily(TF.types), this)
   }
 
@@ -193,7 +195,7 @@ trait TypedSyntaxFamily {
 
     lazy val resultType: Type = {
       val (tvars,_) = b.targs.unzip
-      val sigma: Type => Type = substType((tvars zip ts):_*)(_)
+      val sigma: Type => Type = types.op.substType(tvars zip ts)(_)
       sigma(b.res)
     }
 
@@ -242,7 +244,7 @@ trait TypedSyntaxFamily {
   implicit def infixType(t: Type) = InfixType(t)
   case class InfixType(t: Type) {
     def apply(t2: Type): Type = t match {
-      case TUniv(x, _, t1) => substType(x -> t2)(t1)
+      case TUniv(x, _, t1) => types.op.substType(x -> t2)(t1)
       case _ => throw new IllegalArgumentException(s"Expect TUniv but got $t")
     }
     def apply(t2s: Type*): Type = t2s.foldLeft(this)((t, t2) => InfixType(t.apply(t2))).t
@@ -263,8 +265,11 @@ trait TypedSyntaxFamily {
   }
 
 
-  trait Mapper extends types.Mapper {
+  trait Mapper {
     final type TMapE = PartialFunction[Exp, Exp]
+
+    val typeMapper: types.Mapper
+    import typeMapper.mapType
 
     def apply(prog: Exp): Exp = map(prog)
 
@@ -308,8 +313,10 @@ trait TypedSyntaxFamily {
     }
   }
 
-  trait StrictFold[T] extends types.StrictFold[T] {
+  trait StrictFold[T] {
     final type FoldE = PartialFunction[Exp, T]
+    val typeFold: types.StrictFold[T]
+    import typeFold.foldType
 
     def apply(e: Exp): T
 
@@ -351,8 +358,11 @@ trait TypedSyntaxFamily {
     }
   }
 
-  trait LazyFold[T] extends types.LazyFold[T] {
+  trait LazyFold[T]  {
     final type FoldE = PartialFunction[Exp, T]
+
+    val typeFold: types.LazyFold[T]
+    import typeFold.foldType
 
     def apply(e: Exp): T
 
