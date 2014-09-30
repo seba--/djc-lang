@@ -106,6 +106,7 @@ trait ExtSyntaxFamily extends TypedSyntaxFamily {
         fold(init)(e)
       case UServerImpl(rules) =>
         rules.foldLeft(init)(foldURule(_)(_))
+      case e => super.fold(init)(e)
     }
 
     def foldURule(init: T)(r: URule): T = {
@@ -122,6 +123,7 @@ trait ExtSyntaxFamily extends TypedSyntaxFamily {
         fold(init)(e)
       case UServerImpl(rules) =>
         rules.lazyFoldr(init)((e,t) => foldURule(t)(e))
+      case e => super.fold(init)(e)
     }
 
     def foldURule(init: => T)(r: URule): T = {
