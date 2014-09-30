@@ -12,7 +12,7 @@ import scala.collection.immutable.ListMap
 trait TypedSyntaxFamily {
   self =>
 
-  val op: TypedSyntaxOps { val syntax: self.type   }
+  val op: TypedSyntaxOps { val syntax: self.type }
   type TSF = TypedSyntaxFamily
   val types: TypeFamily
 

@@ -1,7 +1,9 @@
 package djc.lang.typ.inference.base
 
-import djc.lang.TypedLanguage._
-import djc.lang.TypedLanguage.types._
+import djc.lang.TypedLanguage
+import djc.lang.typ.inference.ExtLanguage
+import djc.lang.typ.inference.ExtLanguage._
+import djc.lang.typ.inference.ExtLanguage.types._
 import djc.lang.base.Integer._
 import djc.lang.base.ListsOps
 
@@ -10,6 +12,8 @@ import djc.lang.base.ListsOps
  */
 object Lists {
   import djc.lang.base.ListsOps._
+
+  implicit def toExtLang(b: TypedLanguage.BaseOp): ExtLanguage.BaseOp = b.toFamily(ExtLanguage)
 
   val TList = ListsOps.TList
 
@@ -28,7 +32,7 @@ object Lists {
     def elemAt(e2: Exp) = BaseCall(ElementAt, Nil, e2, e1)
     def isNil = BaseCall(IsEmpty, Nil, e1)
     def +++(e2: Exp) = BaseCall(Concat, Nil, e1, e2)
-    def head = elemAt(0)
+    def head = elemAt(mkIntLit(0).toFamily(ExtLanguage))
     def tail = BaseCall(Tail, Nil, e1)
     def length = BaseCall(Length, Nil, e1)
   }

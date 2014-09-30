@@ -26,7 +26,7 @@ trait TypeOps {
   def captureAvoiding(alpha: Symbol, tpe: Type, beta: Symbol, tpe1: Type): (Symbol, Type, Type) =
     TypeOps.captureAvoiding(types, types)(alpha, tpe, beta, tpe1)
 
-  trait FreeTypeVars extends StrictFold[Set[Symbol]] {
+  trait FreeTypeVars extends types.StrictFold[Set[Symbol]] {
     def apply(tpe: Type): Set[Symbol] = foldType(Set[Symbol]())(tpe)
 
     override def foldType(init: Set[Symbol]): FoldT = {
@@ -38,7 +38,7 @@ trait TypeOps {
     }
   }
 
-  trait SubstType extends Mapper {
+  trait SubstType extends types.Mapper {
     val substs: Map[Symbol, Type]
 
     lazy val replTVars = substs.values.foldLeft(Set[Symbol]()) {
@@ -71,7 +71,7 @@ trait DefaultTypeOpsImpl extends TypeOps {
   import types._
 
   def freeTypeVars = FreeTypeVars
-  protected object FreeTypeVars extends FreeTypeVars
+  protected object FreeTypeVars extends super.FreeTypeVars
 
   def substType(sub: Map[Symbol, Type]) = new SubstType {
     val substs: Map[Symbol, Type] =
