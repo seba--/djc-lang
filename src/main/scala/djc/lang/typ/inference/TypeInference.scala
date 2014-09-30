@@ -21,6 +21,8 @@ object TypeInference {
   import TS.types._
   import TS.types.op._
 
+  implicit def asPrototype[TF <: TypeFamily](t: TF#Type): PT.Type = t.toFamily(PT)
+
   def infer(proto: PType, gamma: Context, tgamma: TVarContext, exp: XExp): (Type, Exp) = exp match {
     case Var(x) =>
       (gamma(x) matchUp proto, exp.toFamily(TS))
@@ -39,7 +41,7 @@ object TypeInference {
         val (t@TSvc(ts), rcve) = infer(PT.Hole, gamma, tgamma, rcv)
         if (ts.length != args.length)
           throw InferenceException(s"receiver/arg counts do not match: inferred $t for rcv\n with arguments $args")
-        val (_, arges) = (ts zip args).map { case (t, e) => infer(t.toFamily(PT), gamma, tgamma, e)}.unzip
+        val (_, arges) = (ts zip args).map { case (t, e) => infer(t, gamma, tgamma, e)}.unzip
         val tres = if (proto == PT.Hole) Unit else proto.toFamily(TS.types)
 
         (tres, TS.Send(rcve, arges))
@@ -142,7 +144,7 @@ object TypeInference {
       (t matchUp proto, TS.UnsafeCast(ie, t))
 
     case UpCast(e, t) =>
-      val (_, ie) = infer(t.toFamily(PT), gamma, tgamma, e)
+      val (_, ie) = infer(t, gamma, tgamma, e)
       (t matchUp proto, TS.UpCast(ie, t))
 
     case BaseCall(b, Nil, es) =>
@@ -150,7 +152,7 @@ object TypeInference {
       val (tvarslist, bounds) = b.targs.unzip  //TODO baseops are also type binders, hence we need to ensure the bound vars are not in scope already
       val tvars = tvarslist.toSet
       val substTargs = PT.op.substType(tvarslist zip List.fill(tvarslist.length)(PT.Hole))
-      val (argTypes, inferredArgs) = ((b.ts zip es) map { case (t, e) => infer(substTargs(t.toFamily(PT)), gamma, tgamma, e)}).unzip
+      val (argTypes, inferredArgs) = ((b.ts zip es) map { case (t, e) => infer(substTargs(t), gamma, tgamma, e)}).unzip
 
       val cargs = GenConstraints(tgamma, tvars, argTypes zip b.ts)
       val cresult = GenConstraints(tgamma, tvars, b.res, Top matchDown proto)
@@ -173,7 +175,7 @@ object TypeInference {
       val bSig = b.ts map sigma
 
       //no need to bind the synthesized types, since in this case, they exactly match b.ts
-      val (_, infEs) = ((b.ts zip es) map { case (p, e) => infer(p.toFamily(PT), gamma, tgamma, e)}).unzip
+      val (_, infEs) = ((b.ts zip es) map { case (p, e) => infer(p, gamma, tgamma, e)}).unzip
       (sigma(b.res) matchUp proto, TS.BaseCall(b.toFamily(TS), ts, infEs))
 
     case _ => throw InferenceException(s"Cannot infer type for $exp. Unknown syntactic form.")
