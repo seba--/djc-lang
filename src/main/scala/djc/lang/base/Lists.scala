@@ -1,14 +1,14 @@
 package djc.lang.base
 
 import djc.lang.Syntax
-import djc.lang.TypedSyntax._
+import djc.lang.TypedLanguage._
+import djc.lang.TypedLanguage.types._
 import djc.lang.base.Bool._
 import djc.lang.base.Integer._
 import djc.lang.sem.SemanticException
-import djc.lang.typ.Types._
 
 
-object Lists {
+object ListsOps {
 
   val TList = TUniv('alpha, TBase('List, TVar('alpha)))
 
@@ -22,10 +22,6 @@ object Lists {
   object ListValue {
     def apply(vs: Value*): ListValue = ListValue(List(vs:_*))
   }
-
-  def lst(t: Type, es: Exp*): BaseCall =
-    es.foldRight(nil(t)) { case (e, liste) => BaseCall(Cons, List(t), e, liste) }
-  def nil(t: Type) = BaseCall(Empty, List(t))
 
   case object Empty extends BaseOp('alpha << Top)(Nil, TList('alpha)) {
     def reduce(vs: List[Value]) = ListValue(Nil)
@@ -73,6 +69,16 @@ object Lists {
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $vs")
     }
   }
+}
+
+object Lists {
+  import ListsOps._
+
+  val TList = ListsOps.TList
+
+  def lst(t: Type, es: Exp*): BaseCall =
+    es.foldRight(nil(t)) { case (e, liste) => BaseCall(Cons, List(t), e, liste) }
+  def nil(t: Type) = BaseCall(Empty, List(t))
 
   implicit def infixExpListVar(e: Symbol) = InfixExpList(Var(e))
   implicit def infixExpList(e: Exp) = InfixExpList(e)

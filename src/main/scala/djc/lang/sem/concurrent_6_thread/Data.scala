@@ -50,7 +50,7 @@ class Data(router: Router) {
 
   object resolveExp extends Mapper {
     override def map(prog: Exp): Exp = prog match {
-      case addr@ServerAddr(_) => {
+      case addr@ServerAddr(_, _) => {
         val s = router.lookupServer(addr)
         SpawnAny(map(ServerClosure(s.impl, s.env).toExp))
       }

@@ -1,18 +1,17 @@
 package djc.lang.base
 
 import djc.lang.Syntax
-import djc.lang.TypedSyntax._
+import djc.lang.TypedLanguage._
+import djc.lang.TypedLanguage.types._
 import djc.lang.base.Bool._
-import djc.lang.base.Maps.MapValue
 import djc.lang.sem.SemanticException
-import djc.lang.typ.Types._
 
-object Maps {
+object MapsOps {
   val TMap = TUniv('K, TUniv('V, TBase('Map, TVar('K), TVar('V))))
 
   case class MapValue(m: Map[Value, Value]) extends Value {
     def toExp = m.foldRight(Syntax.BaseCall(Empty.eraseType)) {
-      case ((k,v), mape) =>  Syntax.BaseCall(Insert.eraseType, mape, k.toExp, v.toExp)
+      case ((k, v), mape) => Syntax.BaseCall(Insert.eraseType, mape, k.toExp, v.toExp)
     }
   }
 
@@ -20,9 +19,6 @@ object Maps {
     def reduce(vs: List[Value]) = MapValue(Map())
   }
 
-  def map(tk: Type, tv: Type)(es: (Exp,Exp)*): BaseCall =
-    es.foldRight(empty(tk,tv)) { case ((k,v), mape) => mape.insert(k, v)}
-  def empty(k: Type, v: Type) = BaseCall(Empty, List(k, v))
 
   case object Contains extends BaseOp('K << Top, 'V << Top)(TMap('K, 'V) :: TVar('K) :: Nil, TBool) {
     def reduce(vs: List[Value]) = vs match {
@@ -55,7 +51,17 @@ object Maps {
       case _ => throw new SemanticException(s"wrong argument types for $getClass: $vs")
     }
   }
+}
 
+object Maps {
+  import MapsOps._
+
+  val TMap = MapsOps.TMap
+
+  def map(tk: Type, tv: Type)(es: (Exp, Exp)*): BaseCall =
+    es.foldRight(empty(tk, tv)) { case ((k, v), mape) => mape.insert(k, v)}
+
+  def empty(k: Type, v: Type) = BaseCall(Empty, List(k, v))
 
   implicit def infixSymbolMap(s: Symbol) = InfixExpMap(Var(s))
   implicit def infixMapExp(e: Exp) = InfixExpMap(e)

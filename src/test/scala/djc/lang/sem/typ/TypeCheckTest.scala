@@ -2,10 +2,9 @@ package djc.lang.sem.typ
 
 import org.scalatest.FunSuite
 import util.Bag
-
-import djc.lang.typ.Types._
 import djc.lang.typ.Checker._
-import djc.lang.TypedSyntax._
+import djc.lang.TypedLanguage._
+import djc.lang.TypedLanguage.types._
 import djc.lang.TypedSyntaxDerived._
 
 
@@ -46,7 +45,7 @@ class TypeCheckTest extends FunSuite {
 
 
   test("cellServer typeCheck") {
-    assert(cellTypePrivate(TVar('V)).rep === typeCheck(Map(), Map(), cellServer))
+    assert(TUniv('V, cellTypePrivate(TVar('V)).rep) === typeCheck(Map(), Map(), TAbs('V, cellServer)))
   }
 
   test("cellFactoryServer typeCheck factory") {

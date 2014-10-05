@@ -1,6 +1,7 @@
 package djc.lang.lib.combinators.recovery
 
-import djc.lang.TypedSyntax._
+import djc.lang.TypedLanguage._
+import djc.lang.TypedLanguage.types._
 import djc.lang.TypedSyntaxDerived.{TThunk => _, _}
 import djc.lang.base.Lists._
 import djc.lang.base.Pairs._
@@ -9,7 +10,6 @@ import djc.lang.base.IntegerCompare._
 import djc.lang.base.Bool._
 import djc.lang.lib.combinators._
 import djc.lang.lib.combinators.aux._
-import djc.lang.typ.Types._
 
 object MkRecover extends Combinator {
   def apply(t1: Type, t2: Type) = TApp(impl, t1, t2)

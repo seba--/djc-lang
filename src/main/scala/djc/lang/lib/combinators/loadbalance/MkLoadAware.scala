@@ -1,10 +1,10 @@
 package djc.lang.lib.combinators.loadbalance
 
-import djc.lang.TypedSyntax._
+import djc.lang.TypedLanguage._
+import djc.lang.TypedLanguage.types._
 import djc.lang.TypedSyntaxDerived.{TThunk => _, _}
 import djc.lang.base.Integer._
 import djc.lang.lib.combinators._
-import djc.lang.typ.Types._
 
 object MkLoadAware extends Combinator {
   def apply(t1: Type, t2: Type) = TApp(impl, t1, t2)

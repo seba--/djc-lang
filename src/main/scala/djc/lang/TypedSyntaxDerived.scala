@@ -1,11 +1,11 @@
 package djc.lang
 
-import djc.lang.typ.{FreeVars, SubstTemplate}
 import util.Bag
-import djc.lang.TypedSyntax._
-import djc.lang.typ.Types._
+import djc.lang.TypedLanguage._
 
 object TypedSyntaxDerived {
+  import TypedLanguage.types._
+  import TypedLanguage.op._
 
   implicit def makeParSend(s: Send) = Par(s)
 
@@ -39,11 +39,11 @@ object TypedSyntaxDerived {
   //A local control expression is a ServerImpl if it has only a single rule with
   //a singleton join pattern and its service name starts with "$".
   def This(thisType: Type)(e: Exp): Exp = {
-    val self = Gensym.gensym('self, FreeVars(e))
+    val self = Gensym.gensym('self, freeVars(e))
 
     //Modified substitution function which lets substs for 'this' pass into
     //rule bodies of local control expressions.
-    object PatchThisRefs extends SubstTemplate('this, Var(self)) {
+    object PatchThisRefs extends Subst('this, Var(self)) {
       def isThisTransparentName(sym: Symbol) = sym.name.startsWith("$") && !sym.name.endsWith("$")
 
       override def map: TMapE = {

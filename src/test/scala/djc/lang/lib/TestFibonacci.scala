@@ -1,13 +1,13 @@
 package djc.lang.lib
 
 import util.Bag
-import djc.lang.TypedSyntax._
+import djc.lang.TypedLanguage._
+import djc.lang.TypedLanguage.types._
 import djc.lang.TypedSyntaxDerived._
 
 import djc.lang.sem._
 import djc.lang.base.Integer._
 import djc.lang.AbstractTest
-import djc.lang.typ.Types._
 
 
 class TestFibonacci1 extends TestFibonacci(10, nondeterm_1_subst.Semantics)

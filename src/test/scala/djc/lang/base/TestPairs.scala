@@ -1,14 +1,14 @@
 package djc.lang.base
 
 import djc.lang.AbstractTest
-import djc.lang.TypedSyntax._
+import djc.lang.TypedLanguage._
+import djc.lang.TypedLanguage.types.{TPair => _, _}
 import djc.lang.base.Bool._
 import djc.lang.base.Double._
 import djc.lang.base.Integer._
 import djc.lang.base.Pairs._
 import djc.lang.sem._
 import djc.lang.typ.Checker._
-import djc.lang.typ.Types._
 import util.Bag
 
 class TestPairs1 extends TestPairs(nondeterm_1_subst.Semantics)
@@ -37,9 +37,6 @@ class TestPairs[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem) {
       typeCheck(Map(), Map(), p3)
     }
   }
-
-  println(pair(1.0, tru, 1).snd)
-  println()
 
   def p(t: Type, e: Exp): Par = Par(PRINT(t, e))
   def res(sends: Exp*): AbstractSemantics.Res[Bag[Send]] = Set(Bag(sends.map(PRINT):_*))

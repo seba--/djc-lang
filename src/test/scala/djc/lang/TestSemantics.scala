@@ -1,12 +1,10 @@
 package djc.lang
 
-import org.scalatest.FunSuite
 import util.Bag
 import Syntax._
 import SyntaxDerived._
 
 import djc.lang.sem._
-import djc.lang.sem.Substitution
 
 
 class TestSemantics_nondeterm_subst extends TestSemantics(nondeterm_1_subst.Semantics)

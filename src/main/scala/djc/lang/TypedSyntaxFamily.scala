@@ -1,15 +1,28 @@
 package djc.lang
 
+import djc.lang.typ.{TypeOps, TypeFamily, TypedSyntaxOps}
 import util.Bag
+import util.ListOps._
+
 import scala.collection.immutable.ListMap
 
-import djc.lang.typ.Types._
-import djc.lang.typ.SubstType
+/**
+ * Created by oliver on 22.09.14.
+ */
+trait TypedSyntaxFamily {
+  self =>
 
-object TypedSyntax {
+  val op: TypedSyntaxOps { val syntax: self.type }
+  type TSF = TypedSyntaxFamily
+  val types: TypeFamily
+
+  import types._
+  import op._
 
   abstract class Exp {
+    val family: TypedSyntaxFamily = self
     def eraseType: Syntax.Exp
+    def toFamily(TF: TSF): TF.Exp
   }
 
   case class Par(ps: Bag[Exp]) extends Exp {
@@ -19,11 +32,15 @@ object TypedSyntax {
         "Par()"
       else
         s"Par(${ps.toString})"
+
+    override def toFamily(TF: TSF) = TF.Par(ps map {_.toFamily(TF)})
   }
   object Par { def apply(ps: Exp*) = new Par(Bag(ps: _*))}
 
   case class Send(rcv: Exp, args: List[Exp]) extends Exp {
     override def eraseType = Syntax.Send(rcv.eraseType, args.map(_.eraseType))
+
+    override def toFamily(TF: TSF) = TF.Send(rcv.toFamily(TF), args map {_.toFamily(TF)})
   }
 
   object Send {
@@ -32,17 +49,19 @@ object TypedSyntax {
 
   case class Var(x: Symbol) extends Exp {
     override def eraseType = Syntax.Var(x)
+    override def toFamily(TF: TSF) = TF.Var(x)
   }
 
   case class ServiceRef(srv: Exp, x: Symbol) extends Exp {
     override def eraseType = Syntax.ServiceRef(srv.eraseType, x)
+    override def toFamily(TF: TSF) = TF.ServiceRef(srv.toFamily(TF), x)
   }
 
   case class ServerImpl(rules: List[Rule]) extends Exp {
     override def eraseType = Syntax.ServerImpl(rules map (_.eraseType))
 
     lazy val signature = {
-      import collection.mutable.{HashMap, MultiMap, Set}
+      import scala.collection.mutable.{HashMap, MultiMap, Set}
       val mm = new HashMap[Symbol, Set[Type]] with MultiMap[Symbol, Type]
       for (Rule(ps, _) <- rules; Pattern(svcname, params) <- ps)
         mm.addBinding(svcname, TSvc(params.map(_._2).toList))
@@ -57,6 +76,8 @@ object TypedSyntax {
         }
       TSrvRep(m)
     }
+
+    override def toFamily(TF: TSF) = TF.ServerImpl(rules map {_.toFamily(TF)})
   }
   object ServerImpl {
     def apply(rules: Rule*): ServerImpl = ServerImpl(List(rules: _*))
@@ -64,6 +85,8 @@ object TypedSyntax {
 
   case class Spawn(local: Boolean, e: Exp) extends Exp {
     override def eraseType = Syntax.Spawn(local, e.eraseType)
+
+    override def toFamily(TF: TSF) = TF.Spawn(local, e.toFamily(TF))
   }
   object Spawn {
     def apply(e: Exp): Spawn = Spawn(false, e)
@@ -82,6 +105,8 @@ object TypedSyntax {
 
   case class TApp(p: Exp, t: Type) extends Exp {
     override def eraseType = p.eraseType
+
+    override def toFamily(TF: TSF) = TF.TApp(p.toFamily(TF), t.toFamily(TF.types))
   }
   object TApp {
     def apply(e: Exp, ts: Type*) = ts.foldLeft(e){case (e1, t) => new TApp(e1, t) }
@@ -89,6 +114,8 @@ object TypedSyntax {
 
   case class TAbs(alpha: Symbol, bound: Type, p: Exp) extends Exp {
     override def eraseType = p.eraseType
+
+    override def toFamily(TF: TSF) = TF.TAbs(alpha, bound.toFamily(TF.types), p.toFamily(TF))
   }
   object TAbs {
     def apply(alpha: Symbol, p: Exp): TAbs = TAbs(alpha, Top, p)
@@ -106,10 +133,14 @@ object TypedSyntax {
 
   case class UnsafeCast(e: Exp, t: Type) extends Exp {
     override def eraseType = e.eraseType
+
+    override def toFamily(TF: TSF) = TF.UnsafeCast(e.toFamily(TF), t.toFamily(TF.types))
   }
 
   case class UpCast(e: Exp, t: Type) extends Exp {
     override def eraseType = e.eraseType
+
+    override def toFamily(TF: TSF) = TF.UpCast(e.toFamily(TF), t.toFamily(TF.types))
   }
 
   case class Rule(ps: Bag[Pattern], p: Exp) {
@@ -121,6 +152,9 @@ object TypedSyntax {
     }
 
     override def toString = s"Rule($ps  =>  $p)"
+
+    val family: TypedSyntaxFamily = self
+    def toFamily(TF: TSF): TF.Rule = TF.Rule(ps map {_.toFamily(TF)}, p.toFamily(TF))
   }
   object Rule {
     def apply(ps: Pattern*)(p: Exp): Rule = Rule(Bag(ps:_*), p)
@@ -128,6 +162,8 @@ object TypedSyntax {
 
   case class Pattern(name: Symbol, params: ListMap[Symbol, Type]) {
     def eraseType = Syntax.Pattern(name, params.keys.toList)
+    val family: TypedSyntaxFamily = self
+    def toFamily(TF: TSF): TF.Pattern = TF.Pattern(name, params.map { case (k, t) => (k, t.toFamily(TF.types))}  )
   }
 
   object Pattern {
@@ -143,6 +179,14 @@ object TypedSyntax {
     def this(ts: List[Type], res: Type) = this(Nil, ts, res)
     def this(targs: (Symbol,Type)*)(ts: List[Type], res: Type) = this(List(targs:_*), ts, res)
     def eraseType: Syntax.BaseOp = this
+
+    val family: TypedSyntaxFamily = self
+    def toFamily(TF: TSF): TF.BaseOp = TF.BaseOpFromImpl(targs map {case (s, t) => (s, t.toFamily(TF.types))}, ts map {_.toFamily(TF.types)}, res.toFamily(TF.types), this)
+  }
+
+  //TODO this should be the standard way of defining typed baseops, i.e. decorate an untyped impl
+  case class BaseOpFromImpl(override val targs: List[(Symbol, Type)], override val ts: List[Type], override val res: Type, impl: Syntax.BaseOp) extends BaseOp(targs, ts, res) {
+      def reduce(vs: List[Syntax.Value]) = impl.reduce(vs)
   }
 
   case class BaseCall(b: BaseOp, ts: List[Type], es: List[Exp]) extends Exp {
@@ -151,9 +195,11 @@ object TypedSyntax {
 
     lazy val resultType: Type = {
       val (tvars,_) = b.targs.unzip
-      val sigma: Type => Type = SubstType(tvars zip ts)(_)
+      val sigma: Type => Type = types.op.substType(tvars zip ts)(_)
       sigma(b.res)
     }
+
+    override def toFamily(TF: TSF) = TF.BaseCall(b.toFamily(TF), ts map {_.toFamily(TF.types)}, es map {_.toFamily(TF)})
   }
   object BaseCall {
   //  def apply(b: BaseOp, ts: Type*)(es: Exp*): BaseCall = BaseCall(b, List(ts:_*), List(es:_*))
@@ -198,7 +244,7 @@ object TypedSyntax {
   implicit def infixType(t: Type) = InfixType(t)
   case class InfixType(t: Type) {
     def apply(t2: Type): Type = t match {
-      case TUniv(x, _, t1) => SubstType(x -> t2)(t1)
+      case TUniv(x, _, t1) => types.op.substType(x -> t2)(t1)
       case _ => throw new IllegalArgumentException(s"Expect TUniv but got $t")
     }
     def apply(t2s: Type*): Type = t2s.foldLeft(this)((t, t2) => InfixType(t.apply(t2))).t
@@ -219,15 +265,13 @@ object TypedSyntax {
   }
 
 
-
-
   trait Mapper {
-    final type TMapE = PartialFunction[Exp,Exp]
-    final type TMapT = PartialFunction[Type,Type]
+    final type TMapE = PartialFunction[Exp, Exp]
+
+    val typeMapper: types.Mapper
+    import typeMapper.mapType
 
     def apply(prog: Exp): Exp = map(prog)
-
-    def apply(tpe: Type): Type = mapType(tpe)
 
     def map: TMapE = {
       case Par(ps) =>
@@ -254,17 +298,6 @@ object TypedSyntax {
         BaseCall(b, ts map mapType, es map map)
     }
 
-    def mapType: TMapT = {
-      case Top => Top
-      case Unit => Unit
-      case TSvc(ts) => TSvc((ts map mapType))
-      case TSrvRep(svcs) => TSrvRep(svcs mapValues mapType)
-      case TSrv(t) => TSrv(mapType(t))
-      case TVar(alpha) => TVar(alpha)
-      case TBase(name, ts) => TBase(name, ts map mapType)
-      case TUniv(alpha, bound, tpe1) => TUniv(alpha, mapType(bound), mapType(tpe1))
-    }
-
     def mapRule(rule: Rule): Rule = {
       val Rule(ps, prog) = rule
       Rule(ps map mapPattern, map(prog))
@@ -280,11 +313,14 @@ object TypedSyntax {
     }
   }
 
-  trait Fold {
-    final type FoldE[T] = PartialFunction[Exp, T]
-    final type FoldT[T] = PartialFunction[Type, T]
+  trait StrictFold[T] {
+    final type FoldE = PartialFunction[Exp, T]
+    val typeFold: types.StrictFold[T]
+    import typeFold.foldType
 
-    def fold[T](init: T): FoldE[T] = {
+    def apply(e: Exp): T
+
+    def fold(init: T): FoldE = {
       case Par(ps) =>
         ps.foldLeft(init)(fold(_)(_))
       case Send(p, args) =>
@@ -309,36 +345,60 @@ object TypedSyntax {
         es.foldLeft(ts.foldLeft(init)(foldType(_)(_)))(fold(_)(_))
     }
 
-    def foldType[T](init: T): FoldT[T] = {
-      case Top =>
-        init
-      case Unit =>
-        init
-      case TSvc(ts) =>
-        ts.foldLeft(init)(foldType(_)(_))
-      case TSrvRep(svcs) =>
-        svcs.foldLeft(init) {
-          (i, kv) => foldType(i)(kv._2)
-        }
-      case TSrv(t) => foldType(init)(t)
-      case TVar(alpha) =>
-        init
-      case TBase(name, ts) =>
-        ts.foldLeft(init)(foldType(_)(_))
-      case TUniv(alpha, bound1, tpe1) =>
-        foldType(foldType(init)(bound1))(tpe1)
-    }
-
-    def foldRule[T](init: T)(rule: Rule): T = {
+    def foldRule(init: T)(rule: Rule): T = {
       val Rule(ps, prog) = rule
       fold((ps.foldLeft(init)(foldPattern(_)(_))))(prog)
     }
 
-    def foldPattern[T](init: T)(pattern: Pattern): T = {
+    def foldPattern(init: T)(pattern: Pattern): T = {
       val Pattern(_, params) = pattern
       params.foldLeft(init) {
         (i, kv) => foldType(i)(kv._2)
       }
+    }
+  }
+
+  trait LazyFold[T]  {
+    final type FoldE = PartialFunction[Exp, T]
+
+    val typeFold: types.LazyFold[T]
+    import typeFold.foldType
+
+    def apply(e: Exp): T
+
+    def fold(init: => T): FoldE = {
+      case Par(ps) =>
+        ps.lazyFoldr(init)((e, t) => fold(t)(e))
+      case Send(p, args) =>
+        fold(args.lazyFoldr(init)((e, t) => fold(t)(e)))(p)
+      case Var(x) =>
+        init
+      case ServiceRef(p1, x) =>
+        fold(init)(p1)
+      case ServerImpl(rs) =>
+        rs.lazyFoldr(init)((e, t) => foldRule(t)(e))
+      case Spawn(local, e) =>
+        fold(init)(e)
+      case TApp(p1, t) =>
+        fold(foldType(init)(t))(p1)
+      case TAbs(alpha, bound1, p1) =>
+        foldType(fold(init)(p1))(bound1)
+      case UnsafeCast(e, t) =>
+        fold(foldType(init)(t))(e)
+      case UpCast(e, t) =>
+        fold(foldType(init)(t))(e)
+      case BaseCall(b, ts, es) =>
+        ts.lazyFoldr(es.lazyFoldr(init)((e, t) => fold(t)(e)))((tpe, t) => foldType(t)(tpe))
+    }
+
+    def foldRule(init: => T)(rule: Rule): T = {
+      val Rule(ps, prog) = rule
+      ps.lazyFoldr(fold(init)(prog))((p, t) => foldPattern(t)(p))
+    }
+
+    def foldPattern(init: => T)(pattern: Pattern): T = {
+      val Pattern(_, params) = pattern
+      params.toList.lazyFoldr(init)((p, t) => foldType(t)(p._2))
     }
   }
 }

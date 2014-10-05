@@ -2,14 +2,14 @@ package djc.lang.lib
 
 import util.Bag
 import djc.lang.Syntax
-import djc.lang.TypedSyntax._
+import djc.lang.TypedLanguage._
+import djc.lang.TypedLanguage.types._
 import djc.lang.TypedSyntaxDerived._
 
 import djc.lang.sem._
 import djc.lang.base.Integer._
 import djc.lang.base.Double._
 import djc.lang.AbstractTest
-import djc.lang.typ.Types._
 
 
 //class TestConcurrentPi1 extends TestConcurrentPi(3, 1, nondeterm_1_subst.Semantics)

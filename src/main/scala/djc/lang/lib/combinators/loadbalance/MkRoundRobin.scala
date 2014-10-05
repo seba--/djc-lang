@@ -1,11 +1,11 @@
 package djc.lang.lib.combinators.loadbalance
 
-import djc.lang.TypedSyntax._
+import djc.lang.TypedLanguage._
+import djc.lang.TypedLanguage.types._
 import djc.lang.TypedSyntaxDerived.{TThunk => _, _}
 import djc.lang.base.Integer._
 import djc.lang.base.Lists._
 import djc.lang.lib.combinators.Combinator
-import djc.lang.typ.Types._
 
 object MkRoundRobin extends Combinator {
   def apply(t1: Type) = TApp(impl, t1)

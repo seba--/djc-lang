@@ -1,10 +1,10 @@
 package djc.lang.lib.combinators.aux
 
-import djc.lang.TypedSyntax._
+import djc.lang.TypedLanguage._
+import djc.lang.TypedLanguage.types._
 import djc.lang.TypedSyntaxDerived._
 import djc.lang.base.Lists._
 import djc.lang.lib.combinators.Combinator
-import djc.lang.typ.Types._
 
 object MapK extends Combinator {
   def apply(t: Type, t2: Type) = TApp(impl, t, t2)
