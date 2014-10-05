@@ -3,7 +3,6 @@ package djc.lang.typ
 import djc.lang.{TypedLanguage, Gensym}
 import djc.lang.Gensym._
 import djc.lang.TypedLanguage._
-import djc.lang.TypedLanguage.types._
 
 object Checker {
   import types._
@@ -51,8 +50,11 @@ object Checker {
       case (TSrv(t), TSrv(t1)) =>
         subtype(tgamma)(t, t1)
 
+      case (TPair(n, ts), TPair(n1, ts1)) if n1 <= n =>
+        ts.take(n1).corresponds(ts1)(subtype(tgamma)(_, _))
+
       case (TBase(name, targs), TBase(name1, targs1)) =>
-        name == name1 && targs.corresponds(targs1)(_ === _) //TODO support variance?
+        name == name1 && targs.corresponds(targs1){ (t1,t2) => subtype(tgamma)(t1, t2) && subtype(tgamma)(t2,t1)  } //TODO support variance?
       //TODO what about equivalence classes of Bot?
 
       case _ => false

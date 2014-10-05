@@ -18,6 +18,7 @@ trait ExtSyntaxFamily extends TypedSyntaxFamily {
   val op: TypedSyntaxOps { val syntax: self.type }
 
   abstract class ExtExp extends Exp {
+    override val family: ExtSyntaxFamily = self
     def eraseType = ???
     override def toFamily(TF: TSF) = ???
   }
@@ -49,6 +50,7 @@ trait ExtSyntaxFamily extends TypedSyntaxFamily {
   }
 
   case class URule(ps: Bag[UPattern], p: Exp) {
+    val family: ExtSyntaxFamily = self
     lazy val rcvars: List[Symbol] = {
       val m = List[Symbol]()
       ps.foldLeft(m)(_ ++ _.params)
@@ -60,7 +62,9 @@ trait ExtSyntaxFamily extends TypedSyntaxFamily {
     def apply(ps: UPattern*)(p: Exp): URule = URule(Bag(ps:_*), p)
   }
 
-  case class UPattern(name: Symbol, params: List[Symbol])
+  case class UPattern(name: Symbol, params: List[Symbol]) {
+    val family: ExtSyntaxFamily = self
+  }
   object UPattern {
     def apply(name: Symbol, param: Symbol*) = new UPattern(name, List(param: _*))
   }

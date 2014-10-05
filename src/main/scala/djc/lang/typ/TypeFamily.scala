@@ -3,6 +3,8 @@ package djc.lang.typ
 import util.ListOps._
 import djc.lang.Gensym
 
+import scala.util.{Success, Try}
+
 trait TypeFamily  {
   self =>
   val op: TypeOps { val types: self.type }
@@ -176,6 +178,35 @@ trait TypeFamily  {
     }
   }
 
+  def nXs(n: Int): Seq[Symbol] = (1 to n) map {i => Symbol(s"X$i")}
+
+  object TPair {
+    val prefix = "Pair"
+    def apply(n: Int = 2): Type = n match {
+      case i if i >= 2 =>
+        val name = Symbol(s"$prefix$n")
+        val args = nXs(n)
+        val base: Type = TBase(name, (args map {s => TVar(s)}):_*)
+        args.foldRight(base)(TUniv(_,_))
+    }
+
+    def apply(ts: Type*) = ts.length match {
+      case n if n > 1 =>
+        TBase(Symbol(s"$prefix${n}"), ts:_*)
+    }
+
+    def unapply(t: Type): Option[(Int,Seq[Type])] = t match {
+      case TBase(name, ts) if name.name.startsWith(prefix) =>
+        val length = Try { name.name.stripPrefix(prefix).toInt }
+        (length, ts) match {
+          case (Success(n), xs) if xs.length == n =>
+            Some((n, ts))
+          case _ => None
+        }
+
+      case _ => None
+    }
+  }
 }
 
 object Types extends TypeFamily {

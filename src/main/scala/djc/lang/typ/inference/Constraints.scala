@@ -5,6 +5,7 @@ import djc.lang.typ.Types._
 import djc.lang.typ.Checker
 import djc.lang.typ.Checker.{TVarContext, subtype, join}
 import djc.lang.typ.inference.TypePredicates._
+import djc.lang.typ.inference.base.PairsOps._
 
 /**
  * Constraint generation and solving, adapted from Pierce and Turner
@@ -36,7 +37,7 @@ object Constraints {
       c.min
     else if (isContravariantIn(r, tvar))
       c.max
-    else if (isInvariantIn(r, tvar) && isTight(tgamma)(c))
+    else if (isInvariantIn(r, tvar) && isTight(tgamma)(c)) //TODO: investigate why tightness is needed
       c.min
     else if (isRigidIn(r, tvar) && isRigid(tgamma, c))
       c.min
@@ -92,7 +93,7 @@ object Constraints {
 
       val intersect = tgamma.keySet.intersect(tvars)
       if (intersect.nonEmpty)
-        throw ConstraintsException(s"the unknown type variables $intersect are bound in context $tgamma")
+        throw ConstraintsException(s"the unknown type variables $intersect are bound in context $tgamma\n for $s -- $t with context $tgamma")
 
 
       ((ftvS intersect tvars).nonEmpty, (ftvT intersect tvars).nonEmpty) match {
@@ -146,8 +147,11 @@ object Constraints {
       case (TSrv(t1), TSrv(t2)) =>
         subtypeConstraints(tgamma)(tvars)(t1, t2)
 
-      case (TBase(name1, ts1), TBase(name2, ts2)) =>
-        equalityConstraints(tgamma)(tvars)(s,t)._2
+      case (TPair(n, ts), TPair(n1, ts1)) if n1 <= n  =>
+        meet(tgamma, ts.take(n1).zip(ts1) map {case (t,t1) => subtypeConstraints(tgamma)(tvars)(t,t1)})
+
+      case (TBase(name1, ts1), TBase(name2, ts2)) if name1 == name2 =>
+        equalityConstraints(tgamma)(tvars)(s,t)._2 //TODO this should be subtype constraints both ways
     }
 
     //compute constraints for tvar which make s,t equivalent + whichever of the two is concrete

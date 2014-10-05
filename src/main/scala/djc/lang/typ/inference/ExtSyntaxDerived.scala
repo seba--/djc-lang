@@ -36,47 +36,66 @@ object ExtSyntaxDerived {
   def Let(x: Symbol, xt: Type, e1: Exp)(e2: Exp): Exp =
     This(LocalService(Pattern('$let, x -> xt), e2)!!(e1))
 
-  def Let(p: (Symbol, Exp))(body: Exp): Exp = Let(p._1, p._2)(body)
+  object Let {
+    val letSymbol = '$let
+    def apply(p: (Symbol, Exp))(body: Exp): Exp = Let(p._1, p._2)(body)
+    def apply(x: Symbol, e1: Exp)(body: Exp): Exp =
+      This(ULocalService(letSymbol ?? (x), body) !! (e1))
 
-  def Let(x: Symbol, e1: Exp)(body: Exp): Exp =
-    This(ULocalService('$let??(x), body))!!(e1)
+    def unapply(e: Exp): Option[(Symbol, Exp, Exp)] = e match {
+      case Send(ServiceRef(Spawn(true, UServerImpl(List(URule(ps, body)))), `letSymbol`), List(e1)) if ps.size == 1 =>
+        val UPattern(`letSymbol`, List(x)) = ps.head
+        Some((x, e1, body))
+      case _ => None
+    }
 
+  }
   //Preserves the meaning of 'this in nested local control expressions.
   //A local control expression is a ServerImpl if it has only a single rule with
   //a singleton join pattern and its service name starts with "$".
-  def This(e: Exp): Exp = {
-    val self = Gensym.gensym('self, freeVars(e))
+  object This {
+    val letSymbol = '$let$
 
-    //Modified substitution function which lets substs for 'this' pass into
-    //rule bodies of local control expressions.
-    object PatchThisRefs extends Subst('this, Var(self)) {
-      def isThisTransparentName(sym: Symbol) = sym.name.startsWith("$") && !sym.name.endsWith("$")
+    def apply(e: Exp): Exp = {
+      val self = Gensym.gensym('$self, freeVars(e))
 
-      override def map: TMapE = {
-        case UServerImpl(List(URule(ps, p)))
-          if ps.size == 1 && isThisTransparentName(ps.head.name) =>
-          val UPattern(name, params) = ps.head
-          if (params.isEmpty)
-            ServerImpl(List(Rule(Bag(name?()), map(p))))
-          else
-            UServerImpl(List(URule(ps, map(p))))
+      //Modified substitution function which lets substs for 'this' pass into
+      //rule bodies of local control expressions.
+      object PatchThisRefs extends Subst('this, Var(self)) {
+        def isThisTransparentName(sym: Symbol) = sym.name.startsWith("$") && !sym.name.endsWith("$")
 
-        case ServerImpl(List(Rule(ps, p)))
-          if ps.size == 1 && isThisTransparentName(ps.head.name) =>
-          val Pattern(name, params) = ps.head
-          ServerImpl(List(Rule(Bag(Pattern(name, params)), map(p))))
+        override def map: TMapE = {
+          case UServerImpl(List(URule(ps, p)))
+            if ps.size == 1 && isThisTransparentName(ps.head.name) =>
+            val UPattern(name, params) = ps.head
+            if (params.isEmpty)
+              ServerImpl(List(Rule(Bag(name?()), map(p))))
+            else
+              UServerImpl(List(URule(ps, map(p))))
 
-        case e => super.map(e)
+          case ServerImpl(List(Rule(ps, p)))
+            if ps.size == 1 && isThisTransparentName(ps.head.name) =>
+            val Pattern(name, params) = ps.head
+            ServerImpl(List(Rule(Bag(Pattern(name, params)), map(p))))
+
+          case e => super.map(e)
+        }
       }
+
+      ULocalService(letSymbol??(self), PatchThisRefs(e))!!('this)
     }
 
-    ULocalService('$let$??(self), PatchThisRefs(e))!!('this)
+    def unapply(e: Exp): Option[(UServerImpl, Exp)] = e match {
+      case Send(ServiceRef(Spawn(true, srv@UServerImpl(_)), `letSymbol`), List(e1)) => Some((srv, e1))
+      case _ => None
+    }
   }
 
   def Service(p: Pattern, e: Exp) = ServiceRef(Server(Rule(Bag(p), e)), p.name)
   def LocalService(p: Pattern, e: Exp) = ServiceRef(LocalServer(Rule(Bag(p), e)), p.name)
   def ULocalService(p: UPattern, e: Exp) = ServiceRef(ULocalServer(URule(Bag(p), e)), p.name)
 
+  //TODO patch 'this in lambda bodies
   def Lambda(x: Symbol, t: (Type,Type), e: Exp): Exp = Lambda(x, t._1, e, t._2)
   def Lambda(x: Symbol, xt: Type, e: Exp, resT: Type): Exp =
       SpawnLocal(ServerImpl(

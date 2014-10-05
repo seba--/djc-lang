@@ -2,6 +2,7 @@ package util.vis
 
 import djc.lang.TypedSyntaxFamily
 import djc.lang.typ.TypeFamily
+import djc.lang.typ.inference.ExtSyntaxFamily
 import org.kiama.output.PrettyPrinter
 import scala.collection.immutable.Seq
 import util.Bag
@@ -19,6 +20,9 @@ object HTMLPrettyPrint extends PrettyPrinter {
       case s: Symbol => span(super.any(s), "hljs-string")
       case b: Boolean => span(super.any(b), "hljs-keyword")
       case Nil => span(super.any(Nil), "hljs-type")
+      case e:ExtSyntaxFamily#ExtExp => extexp(e)
+      case r:ExtSyntaxFamily#URule => urule(r)
+      case p:ExtSyntaxFamily#UPattern => upattern(p)
       case t:TypeFamily#Type => tpe(t)
       case e:TypedSyntaxFamily#Exp => exp(e)
       case r:TypedSyntaxFamily#Rule => rule(r)
@@ -27,6 +31,16 @@ object HTMLPrettyPrint extends PrettyPrinter {
       case p: Product if p.productArity == 0 =>
         span(p.productPrefix, "hljs-type")
       case _ => super.any(a)
+    }
+  }
+
+  def extexp[XF <: ExtSyntaxFamily](e: XF#ExtExp): Doc = {
+    import e.family._
+    e match {
+      case UTApp(e) => seq(List(e), "UTApp", any)
+      case UServerImpl(rules) =>
+        seq(rules, "UServerImpl", urule)
+      case _ => super.any(e)
     }
   }
 
@@ -56,14 +70,23 @@ object HTMLPrettyPrint extends PrettyPrinter {
         seq(List(e,t), "UpCast", any)
       case BaseCall(b, ts, es) =>
         seq(b :: ts ::: es, "BaseCall", any)
-      case _ => any(e)
+      case _ => super.any(e)
     }
+  }
+
+  def urule[XF <: ExtSyntaxFamily](r: XF#URule): Doc = {
+    seq(r.ps.toList :+ r.p, "URule", any)
   }
 
   def rule[TSF <: TypedSyntaxFamily](r: TSF#Rule): Doc =
     seq(r.ps.toList :+ r.p, "Rule", any)
 
   def pattern[TSF <: TypedSyntaxFamily](p: TSF#Pattern): Doc = {
+    val s: String = s"<span class='hljs-string'>${p.name}</span><span class='hljs-type'>?</span>"
+    seq(p.params.toList, s, any)
+  }
+
+  def upattern[XF <: ExtSyntaxFamily](p: XF#UPattern): Doc = {
     val s: String = s"<span class='hljs-string'>${p.name}</span><span class='hljs-type'>?</span>"
     seq(p.params.toList, s, any)
   }
@@ -99,7 +122,7 @@ object HTMLPrettyPrint extends PrettyPrinter {
       case TUniv(alpha, bound, tp) =>
         val bnd = subtype(any(alpha), tpe(bound))
         span(span("TUniv", "fold", "hljs-type", "type") <> parens(htmlChildSpan(group(nest(lsep(List(bnd, tpe(tp)) , comma))))), "node")
-      case _ => any(t)
+      case _ => super.any(t)
     }
   }
 

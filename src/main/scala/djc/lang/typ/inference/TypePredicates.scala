@@ -2,6 +2,7 @@ package djc.lang.typ.inference
 
 import djc.lang.typ.Checker.TVarContext
 import djc.lang.typ.Types._
+import util.ListOps._
 
 /**
  * Variance and rigidity checks for types
@@ -37,6 +38,10 @@ object TypePredicates {
     case TUniv(alpha, bound, tpe) =>
       isConstantIn(bound, tvar) && alpha != tvar && isCovariantIn(tpe, tvar)
 
+    case TPair(_, ts) =>
+      val occurrences = ts.filter(!isConstantIn(_, tvar))
+      occurrences.nonEmpty && occurrences.forall(isCovariantIn(_, tvar))
+
     case _ => false
   }
 
@@ -54,33 +59,88 @@ object TypePredicates {
     case TUniv(alpha, bound, tpe) =>
       isConstantIn(bound, tvar) && alpha != tvar && isContravariantIn(tpe, tvar)
 
+    case TPair(_, ts) =>
+      val occurrences = ts.filter(!isConstantIn(_, tvar))
+      occurrences.nonEmpty && occurrences.forall(isContravariantIn(_, tvar))
+
     case _ => false
   }
 
-  def isInvariantIn(r: Type, tvar: Symbol): Boolean =
-    isContravariantIn(r, tvar) && isCovariantIn(r, tvar)
+  /**
+   * A fold that checks if a type is invariant w.r.t. to the given type variable,
+   * i.e. (i) the type variable occurs in the type and (ii)
+   * all occurrences of tvar are in arguments of base types (which are not pairs).
+   *
+   * The fold returns two booleans. The first is true iff (i) holds.
+   * The second is true iff (ii) holds.
+   *
+   * @param tvar
+   */
+  case class IsInvariantIn(tvar: Symbol) extends LazyFold[(Boolean, Boolean)] {
+    def apply(t: Type): (Boolean, Boolean) = foldType((false, true))(t)
 
-  def isRigidIn(r: Type, tvar: Symbol): Boolean = r match {
-    case TBase(_, ts) =>
-      ts.exists(!isConstantIn(_, tvar))
+    override def foldType(init: => (Boolean, Boolean)): FoldT = {
+      case TVar(`tvar`) => (true, false)
+      case p@TPair(_, _) => super.foldType(init)(p)
+      case TBase(_, ts) =>
+        val nonTvarTs = ts.filter(_ != TVar(tvar))
+        val occursHere = nonTvarTs.length != ts.length
+        val (exists, invariant) = nonTvarTs.lazyFoldr((false, true)){
+          case (t, state) =>
+            val (ex1, inv1) = foldType(state)(t)
+            if (!inv1)
+              (ex1, inv1)
+            else {
+              val (ex2, inv2) = state
+              (ex1 || ex2, inv2)
+            }
+        }
 
-    case TSrv(t) => isRigidIn(t, tvar)
+        (occursHere || exists, invariant)
 
-    case TSrvRep(svcs) =>
-      val svcTypes = svcs.values.filter(!isConstantIn(_, tvar))
-      svcTypes.nonEmpty && svcTypes.forall(isRigidIn(_, tvar))
+      case t =>
+        super.foldType(init)(t)
+    }
+  }
 
-    case TSvc(ts) =>
-      val tvarTypes = ts.filter(!isConstantIn(_, tvar))
-      tvarTypes.nonEmpty && tvarTypes.forall(isRigidIn(_, tvar))
+  def isInvariantIn(r: Type, tvar: Symbol): Boolean = {
+    val (exists, allInvariant) = IsInvariantIn(tvar)(r)
+    exists && allInvariant
+  }
 
-    case TUniv(alpha, bound, _) if alpha == tvar =>
-      !isConstantIn(bound, tvar)
+  /**
+   * A fold that checks if a type is rigid w.r.t. to the given type variable,
+   * i.e. (i) the type variable occurs in the type and (ii)
+   * all occurrences are in bounds of universal types.
+   *
+   * The fold returns two booleans. The first is true iff (i) holds.
+   * The second is true iff (ii) holds.
+   *
+   * @param tvar
+   */
+  case class IsRigidIn(tvar: Symbol) extends LazyFold[(Boolean, Boolean)] {
+    def apply(t: Type): (Boolean, Boolean) = foldType((false, true))(t)
 
-    case TUniv(alpha, bound, tpe) =>
-      !isConstantIn(bound, tvar) || isRigidIn(tpe, tvar)
+    override def foldType(init: => (Boolean, Boolean)): FoldT = {
+      case TVar(`tvar`) => (init._1, false)
+      case TUniv(alpha, bound, t) =>
+        val occursInBound = freeTypeVars(bound)(tvar)
 
-    case _ => false
+        if (alpha == tvar)
+          (occursInBound || init._1, init._2)
+        else {
+          val (exists, invariant) = foldType(init)(t)
+          (occursInBound || exists, invariant)
+        }
+
+      case t =>
+        super.foldType(init)(t)
+    }
+  }
+
+  def isRigidIn(r: Type, tvar: Symbol): Boolean = {
+    val (exists, allRigid) = IsRigidIn(tvar)(r)
+    exists && allRigid
   }
 
   def isBottomVar(tgamma: TVarContext)(alpha: Symbol): Boolean = tgamma(alpha) match {
@@ -98,6 +158,7 @@ object TypePredicates {
       !isBottomVar(tgamma)(alpha)
     case TUniv(alpha, bound, tpe) =>
       isRigid(tgamma, bound) && isRigid(tgamma + (alpha -> bound), tpe)
+    case TPair(_, ts) => ts.forall(isRigid(tgamma, _))
     case TBase(_, _) => true //TODO do we handle equivalence classes properly here?
     case TSrv(t) => isRigid(tgamma, t)
     case TSrvRep(svcs) => svcs.values.forall(isRigid(tgamma, _))
