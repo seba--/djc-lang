@@ -5,7 +5,7 @@ import djc.lang.typ.Checker.TVarContext
 import djc.lang.typ.TypeOps
 import djc.lang.typ.{ Types => TP }
 import djc.lang.typ.inference.{ ProtoTypes => PT }
-import util.ExceptionContext
+//import util.ExceptionContext
 
 
 /**
