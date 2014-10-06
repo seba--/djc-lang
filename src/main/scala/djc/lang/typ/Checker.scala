@@ -102,6 +102,11 @@ object Checker {
       case (TSrv(t1), TSrv(t2)) =>
         TSrv(meet(tgamma)(t1,t2))
 
+      case (TPair(n, ts), TPair(n1, ts1)) =>
+        val m = n min n1
+        val (tsmin, tsmax) = if (n <= n1) (ts,ts1) else (ts1, ts)
+        TPair((((tsmin zip tsmax.take(m)) map {case (t,t1) => meet(tgamma)(t,t1)}) ++ tsmax.drop(m)):_*)
+
       case _ => Bot
     }
   }
@@ -140,6 +145,10 @@ object Checker {
 
       case (TSrv(t1), TSrv(t2)) =>
         TSrv(join(tgamma)(t1,t2))
+
+      case (TPair(n,ts), TPair(n1, ts1)) =>
+        val m = n min n1
+        TPair((ts.take(m) zip ts1.take(m)) map {case (t, t1) => join(tgamma)(t, t1)}:_*)
 
       case _ => Top
     }
