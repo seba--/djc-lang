@@ -5,7 +5,7 @@ import java.util.Locale
 import scala.io.Source
 
 object HighlightSyntax {
-  val codeFont = if (isMac) "Ubuntu mono" else "monospace"
+  val codeFont = if (isMac) "Menlo" else "monospace"
   //val highlightjs = loadResourceAsString(this, "/highlight/highlight.js")
   val jquery = loadResourceAsString(this, "/highlight/jquery.js")
   val css = loadResourceAsString(this, "/highlight/github.css")
@@ -44,7 +44,7 @@ object HighlightSyntax {
     </body>
   </html>
 
-  val htmlSource = html.mkString
+  lazy val htmlSource = html.mkString
     .replace("@@css@@", css).replace("@@jquery@@", jquery).replace("@@fold@@", fold)
 
   def apply(any: Any): String = {

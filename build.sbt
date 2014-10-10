@@ -18,7 +18,7 @@ resolvers ++= Seq()
 
 libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.1" % "test"
 
-libraryDependencies += "org.scalafx" %% "scalafx" % "8.0.0-R4" 
+libraryDependencies += "org.scalafx" %% "scalafx" % "8.0.20-R6" 
 
 libraryDependencies += "com.googlecode.kiama" %% "kiama" % "1.7.0"
 
