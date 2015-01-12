@@ -76,6 +76,6 @@ import djc.lang.typ.Checker
 
 
   def interp(e: Exp) = djc.lang.sem.concurrent_6_thread.SemanticsFactory.newInstance().interp(Par(e).eraseType)
-  def check(e: Exp) = Checker.typeCheck(Map(), Map(), e)
+  def check(e: Exp) = Checker.typeCheck(Map(), Map(), Map(), e)
 
 }

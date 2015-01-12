@@ -2,7 +2,7 @@ package djc.lang.sem.concurrent_6_thread
 
 import util.Bag
 
-import djc.lang.Syntax._
+import djc.lang.Syntax.{Addr => _, _}
 import Data._
 
 import Router._

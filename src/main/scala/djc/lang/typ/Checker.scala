@@ -9,6 +9,7 @@ object Checker {
 
   type Context = Map[Symbol, Type]
   type TVarContext = Map[Symbol, Type]
+  type LocTyping = Map[Int, Type]
 
   case class TypeCheckException(msg: String) extends RuntimeException(msg)
 
@@ -25,7 +26,10 @@ object Checker {
       case (Unit, Unit) =>
         true
 
-      case (TVar(alpha), TVar(beta)) if alpha == beta => //TODO should be bound in tgamma or not?
+      case (TNULL, TSrvRep(_)) =>
+        true
+
+      case (TVar(alpha), TVar(beta)) if alpha == beta =>
         true
 
       case (TVar(alpha), t) =>
@@ -46,6 +50,9 @@ object Checker {
 
       case (TSrvRep(svcs), TSrvRep(svcs1)) =>
         svcs1.forall { case (k, t) => svcs.contains(k) && subtype(tgamma)(svcs(k), t)}
+
+      case (TImg(t1), TImg(t2)) =>
+        subtype(tgamma)(t1, t2)
 
       case (TSrv(t), TSrv(t1)) =>
         subtype(tgamma)(t, t1)
@@ -102,6 +109,9 @@ object Checker {
       case (TSrv(t1), TSrv(t2)) =>
         TSrv(meet(tgamma)(t1,t2))
 
+      case (TImg(t1), TImg(t2)) =>
+        TImg(meet(tgamma)(t1,t2))
+
       case (TPair(n, ts), TPair(n1, ts1)) =>
         val m = n min n1
         val (tsmin, tsmax) = if (n <= n1) (ts,ts1) else (ts1, ts)
@@ -146,6 +156,9 @@ object Checker {
       case (TSrv(t1), TSrv(t2)) =>
         TSrv(join(tgamma)(t1,t2))
 
+      case (TImg(t1), TImg(t2)) =>
+        TImg(join(tgamma)(t1,t2))
+
       case (TPair(n,ts), TPair(n1, ts1)) =>
         val m = n min n1
         TPair((ts.take(m) zip ts1.take(m)) map {case (t, t1) => join(tgamma)(t, t1)}:_*)
@@ -154,11 +167,42 @@ object Checker {
     }
   }
 
-  def typeCheck(gamma: Context, tgamma: TVarContext, p: Exp): Type = p match {
+  def typeCheck(gamma: Context, tgamma: TVarContext, tlocs: LocTyping, p: Exp): Type = p match {
 //    case _ if {println(s"gammma: ${gamma.keys}");false} => ?()
+    case NULL => TImg(TNULL)
+
+    case Img(srvt@ServerImpl(rules), buffer) =>
+      val t = typeCheck(gamma, tgamma, tlocs, srvt)
+      buffer.forall {
+        case s@Send(ServiceRef(_, svc), args) =>
+          val TSvc(targs) = promote(tgamma)(srvt.signature.svcs.getOrElse(svc, throw TypeCheckException(s"T-Img: Encountered service reference $svc which is not defined in template $srvt")))
+          val argsValid = (args zip targs) forall { case (e, t) => subtype(tgamma)(typeCheck(gamma, tgamma, tlocs, e), t) }
+          if (!argsValid)
+            throw TypeCheckException(s"T-Img: Send value $s has wrong argument types")
+          true
+
+        case x => throw TypeCheckException(s"T-Img: Encountered non-send-value $x in buffer of server image $p")
+      }
+      TImg(t)
+
+    case Addr(i) if tlocs.isDefinedAt(i) =>
+      promote(tgamma)(tlocs(i)) match {
+        case TImg(t) => TSrv(t)
+        case t => throw TypeCheckException(s"Value at address $i is not a server image type, got type $t")
+      }
+
+    case Snap(e) => promote(tgamma)(typeCheck(gamma, tgamma, tlocs, e)) match {
+      case TSrv(t) => TImg(t)
+      case t => throw TypeCheckException(s"Expected a server instance type but got $t")
+    }
+
+    case Repl(addr, img) => (promote(tgamma)(typeCheck(gamma, tgamma, tlocs, addr)), promote(tgamma)(typeCheck(gamma, tgamma, tlocs, img))) match {
+      case (TSrv(t1), TImg(t2)) if t1 === t2 => Unit
+      case (t1, t2) => throw TypeCheckException(s"Expected matching server instance and image type, but got $t1 and $t2")
+    }
 
     case BaseCall(b, ts, es) => {
-      val argTs = es map (typeCheck(gamma, tgamma, _))
+      val argTs = es map (typeCheck(gamma, tgamma, tlocs, _))
       val (tArgs, bounds) = b.targs.unzip
       if (!ts.corresponds(bounds)(subtype(tgamma)(_,_)))
          throw TypeCheckException(s"Type arguments do not match type parameters. Applied $ts to ${b.targs}\n in $p")
@@ -172,7 +216,7 @@ object Checker {
     }
 
     case Par(ps) =>
-      val psTypes = ps.map(typeCheck(gamma, tgamma, _))
+      val psTypes = ps.map(typeCheck(gamma, tgamma, tlocs, _))
       val joined = psTypes.foldLeft(Unit.asInstanceOf[Type])( (t,u) => join(tgamma)(t,u))
       if (!subtype(tgamma)(joined, Unit))
         throw TypeCheckException(s"Illegal parallel composition of types $psTypes\n which joins to $joined\n in $p")
@@ -180,9 +224,9 @@ object Checker {
       Unit
 
     case Send(rcv, args) =>
-      val targs = args.map(typeCheck(gamma, tgamma, _))
+      val targs = args.map(typeCheck(gamma, tgamma, tlocs, _))
 
-      promote(tgamma)(typeCheck(gamma, tgamma, rcv)) match {
+      promote(tgamma)(typeCheck(gamma, tgamma, tlocs, rcv)) match {
         case trcv: TSvc =>
           if (!targs.corresponds(trcv.params)(subtype(tgamma)(_,_))) // actual send arguments have subtypes of declared parameters
             throw TypeCheckException(s"Send arguments have wrong types for receiver \n  $rcv.\nArguments: $args\nExpected: ${trcv.params}\nWas: $targs\nwith gamma: $gamma\ntgamma: $tgamma")
@@ -195,7 +239,7 @@ object Checker {
       gamma.getOrElse(x, throw TypeCheckException(s"Unbound variable $x\ngamma: $gamma\ntgamma: $tgamma"))
 
     case ref@ServiceRef(srv, x) =>
-      promote(tgamma)(typeCheck(gamma, tgamma, srv)) match {
+      promote(tgamma)(typeCheck(gamma, tgamma, tlocs, srv)) match {
         case Bot => Bot
         case TSrv(t) => promote(tgamma)(t) match {
           case TSrvRep(svcs) =>
@@ -209,7 +253,7 @@ object Checker {
       }
 
     case srv@ServerImpl(rules) => {
-      val ruleTypes = rules map (typecheckRule(gamma, tgamma, _, srv.signature))
+      val ruleTypes = rules map (typecheckRule(gamma, tgamma, tlocs, _, srv.signature))
 
       if (!(op.freeTypeVars(srv.signature) subsetOf tgamma.keySet))
         throw TypeCheckException(s"Illegal free type variables: ${op.freeTypeVars(srv.signature) -- tgamma.keySet}")
@@ -218,17 +262,17 @@ object Checker {
     }
 
     case sp@Spawn(_, e) =>
-      val argt = typeCheck(gamma, tgamma, e)
+      val argt = typeCheck(gamma, tgamma, tlocs, e)
       promote(tgamma)(argt) match {
         case Bot => Bot
-        case t: TSrvRep  => TSrv(argt)
+        case TImg(t)  => TSrv(t)
         case t => throw TypeCheckException(s"Illegal spawn expression. Expected: TSrvRep(_), was $argt (which promotes to $t)\n  in $sp)}")
       }
 
     case TApp(p2, t) =>
       if (!(op.freeTypeVars(t) subsetOf tgamma.keySet))
         throw TypeCheckException(s"typeCheck failed at $p\ngamma: $gamma\ntgamma: $tgamma\n  free type vars ${op.freeTypeVars(t) -- tgamma.keySet}")
-      promote(tgamma)(typeCheck(gamma, tgamma, p2)) match {
+      promote(tgamma)(typeCheck(gamma, tgamma, tlocs, p2)) match {
         case Bot => Bot
         case TUniv(alpha, bound, t2) if subtype(tgamma)(t, bound) =>
           op.substType(alpha -> t)(t2)
@@ -241,16 +285,16 @@ object Checker {
       lazy val alphafresh = gensym(alpha, tgamma.keySet)
       lazy val p1fresh = TypedLanguage.op.substType(alpha -> TVar(alphafresh))(p1)
       val (alphares, p1res) = if (dontSubst) (alpha, p1) else (alphafresh, p1fresh)
-      val t = typeCheck(gamma, tgamma + (alphares -> bound1), p1res)
+      val t = typeCheck(gamma, tgamma + (alphares -> bound1), tlocs, p1res)
 
       TUniv(alphares, bound1, t)
 
     case UnsafeCast(e, t) =>
-      typeCheck(gamma, tgamma, e)
+      typeCheck(gamma, tgamma, tlocs, e)
       t
 
     case UpCast(e, t) =>
-      val te = typeCheck(gamma, tgamma, e)
+      val te = typeCheck(gamma, tgamma, tlocs, e)
       if (subtype(tgamma)(te,t))
         t
       else
@@ -261,11 +305,11 @@ object Checker {
   }
 
 
-  def typecheckRule(gamma: Context, tgamma: TVarContext, r: Rule, srvSignature: TSrvRep): Type = {
+  def typecheckRule(gamma: Context, tgamma: TVarContext, tlocs: LocTyping, r: Rule, srvSignature: TSrvRep): Type = {
     val ruleGamma = gamma ++ r.rcvars + ('this -> TSrv(srvSignature))
 //    println(s"rule-pats: ${r.ps}")
 //    println(s"rule-gamma: ${ruleGamma.keys}")
-    val t = typeCheck(ruleGamma, tgamma, r.p)
+    val t = typeCheck(ruleGamma, tgamma, tlocs, r.p)
     if (!subtype(tgamma)(t, Unit))
       throw TypeCheckException(s"Illegal rule type in rule $r, expected: Unit, was: $t")
     promote(tgamma)(t)

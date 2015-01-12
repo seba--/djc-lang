@@ -36,9 +36,9 @@ trait TypedSyntaxFamily {
     def toFamily(TF: TSF) = TF.NULL
   }
 
-  case class Img(template: Exp, buffer: Queue[Exp]) extends Exp {
+  case class Img(template: Exp, buffer: Queue[Send]) extends Exp {
     def eraseType = Syntax.Img(template.eraseType, buffer map (_.eraseType))
-    def toFamily(TF: TSF) = TF.Img(template.toFamily(TF), buffer)
+    def toFamily(TF: TSF) = TF.Img(template.toFamily(TF), buffer map (_.toFamily(TF)))
   }
 
   case class Snap(addr: Exp) extends Exp {
@@ -305,7 +305,7 @@ trait TypedSyntaxFamily {
       case Addr(i) => Addr(i)
       case NULL => NULL
       case Img(template, buffer) =>
-        Img(map(template), (buffer map map))
+        Img(map(template), (buffer map (map(_).asInstanceOf[Send])))
       case Snap(addr) =>
         Snap(map(addr))
       case Repl(addr, img) =>
@@ -360,7 +360,7 @@ trait TypedSyntaxFamily {
       case Addr(i) => init
       case NULL => init
       case Img(template, buffer) =>
-        buffer.foldLeft(fold(fold(init)(template)))(fold(_)(_))
+        buffer.foldLeft(fold(init)(template))(fold(_)(_))
       case Snap(addr) =>
         fold(init)(addr)
       case Repl(addr, img) =>

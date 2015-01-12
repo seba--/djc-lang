@@ -41,6 +41,10 @@ trait TypeFamily  {
     def apply(params: Type*): TSvc = TSvc(List(params: _*))
   }
 
+  case class TImg(srvt: Type) extends Type {
+    def toFamily(TF: TypeFamily) = TF.TImg(srvt.toFamily(TF))
+  }
+
   case class TSrvRep(svcs: Map[Symbol, Type]) extends Type {
     override def ===(that: Type) = that match {
       case TSrvRep(svcs1) => svcs.keySet == svcs1.keySet && svcs.forall {
@@ -64,6 +68,9 @@ trait TypeFamily  {
     override def toFamily(TF: TypeFamily) = TF.TSrv(rep.toFamily(TF))
   }
 
+  case object TNULL extends Type {
+    def toFamily(TF: TypeFamily) = TF.TNULL
+  }
 
   case class TVar(alpha: Symbol) extends Type {
     override def toFamily(TF: TypeFamily) = TF.TVar(alpha)
@@ -106,6 +113,8 @@ trait TypeFamily  {
       case Top => Top
       case Unit => Unit
       case Bot => Bot
+      case TNULL => TNULL
+      case TImg(t) => TImg(mapType(t))
       case TSvc(ts) => TSvc((ts map mapType))
       case TSrvRep(svcs) => TSrvRep(svcs mapValues mapType)
       case TSrv(t) => TSrv(mapType(t))
@@ -131,6 +140,10 @@ trait TypeFamily  {
         init
       case Unit =>
         init
+      case TNULL =>
+        init
+      case TImg(t) =>
+        foldType(init)(t)
       case TSvc(ts) =>
         ts.foldLeft(init)(foldType(_)(_))
       case TSrvRep(svcs) =>
@@ -164,6 +177,10 @@ trait TypeFamily  {
         init
       case Unit =>
         init
+      case TNULL =>
+        init
+      case TImg(t) =>
+        foldType(init)(t)
       case TSvc(ts) =>
         ts.lazyFoldr(init)( (tpe, t) => foldType(t)(tpe) )
       case TSrvRep(svcs) =>

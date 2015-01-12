@@ -12,7 +12,7 @@ object Syntax {
 
   case object NULL extends Exp
 
-  case class Img(template: ServerImpl, buffer: Queue[Send]) extends Exp
+  case class Img(template: Exp, buffer: Queue[Send]) extends Exp
 
   case class Snap(addr: Exp) extends Exp
 

@@ -197,9 +197,9 @@ object Interactive extends App {
     TreeInspector(impl, "Before")
     val implinferred = infer(ProtoTypes.Hole, Map(), Map(), impl)
     TreeInspector(implinferred, "After")
-    val original = Checker.typeCheck(Map(), Map(), djc.lang.lib.combinators.recovery.MkRecover.impl)
+    val original = Checker.typeCheck(Map(), Map(), Map(), djc.lang.lib.combinators.recovery.MkRecover.impl)
     val inferred = implinferred._1
-    val checked = Checker.typeCheck(Map(), Map(), implinferred._2)
+    val checked = Checker.typeCheck(Map(), Map(), Map(), implinferred._2)
     TreeInspector(Map("original" -> original,
                       "inferred" -> implinferred._1,
                       "checked"  -> checked), "Types")
