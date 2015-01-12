@@ -2,9 +2,21 @@ package djc.lang
 
 import util.Bag
 
+import scala.collection.immutable.Queue
+
 object Syntax {
 
   abstract class Exp
+
+  case class Addr(i: Int) extends Exp
+
+  case object NULL extends Exp
+
+  case class Img(template: ServerImpl, buffer: Queue[Send]) extends Exp
+
+  case class Snap(addr: Exp) extends Exp
+
+  case class Repl(addr: Exp, img: Exp) extends Exp
 
   case class Par(ps: Bag[Exp]) extends Exp {
     override def toString =

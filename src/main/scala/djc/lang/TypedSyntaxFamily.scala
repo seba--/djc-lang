@@ -4,7 +4,7 @@ import djc.lang.typ.{TypeOps, TypeFamily, TypedSyntaxOps}
 import util.Bag
 import util.ListOps._
 
-import scala.collection.immutable.ListMap
+import scala.collection.immutable.{Queue, ListMap}
 
 /**
  * Created by oliver on 22.09.14.
@@ -23,6 +23,34 @@ trait TypedSyntaxFamily {
     val family: TypedSyntaxFamily = self
     def eraseType: Syntax.Exp
     def toFamily(TF: TSF): TF.Exp
+  }
+
+  case class Addr(i: Int) extends Exp {
+    def eraseType = Syntax.Addr(i)
+
+    def toFamily(TF: TSF) = TF.Addr(i)
+  }
+
+  case object NULL extends Exp {
+    def eraseType = Syntax.NULL
+    def toFamily(TF: TSF) = TF.NULL
+  }
+
+  case class Img(template: Exp, buffer: Queue[Exp]) extends Exp {
+    def eraseType = Syntax.Img(template.eraseType, buffer map (_.eraseType))
+    def toFamily(TF: TSF) = TF.Img(template.toFamily(TF), buffer)
+  }
+
+  case class Snap(addr: Exp) extends Exp {
+    def eraseType = Syntax.Snap(addr.eraseType)
+
+    def toFamily(TF: TSF) = TF.Snap(addr.toFamily(TF))
+  }
+
+  case class Repl(addr: Exp, img: Exp) extends Exp {
+    def eraseType = Syntax.Repl(addr.eraseType, img.eraseType)
+
+    def toFamily(TF: TSF) = TF.Repl(addr.toFamily(TF), img.toFamily(TF))
   }
 
   case class Par(ps: Bag[Exp]) extends Exp {
@@ -274,6 +302,14 @@ trait TypedSyntaxFamily {
     def apply(prog: Exp): Exp = map(prog)
 
     def map: TMapE = {
+      case Addr(i) => Addr(i)
+      case NULL => NULL
+      case Img(template, buffer) =>
+        Img(map(template), (buffer map map))
+      case Snap(addr) =>
+        Snap(map(addr))
+      case Repl(addr, img) =>
+        Repl(map(addr), map(img))
       case Par(ps) =>
         Par(ps map map)
       case Send(p, args) =>
@@ -321,6 +357,14 @@ trait TypedSyntaxFamily {
     def apply(e: Exp): T
 
     def fold(init: T): FoldE = {
+      case Addr(i) => init
+      case NULL => init
+      case Img(template, buffer) =>
+        buffer.foldLeft(fold(fold(init)(template)))(fold(_)(_))
+      case Snap(addr) =>
+        fold(init)(addr)
+      case Repl(addr, img) =>
+        fold(fold(init)(addr))(img)
       case Par(ps) =>
         ps.foldLeft(init)(fold(_)(_))
       case Send(p, args) =>
@@ -367,6 +411,14 @@ trait TypedSyntaxFamily {
     def apply(e: Exp): T
 
     def fold(init: => T): FoldE = {
+      case Addr(i) => init
+      case NULL => init
+      case Img(template, buffer) =>
+        fold(buffer.lazyFoldr(init)((e, m) => fold(m)(e)))(template)
+      case Snap(addr) =>
+        fold(init)(addr)
+      case Repl(addr, img) =>
+        fold(fold(init)(img))(addr)
       case Par(ps) =>
         ps.lazyFoldr(init)((e, t) => fold(t)(e))
       case Send(p, args) =>
