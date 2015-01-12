@@ -132,7 +132,7 @@ object Constraints {
           (substType(alpha1 -> TVar(alphares))(t1), substType(alpha2 -> TVar(alphares))(t2))
         val (boundres, k) = equalityConstraints(tgamma)(tvars)(bound1, bound2)
         val c = subtypeConstraints(tgamma + (alphares -> boundres))(tvars)(t1res, t2res)
-
+                                            //TODO check for variables out of scope!
         meet(tgamma, k, c)
 
       case (TSvc(ts1), TSvc(ts2)) if ts1.length == ts2.length =>
