@@ -30,11 +30,11 @@ class TestConcurrentPi[V](max: Int, step: Int, semFactory : ISemanticsFactory[V]
   val maximalDeviation = 1e-14
 
   def testPi(n: Int) {
-    val piCall = Spawn(ConcurrentPi.piServer)~>'pi!!(n, Spawn(PRINT_SERVER(TDouble))~>'PRINT)
+    val piCall = SpawnImg(ConcurrentPi.piServer)~>'pi!!(n, SpawnImg(PRINT_SERVER(TDouble))~>'PRINT)
     testType(s"pi_$n", piCall, Unit)
     val referencePi = ConcurrentPi.concurrentPi(n)
     testInterp(s"pi_$n", piCall, (res: Bag[Syntax.Send]) => res.size == 1 && (res.head match {
-      case Syntax.Send(Syntax.ServiceRef(Syntax.Spawn(_,`PRINT_SERVER_NO`),'PRINT),
+      case Syntax.Send(Syntax.ServiceRef(Syntax.Spawn(_, Syntax.Img(`PRINT_SERVER_NO`, Bag())),'PRINT),
              Syntax.BaseCall(DoubleLit(pi), Nil)::Nil)
         => val actualDeviation = Math.abs(pi - referencePi)
            println(s"Computed pi for n=$n: $pi")

@@ -34,7 +34,7 @@ class TestPairs[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem) {
   val p3 = pair(1.0 -> Tb, 2 -> Tb)
   test("wrong args") {
     intercept[TypeCheckException] {
-      typeCheck(Map(), Map(), p3)
+      typeCheck(Map(), Map(), Map(), p3)
     }
   }
 

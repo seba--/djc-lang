@@ -1,5 +1,6 @@
 package djc.lang.sem.concurrent_6_thread
 
+import djc.lang.Syntax
 import djc.lang.Syntax.Var
 
 /**
@@ -9,7 +10,7 @@ object Router {
   type Addr = String
   type Port = Int
 
-  type ServerAddr = Var
+  type ServerAddr = Syntax.Addr
 
   object ServerAddr {
     val prefix = "ADDR:"
@@ -17,7 +18,7 @@ object Router {
 
     def apply(addr: Addr, port: Port) = new ServerAddr(Symbol(prefix + addr + portSep + port))
 
-    def unapply(s: Var): Option[(Addr,Port)] = getAddrWithPort(s.x.name)
+    def unapply(s: ServerAddr): Option[(Addr,Port)] = getAddrWithPort(s.i.name)
 
     def getAddrWithPort(name: String): Option[(Addr,Port)] =
       if (name.startsWith(prefix)) {

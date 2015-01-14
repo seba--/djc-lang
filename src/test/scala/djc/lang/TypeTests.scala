@@ -6,10 +6,10 @@ import djc.lang.typ.Checker._
 import org.scalatest.FunSuite
 
 trait TypeTests extends FunSuite {
-  def testType(s: String, p: Exp, expected: Type, gamma: Context=Map(), tgamma: TVarContext=Map()) = {
+  def testType(s: String, p: Exp, expected: Type, gamma: Context=Map(), tgamma: TVarContext=Map(), tloc: LocTyping=Map()) = {
     test(s ++ "-type") {
       try {
-        val tpe = typeCheck(gamma, tgamma, p)
+        val tpe = typeCheck(gamma, tgamma, tloc, p)
         assert(subtype(tgamma)(tpe,expected), s"subtype is wrong: $tpe </< $expected")
       } catch {
         case TypeCheckException(msg) => assert(false, msg)

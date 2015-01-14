@@ -11,11 +11,6 @@ import djc.lang.{Syntax, AbstractTest}
 import djc.lang.lib.Fibonacci
 
 
-class TestBaseWorker1 extends TestBaseWorker(8, nondeterm_1_subst.Semantics)
-class TestBaseWorker2 extends TestBaseWorker(8, nondeterm_2_env.Semantics)
-class TestBaseWorker3 extends TestBaseWorker(8, nondeterm_3_routed.SemanticsFactory)
-class TestBaseWorker4 extends TestBaseWorker(8, nondeterm_4_grouped.SemanticsFactory)
-class TestBaseWorker5 extends TestBaseWorker(8, nondeterm_5_parallel.SemanticsFactory)
 class TestBaseWorker6 extends TestBaseWorker(8, concurrent_6_thread.SemanticsFactory)
 
 
@@ -27,7 +22,7 @@ class TestBaseWorker[V](max: Int, semFactory : ISemanticsFactory[V]) extends Abs
   testType("mkFibTask", Task.mkFibTask, Task.mkFibTaskType)
 
   def testFibTask(n: Int) {
-    val mkFibTaskCall = Send(Task.mkFibTask, n, Spawn(Worker.worker)~>'work)
+    val mkFibTaskCall = Send(Task.mkFibTask, n, SpawnImg(Worker.worker)~>'work)
     testType(s"mkFibTask_$n", mkFibTaskCall, Unit)
     testInterp(s"mkFibTask_$n", mkFibTaskCall, Set(Bag[Syntax.Send]()))
   }
@@ -46,7 +41,7 @@ class TestBaseWorker[V](max: Int, semFactory : ISemanticsFactory[V]) extends Abs
         ServiceRef(
           LocalServer(Rule(
             Bag(Pattern('cont, 'task -> Task.TTaskK(TInteger))),
-            Spawn(Worker.workerK(TInteger))~>'work!!('task, Spawn(PRINT_SERVER(TInteger))~>'PRINT))),
+            SpawnImg(Worker.workerK(TInteger))~>'work!!('task, SpawnImg(PRINT_SERVER(TInteger))~>'PRINT))),
           'cont))
     testType(s"mkFibTaskK_$n", fibWokrerCall, Unit)
     testInterp(s"mkFibTaskK_$n", fibWokrerCall, Set(Bag(PRINT(Fibonacci.fibAcc(n, 0)))))

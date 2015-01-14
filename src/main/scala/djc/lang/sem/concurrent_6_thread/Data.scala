@@ -1,10 +1,13 @@
 package djc.lang.sem.concurrent_6_thread
 
 
+import djc.lang.Syntax
 import djc.lang.Syntax._
 import util.Bag
 import djc.lang.sem.Substitution
 import Router._
+
+import scala.collection.immutable.Queue
 
 /**
  * Created by seba on 09/04/14.
@@ -12,23 +15,16 @@ import Router._
 object Data {
   type Env = Map[Symbol, Value]
 
-  trait ISendVal {
-    def rcvAddr: ServerAddr
-    def rcv: Value
-    def args: List[Value]
-    def toExp: Send
-  }
-}
-import Data._
-
-class Data(router: Router) {
-
   case object UnitVal extends Value {
     def toExp = Par()
   }
 
-  case class ServerVal(addr: ServerAddr) extends Value {
-    def toExp = addr
+  case object NULLVal extends Value {
+    def toExp = NULL
+  }
+
+  case class ServerVal(addr: Symbol) extends Value {
+    def toExp = Syntax.Addr(addr)
   }
 
   case class ServerClosure(impl: ServerImpl, env: Env) extends Value {
@@ -37,22 +33,21 @@ class Data(router: Router) {
       }
   }
 
+  case class ImgVal(sc: ServerClosure, buffer: Bag[Request]) extends Value {
+    def toExp =  Img(sc.toExp, buffer)
+  }
+
   case class ServiceVal(srv: ServerVal, x: Symbol) extends Value {
     def toExp = ServiceRef(srv.toExp, x)
   }
 
-  case class Match(subst: Env, used: Bag[ISendVal])
+  case class Match(subst: Env, used: Bag[Request])
 
-  case class SendVal(rcv: ServiceVal, args: List[Value]) extends ISendVal {
-    def toExp = Send(rcv.toExp, args map (_.toExp))
-    def rcvAddr = rcv.srv.addr
-  }
-
-  object resolveExp extends Mapper {
+  case class resolveExp(router: Router) extends Mapper {
     override def map(prog: Exp): Exp = prog match {
-      case addr@ServerAddr(_, _) => {
-        val s = router.lookupServer(addr)
-        SpawnAny(map(ServerClosure(s.impl, s.env).toExp))
+      case a@Addr(_) => {
+        val s = router.lookupServer(a)
+        SpawnAny(map(Img(ServerClosure(s.impl, s.env).toExp)))
       }
       case prog => super.map(prog)
     }

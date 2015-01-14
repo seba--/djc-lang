@@ -68,9 +68,9 @@ import djc.lang.typ.Checker
     )
 
   val system =
-    Let('doorlock, TDoorLock, Spawn(DoorLock)) {
-    Let('intrudersensor, TIntruderSensor, Spawn(IntruderSensor)) {
-    Let('intruderreaction, TIntruderReaction, Spawn(IntruderReaction)) {
+    Let('doorlock, TDoorLock, SpawnImg(DoorLock)) {
+    Let('intrudersensor, TIntruderSensor, SpawnImg(IntruderSensor)) {
+    Let('intruderreaction, TIntruderReaction, SpawnImg(IntruderReaction)) {
       'doorlock~>'init!!() && 'intruderreaction~>'state!!('intrudersensor, 'doorlock)
     }}}
 

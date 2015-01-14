@@ -7,6 +7,7 @@ import Crossproduct._
 import Data._
 import djc.lang.FlattenPar.flattenPars
 
+@deprecated("obsolete semantics do not use", "")
 object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] {
 
   def newInstance() = this

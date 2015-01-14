@@ -20,7 +20,7 @@ object LoadAwareWorker {
       ServerImpl(
         Rule(
           'init?(),
-          'this~>'load!!(0) && 'this~>'worker!!(SpawnLocal('workerRep))
+          'this~>'load!!(0) && 'this~>'worker!!(SpawnLocalImg('workerRep))
         ),
         Rule(
           'work?('task -> TTaskK('K), 'k -> ?('K))

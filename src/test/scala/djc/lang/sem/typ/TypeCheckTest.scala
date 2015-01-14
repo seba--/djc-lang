@@ -34,7 +34,7 @@ class TypeCheckTest extends FunSuite {
       ServerImpl(
         Rule(
           Bag(Pattern('mkCell, 'init -> TVar('V), 'cont -> TSvc(cellTypePrivate(TVar('V))))),
-          Let('cell, cellTypePrivate(TVar('V)), Spawn(cellServer))(
+          Let('cell, cellTypePrivate(TVar('V)), SpawnImg(cellServer))(
             Par(
               Send(
                 ServiceRef(Var('cell), 's),
@@ -45,11 +45,11 @@ class TypeCheckTest extends FunSuite {
 
 
   test("cellServer typeCheck") {
-    assert(TUniv('V, cellTypePrivate(TVar('V)).rep) === typeCheck(Map(), Map(), TAbs('V, cellServer)))
+    assert(TUniv('V, cellTypePrivate(TVar('V)).rep) === typeCheck(Map(), Map(), Map(), TAbs('V, cellServer)))
   }
 
   test("cellFactoryServer typeCheck factory") {
-    assert(cellFactoryServerType === typeCheck(Map(), Map(), cellFactoryServer))
+    assert(cellFactoryServerType === typeCheck(Map(), Map(), Map(), cellFactoryServer))
   }
 
   // TODO reinsert these tests, add type annotations

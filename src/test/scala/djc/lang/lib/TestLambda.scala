@@ -10,12 +10,7 @@ import djc.lang.Syntax._
 import djc.lang.SyntaxDerived._
 
 
-class TestLambda1 extends TestLambda(nondeterm_1_subst.Semantics)
-//class TestLambda2 extends TestLambda(nondeterm_2_env.Semantics)
-//class TestLambda3 extends TestLambda(nondeterm_3_routed.SemanticsFactory)
-//class TestLambda4 extends TestLambda(nondeterm_4_grouped.SemanticsFactory)
-//class TestLambda5 extends TestLambda(nondeterm_5_parallel.SemanticsFactory)
-//class TestLambda6 extends TestLambda(concurrent_6_thread.SemanticsFactory)
+class TestLambda6 extends TestLambda(concurrent_6_thread.SemanticsFactory)
 
 
 class TestLambda[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem) {
@@ -42,7 +37,7 @@ class TestLambda[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem) {
   val fooPrintService = ServiceRef(
     LocalServer(Rule(
       Bag(Pattern('foo)),
-      Send(ServiceRef(Spawn(PRINT_SERVER_NO), 'PRINT), ServiceRef(Var('this), 'foo)))),
+      Send(ServiceRef(SpawnImg(PRINT_SERVER_NO), 'PRINT), ServiceRef(Var('this), 'foo)))),
     'foo)
   val app2 = Send(ServiceRef(lam1, 'app), fooPrintService, resultService)
   testInterpUntyped("app2", app2, Set(Bag(PRINT_NO(fooPrintService))))
@@ -53,12 +48,12 @@ class TestLambda[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem) {
 
   val toBool = LocalService('trans ?('b, 'k), App(App('b, Bool.tru.eraseType), Bool.fal.eraseType, 'k))
 
-  testInterpUntyped("toBool tru = true", Par(toBool !!(tru, Spawn(PRINT_SERVER_NO) ~> 'PRINT)), Set(Bag(PRINT_NO(Bool.tru.eraseType))))
-  testInterpUntyped("toBool fal = false", Par(toBool !!(fal, Spawn(PRINT_SERVER_NO) ~> 'PRINT)), Set(Bag(PRINT_NO(Bool.fal.eraseType))))
+  testInterpUntyped("toBool tru = true", Par(toBool !!(tru, SpawnImg(PRINT_SERVER_NO) ~> 'PRINT)), Set(Bag(PRINT_NO(Bool.tru.eraseType))))
+  testInterpUntyped("toBool fal = false", Par(toBool !!(fal, SpawnImg(PRINT_SERVER_NO) ~> 'PRINT)), Set(Bag(PRINT_NO(Bool.fal.eraseType))))
 
 
   val or = Lambda('p, Lambda('q, App(App('p, tru), 'q)))
-  def or(p: Exp, q: Exp): Exp = App(App(or, p), q, Spawn(PRINT_SERVER_NO) ~> 'PRINT)
+  def or(p: Exp, q: Exp): Exp = App(App(or, p), q, SpawnImg(PRINT_SERVER_NO) ~> 'PRINT)
 
   testInterpUntyped("T or T", Par(or(tru, tru)), Set(Bag(PRINT_NO(tru))))
   testInterpUntyped("T or F", Par(or(tru, fal)), Set(Bag(PRINT_NO(tru))))

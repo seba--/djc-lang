@@ -8,14 +8,14 @@ object SyntaxDerived {
   implicit def makeParSend(s: Send) = Par(s)
 
   def Let(x: Symbol, s: Exp, p: Exp): Exp = {
-    val srv = Spawn(ServerImpl(Rule(Bag(Pattern('def, x)), p)))
+    val srv = SpawnImg(ServerImpl(Rule(Bag(Pattern('def, x)), p)))
     Send(ServiceRef(srv, 'def), s)
   }
 
-  def LocalService(p: Pattern, e: Exp) = ServiceRef(Spawn(true,ServerImpl(Rule(Bag(p), e))), p.name)
+  def LocalService(p: Pattern, e: Exp) = ServiceRef(SpawnImg(true,ServerImpl(Rule(Bag(p), e))), p.name)
 
   def Lambda(x: Symbol, e: Exp): Exp =
-    Spawn(true, ServerImpl(
+    SpawnImg(true, ServerImpl(
       Rule(
         Bag(Pattern('app, x, 'k)),
         CPS(e, Var('k)))))

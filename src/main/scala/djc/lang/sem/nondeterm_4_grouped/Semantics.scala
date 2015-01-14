@@ -10,7 +10,7 @@ import djc.lang.FlattenPar.flattenPars
 import scala.collection.generic.CanBuildFrom
 import scala.collection.mutable.Builder
 
-
+@deprecated("obsolete semantics do not use", "")
 object SemanticsFactory extends ISemanticsFactory[(Value, ServerSends)] {
 
   def newInstance() = {

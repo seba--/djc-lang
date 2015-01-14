@@ -25,7 +25,7 @@ trait TypedSyntaxFamily {
     def toFamily(TF: TSF): TF.Exp
   }
 
-  case class Addr(i: Int) extends Exp {
+  case class Addr(i: Symbol) extends Exp {
     def eraseType = Syntax.Addr(i)
 
     def toFamily(TF: TSF) = TF.Addr(i)
@@ -36,9 +36,12 @@ trait TypedSyntaxFamily {
     def toFamily(TF: TSF) = TF.NULL
   }
 
-  case class Img(template: Exp, buffer: Queue[Send]) extends Exp {
-    def eraseType = Syntax.Img(template.eraseType, buffer map (_.eraseType))
-    def toFamily(TF: TSF) = TF.Img(template.toFamily(TF), buffer map (_.toFamily(TF)))
+  case class Img(template: Exp, buffer: Bag[Syntax.Request]) extends Exp {
+    def eraseType = Syntax.Img(template.eraseType, buffer)
+    def toFamily(TF: TSF) = TF.Img(template.toFamily(TF), buffer)
+  }
+  object Img {
+    def apply(template: Exp): Img = new Img(template, Bag())
   }
 
   case class Snap(addr: Exp) extends Exp {
@@ -113,7 +116,6 @@ trait TypedSyntaxFamily {
 
   case class Spawn(local: Boolean, e: Exp) extends Exp {
     override def eraseType = Syntax.Spawn(local, e.eraseType)
-
     override def toFamily(TF: TSF) = TF.Spawn(local, e.toFamily(TF))
   }
   object Spawn {
@@ -123,12 +125,19 @@ trait TypedSyntaxFamily {
     def apply(e: Exp): Spawn = Spawn(true, e)
   }
   object Server {
-    def apply(rules: List[Rule]): Spawn = Spawn(false, ServerImpl(rules))
-    def apply(rules: Rule*): Spawn = Spawn(false, ServerImpl(List(rules: _*)))
+    def apply(rules: List[Rule]): Spawn = Spawn(false, Img(ServerImpl(rules), Bag()))
+    def apply(rules: Rule*): Spawn = Spawn(false, Img(ServerImpl(List(rules: _*)), Bag()))
   }
   object LocalServer {
-    def apply(rules: List[Rule]): Spawn = Spawn(true, ServerImpl(rules))
-    def apply(rules: Rule*): Spawn = Spawn(true, ServerImpl(List(rules: _*)))
+    def apply(rules: List[Rule]): Spawn = Spawn(true, Img(ServerImpl(rules), Bag()))
+    def apply(rules: Rule*): Spawn = Spawn(true, Img(ServerImpl(List(rules: _*)), Bag()))
+  }
+  object SpawnImg {
+    def apply(e: Exp): Spawn = new Spawn(false, Img(e, Bag()))
+    def apply(local: Boolean, e: Exp): Spawn = new Spawn(local, Img(e))
+  }
+  object SpawnLocalImg {
+    def apply(e: Exp): Spawn = new Spawn(true, Img(e))
   }
 
   case class TApp(p: Exp, t: Type) extends Exp {
@@ -305,7 +314,7 @@ trait TypedSyntaxFamily {
       case Addr(i) => Addr(i)
       case NULL => NULL
       case Img(template, buffer) =>
-        Img(map(template), (buffer map (map(_).asInstanceOf[Send])))
+        Img(map(template), buffer)
       case Snap(addr) =>
         Snap(map(addr))
       case Repl(addr, img) =>
@@ -360,7 +369,7 @@ trait TypedSyntaxFamily {
       case Addr(i) => init
       case NULL => init
       case Img(template, buffer) =>
-        buffer.foldLeft(fold(init)(template))(fold(_)(_))
+        fold(init)(template)
       case Snap(addr) =>
         fold(init)(addr)
       case Repl(addr, img) =>
@@ -414,7 +423,7 @@ trait TypedSyntaxFamily {
       case Addr(i) => init
       case NULL => init
       case Img(template, buffer) =>
-        fold(buffer.lazyFoldr(init)((e, m) => fold(m)(e)))(template)
+        fold(init)(template)
       case Snap(addr) =>
         fold(init)(addr)
       case Repl(addr, img) =>

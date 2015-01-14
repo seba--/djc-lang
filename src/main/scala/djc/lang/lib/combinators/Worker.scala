@@ -9,7 +9,7 @@ object Worker {
     Rule('init?(), Par()),
     Rule(
       'work?('thunk -> TThunk('K), 'k -> ?('K)),
-      SpawnLocal('thunk)~>'$force!!('k)
+      SpawnLocalImg('thunk)~>'$force!!('k)
     )
   ))
 }

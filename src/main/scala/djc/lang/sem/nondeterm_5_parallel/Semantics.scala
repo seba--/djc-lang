@@ -8,6 +8,7 @@ import Data._
 import Router._
 import scala.collection.immutable.ListMap
 
+@deprecated("obsolete semantics do not use", "")
 object SemanticsFactory extends ISemanticsFactory[(Value, ServerSends)] {
   def newInstance() = {
     val router= new Router

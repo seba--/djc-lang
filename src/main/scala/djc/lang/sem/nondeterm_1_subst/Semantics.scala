@@ -18,6 +18,7 @@ import djc.lang.Syntax.ServiceRef
 import djc.lang.Syntax.Rule
 import djc.lang.FlattenPar.flattenPars
 
+@deprecated("obsolete semantics do not use", "")
 object Semantics extends AbstractSemantics[Value] with ISemanticsFactory[Value] {
   import Crossproduct._
 

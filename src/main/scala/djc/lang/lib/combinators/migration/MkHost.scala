@@ -23,7 +23,7 @@ object MkHost extends Combinator {
           ServerImpl (
             Rule('host?('image -> 'A, 'k -> ?(TInteger)), 'vms?('map -> TM)) {
               Let(TInternal('A))('id, TInteger, freshInt()) {
-                Let('inst, TSrv('A), Spawn('image)) {
+                Let('inst, TSrv('A), SpawnImg('image)) {
                   'this~>'vms!!('map.insert(TInteger, TP, Var('id) -> pair(TP, 'image, 'inst))) && 'k!!'id
                 }
               }

@@ -22,7 +22,7 @@ object TypedSyntaxDerived {
   //  }
 
   def Letk(x: Symbol, xt: Type, s: Send)(p: Exp): Exp = {
-    val cont = SpawnLocal(ServerImpl(Rule('$letkont ? (x -> xt), p))) ~> '$letkont
+    val cont = SpawnLocalImg(ServerImpl(Rule('$letkont ? (x -> xt), p))) ~> '$letkont
     Send(s.rcv, s.args :+ cont)
   }
 
@@ -64,13 +64,13 @@ object TypedSyntaxDerived {
 
   def Lambda(x: Symbol, t: (Type,Type), e: Exp): Exp = Lambda(x, t._1, e, t._2)
   def Lambda(x: Symbol, xt: Type, e: Exp, resT: Type): Exp =
-      SpawnLocal(ServerImpl(
+      SpawnLocalImg(ServerImpl(
         Rule(
           'app?(x -> xt, 'k-> ?(resT)),
           'k!!(e))))~>'app
   def Lambda(xs: List[(Symbol,Type)], e: Exp, resT: Type): Exp = {
     val args = (xs :+ ('k -> ?(resT))).toSeq
-    SpawnLocal(ServerImpl(
+    SpawnLocalImg(ServerImpl(
       Rule(
         'app ?(args:_*),
         'k !! (e)))) ~> 'app
@@ -89,7 +89,7 @@ object TypedSyntaxDerived {
     def Else(e: Exp): Exp =
       Send(
         ServiceRef(
-          SpawnLocal(
+          SpawnLocalImg(
             BaseCall(djc.lang.base.Bool.If,
               c,
               Thunk(t),

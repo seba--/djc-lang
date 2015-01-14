@@ -13,7 +13,7 @@ object Worker {
     Rule('init?(), Par()),
     Rule(
       'work?('task -> TTask),
-      SpawnLocal('task)~>'run!!()
+      SpawnLocalImg('task)~>'run!!()
     )
   )
 
@@ -21,7 +21,7 @@ object Worker {
     Rule('init?(), Par()),
     Rule(
       'work?('task -> TTaskK('K), 'k -> ?('K)),
-      SpawnLocal('task)~>'run!!('k)
+      SpawnLocalImg('task)~>'run!!('k)
     )
   ))
 

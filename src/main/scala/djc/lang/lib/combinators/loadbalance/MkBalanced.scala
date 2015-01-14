@@ -22,7 +22,7 @@ object MkBalanced extends Combinator {
         Let('lbWorker, TWorker('A),
           ServerImpl (
             Rule('init?()) {
-              Letk(TInternal('A,'W))('spawned, TInstL('W), MapK('W, TSrv('W))!!('workers, Lambda('w, TVar('W) -> TSrv('W), Spawn('w)))) {
+              Letk(TInternal('A,'W))('spawned, TInstL('W), MapK('W, TSrv('W))!!('workers, Lambda('w, TVar('W) -> TSrv('W), SpawnImg('w)))) {
                      'this~>'insts!!('spawned) && ForEach(TSrv('W))!!('spawned, Lambda('inst, TSrv('W) -> Unit, 'inst~>'init!!()))
                   }
             },

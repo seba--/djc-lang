@@ -20,7 +20,7 @@ object MkStoppable extends Combinator {
         Let('stoppable, TStWorker('A),
           (ServerImpl (
             Rule('init?()) {
-              Let(TInternal('A, 'W))('w, TSrv('W), SpawnLocal('worker)) {
+              Let(TInternal('A, 'W))('w, TSrv('W), SpawnLocalImg('worker)) {
                 'w~>'init!!() && 'this~>'instance!!'w && 'this~>'alive!!()
               }
             },

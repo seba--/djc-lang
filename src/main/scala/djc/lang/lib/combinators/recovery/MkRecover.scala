@@ -26,7 +26,7 @@ object MkRecover extends Combinator {
         Let('selfrecovering, TWorker('A),
           ServerImpl (
             Rule('init?()) {
-              Let(TInternal('A, 'W))('w, TSrv('W), SpawnLocal('worker)) {
+              Let(TInternal('A, 'W))('w, TSrv('W), SpawnLocalImg('worker)) {
                 'w~>'init!!() && 'this~>'inst!!'w && 'this~>'pending!!nil(TP)
               }
             },

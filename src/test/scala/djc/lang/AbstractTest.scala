@@ -15,12 +15,12 @@ abstract class AbstractTest[V](semFactory: ISemanticsFactory[V]) extends FunSuit
   val PRINT_SERVER_NO = PRINT_SERVER.eraseType
   val CONST_SERVER = TAbs('V, UnsafeCast(ServerImpl(Rule(Bag(Pattern('CONST)), Par())), TSrvRep('CONST -> ?(TVar('V)))))
   val CONST_SERVER_NO = CONST_SERVER.eraseType
-  val sigmap = Substitution('Print, Spawn(_PRINT_SERVER).eraseType)
-  val sigmac = Substitution('Const, Spawn(CONST_SERVER).eraseType)
+  val sigmap = Substitution('Print, SpawnImg(_PRINT_SERVER).eraseType)
+  val sigmac = Substitution('Const, SpawnImg(CONST_SERVER).eraseType)
 
-  def PRINT(e: Exp) = Spawn(PRINT_SERVER(?()))~>'PRINT !! (e)
-  def PRINT(t: Type, e: Exp) = Spawn(PRINT_SERVER(t))~>'PRINT !! (e)
-  def PRINT_NO(e: Syntax.Exp) = Syntax.Send(Syntax.ServiceRef(Syntax.Spawn(PRINT_SERVER_NO), 'PRINT), e)
+  def PRINT(e: Exp) = SpawnImg(PRINT_SERVER(?()))~>'PRINT !! (e)
+  def PRINT(t: Type, e: Exp) = SpawnImg(PRINT_SERVER(t))~>'PRINT !! (e)
+  def PRINT_NO(e: Syntax.Exp) = Syntax.Send(Syntax.ServiceRef(Syntax.SpawnImg(PRINT_SERVER_NO), 'PRINT), e)
 
   def testInterp(s: String, p: TypedLanguage.Par, expected: Bag[Syntax.Send] => Boolean): Unit =
     testInterp(s, p.eraseType, expected)

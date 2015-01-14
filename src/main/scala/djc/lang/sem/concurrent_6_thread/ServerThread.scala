@@ -23,14 +23,14 @@ class ServerThread extends Thread {
 
   def hasNewMessages = synchronized(servers).exists(_._2.hasNewMessages)
 
-  def receiveRequest(cl: ISendVal) {
+  def receiveRequest(addr: ServerAddr, cl: Request) {
     synchronized { _requestCounter += 1 }
 
     if (terminate || terminated) {
       throw new IllegalStateException(s"Received send after server termination ($terminate,$terminated): $cl")
     }
 
-    cl.rcvAddr match {
+    addr match {
       case ServerAddr(addr, port) => servers(port).receiveRequest(cl)
     }
   }

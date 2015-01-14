@@ -8,11 +8,14 @@ object Syntax {
 
   abstract class Exp
 
-  case class Addr(i: Int) extends Exp
+  case class Addr(i: Symbol) extends Exp
 
   case object NULL extends Exp
 
-  case class Img(template: Exp, buffer: Queue[Send]) extends Exp
+  case class Img(template: Exp, buffer: Bag[Request]) extends Exp
+  object Img {
+    def apply(template: Exp): Img = new Img(template, Bag())
+  }
 
   case class Snap(addr: Exp) extends Exp
 
@@ -39,8 +42,8 @@ object Syntax {
   }
   object ServerImpl { def apply(rules: Rule*): ServerImpl = new ServerImpl(List(rules:_*)) }
   object LocalServer {
-    def apply(rules: List[Rule]): Spawn = Spawn(true, ServerImpl(rules))
-    def apply(rules: Rule*): Spawn = Spawn(true, ServerImpl(List(rules: _*)))
+    def apply(rules: List[Rule]): Spawn = Spawn(true, Img(ServerImpl(rules), Bag()))
+    def apply(rules: Rule*): Spawn = Spawn(true, Img(ServerImpl(List(rules: _*)), Bag()))
   }
 
   case class Spawn(local: Boolean, e: Exp) extends Exp {
@@ -54,9 +57,17 @@ object Syntax {
     override def equals(a: Any) = a.isInstanceOf[Spawn] && a.asInstanceOf[Spawn].e == e
     override def hashCode = e.hashCode
   }
-  object Spawn { def apply(e: Exp): Spawn = Spawn(false, e) }
+  object Spawn {
+    def apply(e: Exp): Spawn = Spawn(false, e)
+  }
   object SpawnAny { def apply(e: Exp): SpawnAny = new SpawnAny(e) }
-
+  object SpawnImg {
+    def apply(e: Exp): Spawn = new Spawn(false, Img(e, Bag()))
+    def apply(local: Boolean, e: Exp): Spawn = new Spawn(local, Img(e))
+  }
+  object SpawnLocalImg {
+    def apply(e: Exp): Spawn = new Spawn(true, Img(e))
+  }
   case class Rule(ps: Bag[Pattern], p: Exp)
 
   case class Pattern(name: Symbol, params: List[Symbol])
@@ -77,7 +88,7 @@ object Syntax {
     def apply(b: BaseOp, es: Exp*): BaseCall = BaseCall(b, List(es:_*))
   }
 
-
+  case class Request(svc: Symbol, args: List[Value])
 
 
   implicit def varSymbol(s: Symbol) = Var(s)
@@ -113,6 +124,14 @@ object Syntax {
     def apply(prog: Exp): Exp = map(prog)
 
     def map(prog: Exp): Exp = prog match {
+      case Addr(i) => Addr(i)
+      case NULL => NULL
+      case Img(template, buffer) =>
+        Img(map(template), buffer)
+      case Snap(addr) =>
+        Snap(map(addr))
+      case Repl(addr, img) =>
+        Repl(map(addr), map(img))
       case Par(ps) =>
         Par(ps map map)
       case Send(p, args) =>
@@ -139,6 +158,14 @@ object Syntax {
 
   trait Fold {
     def fold[T](init: T)(prog: Exp): T = prog match {
+      case Addr(i) => init
+      case NULL => init
+      case Img(template, buffer) =>
+        fold(init)(template)
+      case Snap(addr) =>
+        fold(init)(addr)
+      case Repl(addr, img) =>
+        fold(fold(init)(addr))(img)
       case Par(ps) =>
         ps.foldLeft(init)(fold(_)(_))
       case Send(p, args) =>

@@ -8,7 +8,7 @@ import Data._
 import Router._
 import djc.lang.FlattenPar.flattenPars
 
-
+@deprecated("obsolete semantics do not use", "")
 object SemanticsFactory extends ISemanticsFactory[Value] {
 
   def newInstance() = {

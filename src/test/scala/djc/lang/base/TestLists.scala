@@ -44,7 +44,7 @@ class TestLists[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem) {
   val l3 = 1 :: 2.0 :: nil(Ti)
   test("Heterogenuous list") {
     intercept[TypeCheckException] {
-      typeCheck(Map(), Map(), l3)
+      typeCheck(Map(), Map(), Map(), l3)
     }
   }
 
@@ -57,7 +57,7 @@ class TestLists[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem) {
   testInterp("List concat", p(TList(Ts), lst(Ts, "cloud") +++ lst(Ts, "calculus")), res(lst(Ts, "cloud", "calculus")))
   testType("List concat", p(TList(Ts), lst(Ts, "cloud") +++ lst(Ts, "calculus")), Unit)
 
-  val polymorph = TAbs('alpha, Spawn(TApp(PRINT_SERVER, TList('alpha)))~>'PRINT!!(nil('alpha)))
+  val polymorph = TAbs('alpha, SpawnImg(TApp(PRINT_SERVER, TList('alpha)))~>'PRINT!!(nil('alpha)))
   testInterp("Polymorphic", Par(polymorph(Ti)), res(lst(Ti)))
   testType("Polymorphic", polymorph, TUniv('alpha, Unit))
 }

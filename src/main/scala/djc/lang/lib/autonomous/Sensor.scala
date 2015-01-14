@@ -45,5 +45,5 @@ object Sensor {
   )
 
   def testSensor(t: Type, sensorImpl: Exp) =
-    Spawn(sensorLogger(t))~>'log!!(Spawn(sensorImpl))
+    SpawnImg(sensorLogger(t))~>'log!!(SpawnImg(sensorImpl))
 }

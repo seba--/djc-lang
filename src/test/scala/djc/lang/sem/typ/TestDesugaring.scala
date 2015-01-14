@@ -9,18 +9,13 @@ import djc.lang.base.Integer._
 import djc.lang.base.IntegerCompare._
 import util.Bag
 
-class TestDesugarings1 extends TestDesugarings(nondeterm_1_subst.Semantics)
-class TestDesugarings2 extends TestDesugarings(nondeterm_2_env.Semantics)
-class TestDesugarings3 extends TestDesugarings(nondeterm_3_routed.SemanticsFactory)
-class TestDesugarings4 extends TestDesugarings(nondeterm_4_grouped.SemanticsFactory)
-class TestDesugarings5 extends TestDesugarings(nondeterm_5_parallel.SemanticsFactory)
 class TestDesugarings6 extends TestDesugarings(concurrent_6_thread.SemanticsFactory)
 
 class TestDesugarings[V](sem: ISemanticsFactory[V]) extends AbstractTest(sem)  {
 
   val TTestSrv = TSrv(TSrvRep('echo -> ?(TInteger), 'test -> ?()))
   def testSrv(testBody: Exp) = {
-    Let('print, TSrv(TSrvRep('PRINT -> ?(TInteger))), Spawn(TApp(PRINT_SERVER, TInteger))) {
+    Let('print, TSrv(TSrvRep('PRINT -> ?(TInteger))), SpawnImg(TApp(PRINT_SERVER, TInteger))) {
       Server(Rule(Bag(Pattern('echo, 'n -> TInteger)),
         'print~>'PRINT !! 'n),
         Rule(Bag(Pattern('test)), testBody)) ~> 'test !!()
