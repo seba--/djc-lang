@@ -11,7 +11,7 @@ import djc.lang.sem._
 import djc.lang.typ.Checker._
 import util.Bag
 
-class TestPairs1 extends TestPairs(nondeterm_1_subst.Semantics)
+class TestPairs6 extends TestPairs(concurrent_6_thread.SemanticsFactory)
 //class TestLambda2 extends TestPairs(nondeterm_2_env.Semantics)
 //class TestLambda3 extends TestPairs(nondeterm_3_routed.SemanticsFactory)
 //class TestLambda4 extends TestPairs(nondeterm_4_grouped.SemanticsFactory)

@@ -171,19 +171,26 @@ object Checker {
 //    case _ if {println(s"gammma: ${gamma.keys}");false} => ?()
     case NULL => TImg(TNULL)
 
-    case Img(srvt@ServerImpl(rules), buffer) =>
+    case Img(srvt, buffer) =>
       val t = typeCheck(gamma, tgamma, tlocs, srvt)
-      buffer.forall {
-        case s@Syntax.Request(svc, args) =>
-          val TSvc(targs) = promote(tgamma)(srvt.signature.svcs.getOrElse(svc, throw TypeCheckException(s"T-Img: Encountered service reference $svc which is not defined in template $srvt")))
-          val argsValid = true //((args map (_.toExp)) zip targs) forall { case (e, t) => subtype(tgamma)(typeCheck(gamma, tgamma, tlocs, e), t) } //TODO fix this
-          if (!argsValid)
-            throw TypeCheckException(s"T-Img: Send value $s has wrong argument types")
-          true
+      promote(tgamma)(t) match {
+        case TNULL =>
+          TImg(t)
+        case TSrvRep(svcs) =>
+          buffer.forall {
+            case s@Syntax.Request(svc, args) =>
+              val TSvc(targs) = promote(tgamma)(svcs.getOrElse(svc, throw TypeCheckException(s"T-Img: Encountered service reference $svc which is not defined in template $srvt")))
+              val argsValid = true //((args map (_.toExp)) zip targs) forall { case (e, t) => subtype(tgamma)(typeCheck(gamma, tgamma, tlocs, e), t) } //TODO fix this
+              if (!argsValid)
+                throw TypeCheckException(s"T-Img: Send value $s has wrong argument types")
+              true
 
-        case x => throw TypeCheckException(s"T-Img: Encountered non-send-value $x in buffer of server image $p")
+            case x => throw TypeCheckException(s"T-Img: Encountered non-send-value $x in buffer of server image $p")
+          }
+          TImg(t)
+        case t2 => throw TypeCheckException(s"T-Img: First argument $srvt to Img is not a server template, got type $t2 instead")
       }
-      TImg(t)
+
 
     case Addr(i) if tlocs.isDefinedAt(i) =>
       promote(tgamma)(tlocs(i)) match {
