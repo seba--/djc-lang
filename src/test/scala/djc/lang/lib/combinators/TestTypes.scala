@@ -11,7 +11,7 @@ class TestTypes extends TypeTests {
 
 
   val tests: List[Combinator] = List(
-    AnyK, FilterK, ForEach, MapK, MkStoppable, MkBalanced, MkLoadAware, MkRoundRobin, MkHost, MkRecover, FoldK
+    AnyK, FilterK, ForEach, MapK, MkStoppable, MkBalanced, MkLoadAware, MkRoundRobin, MkHost, MkRecover, FoldK, PerKey
   )
 
   tests.foreach { combinator =>

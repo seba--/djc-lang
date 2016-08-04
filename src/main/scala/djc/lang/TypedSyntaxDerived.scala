@@ -69,12 +69,27 @@ object TypedSyntaxDerived {
         Rule(
           'app?(x -> xt, 'k-> ?(resT)),
           'k!!(e))))~>'app
+
+  def KLambda(x: Symbol, xt: Type, e: Exp, k: Symbol, resT: Type): Exp =
+    SpawnLocalImg(ServerImpl(
+      Rule(
+        'app?(x -> xt, k -> ?(resT)),
+        e)))~>'app
+
   def Lambda(xs: List[(Symbol,Type)], e: Exp, resT: Type): Exp = {
     val args = (xs :+ ('k -> ?(resT))).toSeq
     SpawnLocalImg(ServerImpl(
       Rule(
         'app ?(args:_*),
         'k !! (e)))) ~> 'app
+  }
+
+  def KLambda(xs: List[(Symbol,Type)], e: Exp, k: Symbol, resT: Type): Exp = {
+    val args = (xs :+ (k -> ?(resT))).toSeq
+    SpawnLocalImg(ServerImpl(
+      Rule(
+        'app ?(args:_*),
+         e))) ~> 'app
   }
 
   val TThunk = TSrvRep('$force -> ?())
