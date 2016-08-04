@@ -57,11 +57,11 @@ object ExtSyntaxDerived {
     val letSymbol = '$let$
 
     def apply(e: Exp): Exp = {
-      val self = Gensym.gensym('$self, freeVars(e))
+      val selfref = Gensym.gensym('$self, freeVars(e))
 
       //Modified substitution function which lets substs for 'this' pass into
       //rule bodies of local control expressions.
-      object PatchThisRefs extends Subst('this, Var(self)) {
+      object PatchThisRefs extends Subst('this, Var(selfref)) {
         def isThisTransparentName(sym: Symbol) = sym.name.startsWith("$") && !sym.name.endsWith("$")
 
         override def map: TMapE = {
@@ -82,7 +82,7 @@ object ExtSyntaxDerived {
         }
       }
 
-      ULocalService(letSymbol??(self), PatchThisRefs(e))!!('this)
+      ULocalService(letSymbol??(selfref), PatchThisRefs(e))!!('this)
     }
 
     def unapply(e: Exp): Option[(UServerImpl, Exp)] = e match {

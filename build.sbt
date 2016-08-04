@@ -2,7 +2,7 @@ name := "djc-lang"
 
 version := "0.0.0"
 
-scalaVersion := "2.11.4"
+scalaVersion := "2.11.8"
 
 scalacOptions ++= List(
 	"-deprecation",
