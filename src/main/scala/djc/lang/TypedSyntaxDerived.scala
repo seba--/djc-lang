@@ -15,6 +15,7 @@ object TypedSyntaxDerived {
   def TFun(t: Type, u: Type) = TSvc(t, TSvc(u))
 
   def TFun(t1: Type, t2: Type, u: Type) = TSvc(t1, t2, TSvc(u))
+  def TFun(t1: Type, t2: Type, t3: Type, u: Type) = TSvc(t1, t2, t3, TSvc(u))
 
   //  def Let(x: Symbol, xt: Type, s: Exp, p: Exp): Exp = {
   //    val srv = LocalServer(Rule(Bag(Pattern('def, x -> xt)), p))
